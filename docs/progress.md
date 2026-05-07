@@ -1,8 +1,8 @@
 # Into Your Stories — Project Progress
 
-**Last updated:** 2026-05-05  
+**Last updated:** 2026-05-06  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Design complete → Ready for implementation planning
+**Status:** Phase 1 implementation in progress — branch `phase-1/scaffold-auth`
 
 ---
 
@@ -20,6 +20,19 @@ A voice-first travel memory app. The user captures notes (push-to-talk or typed)
 |---|---|---|
 | Design spec | `docs/superpowers/specs/2026-05-05-travel-diary-app-design.md` | ✅ Complete |
 | UI mockups (8 screens, dark mode) | `docs/superpowers/specs/travel-diary-ui-mockups.html` | ✅ Complete |
+| Phase overview | `docs/superpowers/plans/phases-overview.md` | ✅ Complete |
+| Phase 1 plan | `docs/superpowers/plans/2026-05-06-phase-1-scaffold-auth.md` | ✅ Written |
+| Expo project scaffold | repo root | ✅ Done (Task 1) |
+| Dependencies installed | `package.json` | ✅ Done (Task 2) |
+| Theme constants | `src/theme/index.ts` | ✅ Done (Task 3) |
+| Supabase client | `src/lib/supabase.ts` | ⏳ Task 4 — needs Supabase project URL + anon key |
+| Navigation types | `src/navigation/types.ts` | ⏳ Pending |
+| AuthContext | `src/contexts/AuthContext.tsx` | ⏳ Pending |
+| Placeholder screens (4) | `src/screens/` | ⏳ Pending |
+| TabNavigator | `src/navigation/TabNavigator.tsx` | ⏳ Pending |
+| Login + Signup screens | `src/screens/auth/` | ⏳ Pending |
+| AppNavigator | `src/navigation/AppNavigator.tsx` | ⏳ Pending |
+| App.tsx wired | `App.tsx` | ⏳ Pending |
 
 Open `travel-diary-ui-mockups.html` in any browser to see all 8 screens.
 
@@ -102,21 +115,21 @@ AI-drafted, photos embedded contextually. Status: Draft (private, editable) or P
 
 ## What's Next
 
-**Immediate next step: implementation plan.**
+**Resume Phase 1, Task 4 — Supabase configuration.**
 
-Use the `superpowers:write-plan` skill to break the build into phases. Suggested phases:
+Task 4 requires a manual step: create a Supabase project and get the API keys.
 
-1. Project scaffolding (Expo + Supabase + navigation)
-2. Auth + trip CRUD
-3. Note capture (text + voice + photo import)
-4. AI smart tagging pipeline
-5. Map view with categorized pins
-6. Destinations view
-7. Semantic search (Cohere + pgvector)
-8. Blog generation + editor + publish
-9. Blog export (Markdown / HTML)
-10. Blog style onboarding (5 reference posts)
-11. Polish + QA
+1. Go to https://supabase.com → New project → name: `into-your-stories`
+2. Go to Project Settings → API → copy **Project URL** and **anon public** key
+3. Provide those two values to Claude to continue
+
+After Task 4, Tasks 5–12 are fully automated (subagent-driven).
+
+**Phase plan:** `docs/superpowers/plans/2026-05-06-phase-1-scaffold-auth.md`
+**All phases:** `docs/superpowers/plans/phases-overview.md`
+**Branch:** `phase-1/scaffold-auth`
+
+After Phase 1 is done, move to Phase 2: Trip CRUD + Home screen.
 
 ---
 
