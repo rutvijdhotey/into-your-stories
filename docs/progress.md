@@ -6,6 +6,12 @@
 
 ---
 
+## ⚠️ Supabase Credentials Setup
+
+> **DONE:** Credentials have been safely moved to `.env` file and `.env` is ignored by git.
+
+---
+
 ## What This App Is
 
 A voice-first travel memory and community app. Travelers capture notes, photos, and places on the go; when a trip ends, Claude drafts a polished blog post in their writing style. Published stories appear in a community discovery feed organized by destination — so anyone can learn about a place through other travelers' real experiences.
@@ -26,7 +32,7 @@ A voice-first travel memory and community app. Travelers capture notes, photos, 
 | Expo project scaffold | repo root | ✅ Done (Task 1) |
 | Dependencies installed | `package.json` | ✅ Done (Task 2) |
 | Theme constants | `src/theme/index.ts` | ✅ Done (Task 3) |
-| Supabase client | `src/lib/supabase.ts` | ⏳ Task 4 — needs Supabase project URL + anon key |
+| Supabase client | `src/lib/supabase.ts` | ✅ Done (Task 4) |
 | Navigation types | `src/navigation/types.ts` | ⏳ Pending |
 | AuthContext | `src/contexts/AuthContext.tsx` | ⏳ Pending |
 | Placeholder screens (4) | `src/screens/` | ⏳ Pending |
@@ -120,9 +126,7 @@ Home · Explore · Search · Blog + Global floating capture button
 2. **Re-run `superpowers:write-plan`** — implementation phases need to be rewritten to reflect community features, multi-user auth, web URL layer, and aggregated community map
 3. **Resume Phase 1** — scaffold + auth (multi-user now, not single user)
 
-**Key blocker for Phase 1:** Supabase project URL + anon key still needed.
-1. Go to https://supabase.com → New project → name: `into-your-stories`
-2. Project Settings → API → copy Project URL + anon public key
+**Key blocker for Phase 1 Cleared:** Supabase project URL + anon key configured.
 
 ---
 
