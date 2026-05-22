@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-21  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 1 complete — Tasks 1–12 done. Next: Phase 2 (Trip CRUD + Home screen).
+**Status:** Phase 1 code complete (PR #1 open) — manual iOS verification paused. Supabase project `dcejrbyujfcxartywpis` is auto-paused (free tier, idle > 7 days). Resume by restoring the project in the Supabase dashboard, then reload the simulator.
 
 ---
 
@@ -139,9 +139,21 @@ Home · Explore · Search · Blog + Global floating capture button
 | 11 | AppNavigator (`src/navigation/AppNavigator.tsx`) — auth gate | ✅ |
 | 12 | App.tsx wired (NavigationContainer + AuthProvider + SafeAreaProvider) | ✅ |
 
-**Manual verification needed:** Run `npm start` in Expo, sign up a test user, confirm email, sign in, see the tabbed app and the Sign out button on Home.
+## Resume checklist (next session)
 
-**Next: Phase 2** — Trip CRUD + Home screen content. See `docs/superpowers/plans/plan-02-trip-management.md`.
+1. **Restore Supabase project** at https://supabase.com/dashboard → project `dcejrbyujfcxartywpis` → click "Restore project". Wait ~1–2 min.
+2. Verify it's back: `curl -s -o /dev/null -w "HTTP %{http_code}\n" https://dcejrbyujfcxartywpis.supabase.co/auth/v1/health` should return `200`.
+3. `cd "Into Your Stories" && git checkout phase-1/auth-nav && npx expo start` then press `i`.
+4. Walk the verification checklist: signup (email + password + display name) → confirm email → sign in → swipe tabs (Home·Explore·Search·Blog) → kill/relaunch (session persists) → sign out.
+5. If all good, merge PR #1: https://github.com/rutvijdhotey/into-your-stories/pull/1.
+6. **Then start Phase 2** — Trip CRUD + Home screen content. Plan at `docs/superpowers/plans/plan-02-trip-management.md`.
+
+## Setup gotchas hit on 2026-05-21 (record so we don't re-hit)
+
+- **Xcode 17 needed an iOS simulator runtime download** — fresh installs don't ship with one. Settings → Platforms (or Components on older Xcode) → download iOS runtime.
+- **`babel-preset-expo` was missing from devDependencies** in the scaffold. Fixed via `npx expo install --fix`, which also aligned `jest`, `jest-expo`, `@types/jest` to SDK-54-compatible versions.
+- **peer-dep conflict** between `react@19.1.0` (Expo SDK 54) and `react-test-renderer@19.2.0` (pulled by `@testing-library/react-native`). Workaround: `npm install --legacy-peer-deps` whenever installing new deps. Proper fix later: pin `react-test-renderer` to `19.1.0`.
+- **Supabase free tier auto-pauses** after ~7 days of inactivity. Restore via dashboard before resuming dev.
 
 **Note:** UI mockups and phase plans were written before the community features design session. They'll need a pass before Phase 3+ but Phase 1 scope (scaffold + auth) is unaffected.
 
