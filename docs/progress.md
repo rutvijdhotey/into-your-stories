@@ -1,8 +1,8 @@
 # Into Your Stories — Project Progress
 
-**Last updated:** 2026-05-21  
+**Last updated:** 2026-05-22  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 2 in progress — plan written 2026-05-21 (20 tasks), executing via `superpowers:subagent-driven-development` on branch `phase-2/trip-management`.
+**Status:** Phase 2 complete ✅ — Trip CRUD + Home screen live; manual sim verified 2026-05-22. PR open on branch `phase-2/trip-management`. Next: Phase 3 (Note Capture).
 
 ---
 
@@ -40,6 +40,16 @@ A voice-first travel memory and community app. Travelers capture notes, photos, 
 | Login + Signup screens | `src/screens/auth/` | ✅ Done (Tasks 9–10) |
 | AppNavigator | `src/navigation/AppNavigator.tsx` | ✅ Done (Task 11) |
 | App.tsx wired | `App.tsx` | ✅ Done (Task 12) |
+| **Phase 2 plan** | `docs/superpowers/plans/2026-05-21-phase-2-trip-management.md` | ✅ Written + executed |
+| Supabase schema (profiles + trips + pgvector) | `supabase/migrations/00{1,2,2a,3,3a}_*.sql` | ✅ Phase 2 |
+| Trip service + pure helpers (TDD, 13 tests) | `src/services/` | ✅ Phase 2 |
+| `useTrips` / `useTripDetail` realtime hooks | `src/hooks/` | ✅ Phase 2 |
+| UI primitives (TripCard, TripStatusBadge, EmptyState, CreateTripSheet) | `src/components/` | ✅ Phase 2 |
+| TripDetail screen + Feed/Map placeholders | `src/screens/trip/` | ✅ Phase 2 |
+| MainStack navigation (TripDetail above tabs) | `src/navigation/MainStack.tsx` | ✅ Phase 2 |
+| HomeScreen — trips list, create, optimistic delete, sections | `src/screens/HomeScreen.tsx` | ✅ Phase 2 |
+| Database types | `src/lib/database.types.ts` | ✅ Phase 2 |
+| Jest config + datetimepicker config plugin | `jest.config.js`, `app.json` | ✅ Phase 2 |
 
 Open `travel-diary-ui-mockups.html` in any browser to see all 8 screens.
 
@@ -139,10 +149,41 @@ Home · Explore · Search · Blog + Global floating capture button
 | 11 | AppNavigator (`src/navigation/AppNavigator.tsx`) — auth gate | ✅ |
 | 12 | App.tsx wired (NavigationContainer + AuthProvider + SafeAreaProvider) | ✅ |
 
+## Phase 2 task summary
+
+| Task | What | Status |
+|---|---|---|
+| 1 | Supabase migrations dir + README | ✅ |
+| 2 | Migration 001 — enable pgvector | ✅ |
+| 3 | Migration 002 + 002a — profiles, RLS, trigger, secure-trigger | ✅ |
+| 4 | Migration 003 + 003a — trips, RLS, realtime, secure-trigger | ✅ |
+| 5 | Generated `database.types.ts` + typed supabase client | ✅ |
+| 6 | Jest configured (jest-expo preset) | ✅ |
+| 7 | `tripHelpers` (pure, TDD, 13 tests) | ✅ |
+| 8 | `tripService` CRUD wrappers | ✅ |
+| 9 | `useTrips` realtime hook + optimistic delete | ✅ |
+| 10 | `useTripDetail` realtime hook | ✅ |
+| 11 | `@react-native-community/datetimepicker` installed | ✅ |
+| 12 | `TripStatusBadge` | ✅ |
+| 13 | `EmptyState` | ✅ |
+| 14 | `TripCard` (long-press hook) | ✅ |
+| 15 | `CreateTripSheet` (pageSheet modal + inline date pickers) | ✅ |
+| 16+17 | `MainStack` + `TripDetailScreen` + Feed/Map placeholders | ✅ |
+| 18 | Functional `HomeScreen` with sections + delete + CTA | ✅ |
+| 19 | Manual sim verification (delete-instant fix applied) | ✅ |
+| 20 | progress.md + PR | ✅ |
+
+### Phase 2 follow-ups noticed during execution
+
+These got fixed inline; flagging here so future phases keep the muscle memory:
+- Supabase advisors flagged `handle_new_user` and `set_updated_at` as security-definer functions exposed via REST. Fixed with `revoke execute` migrations and `set search_path = ''`. New trigger functions in future phases should be locked down the same way from the start.
+- `pgvector` extension installed in `public` schema (advisor warns). Move to `extensions` schema in Phase 7 when actually using it.
+- `expo install` registered the datetimepicker config plugin in `app.json` — easy to forget to stage. When adding native deps, also `git status` after the install.
+
 ## Next session checklist
 
-1. **Phase 2 execution plan** — `docs/superpowers/plans/2026-05-21-phase-2-trip-management.md` (20 numbered tasks, supersedes the older design-doc `plan-02-trip-management.md`). Run via `superpowers:subagent-driven-development` on branch `phase-2/trip-management`. Schema scope is the minimal slice: `profiles` + `trips` + RLS + pgvector — other tables land with their phases.
-2. **Library calls locked in:** RN built-in `Modal presentationStyle="pageSheet"` for sheets; `@react-native-community/datetimepicker` for date pickers; `ActionSheetIOS` for long-press; text-only empty states.
+1. **Start Phase 3** — Note Capture (text + voice + photo + EXIF + GPS). Plan at `docs/superpowers/plans/plan-03-note-capture.md` — review against current design spec first; plan-03 predates the community design session.
+2. **Workflow rule:** every phase gets its own branch + PR into main. Don't commit phase implementation work directly to main; plan/docs prep on main is fine.
 3. If Supabase has auto-paused: restore at https://supabase.com/dashboard → project `dcejrbyujfcxartywpis` → "Restore project". Verify with `curl -s -o /dev/null -w "HTTP %{http_code}\n" https://dcejrbyujfcxartywpis.supabase.co/auth/v1/health` → `200` or `401` means awake.
 
 ## Setup gotchas hit on 2026-05-21 (record so we don't re-hit)
