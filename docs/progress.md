@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-22  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 2 merged ✅ — PR #2 (merge commit `b8489ec` on main); manual sim verified 2026-05-22. Next: Phase 3 (Note Capture).
+**Status:** Phase 3 in progress 🟡 — branch `phase-3/note-capture`, Task 1 of 22 complete (commit `f25b8a1`). Resume at Task 2 (Migration 004 — notes table). Last full merge: Phase 2 ✅ (PR #2, merge `b8489ec`).
 
 ---
 
@@ -50,6 +50,8 @@ A voice-first travel memory and community app. Travelers capture notes, photos, 
 | HomeScreen — trips list, create, optimistic delete, sections | `src/screens/HomeScreen.tsx` | ✅ Phase 2 |
 | Database types | `src/lib/database.types.ts` | ✅ Phase 2 |
 | Jest config + datetimepicker config plugin | `jest.config.js`, `app.json` | ✅ Phase 2 |
+| **Phase 3 plan** | `docs/superpowers/plans/2026-05-22-phase-3-note-capture.md` | ✅ Written; Task 1/22 executed |
+| Phase 3 deps + iOS location permission | `package.json`, `app.json` | ✅ Phase 3 Task 1 |
 
 Open `travel-diary-ui-mockups.html` in any browser to see all 8 screens.
 
@@ -180,19 +182,42 @@ These got fixed inline; flagging here so future phases keep the muscle memory:
 - `pgvector` extension installed in `public` schema (advisor warns). Move to `extensions` schema in Phase 7 when actually using it.
 - `expo install` registered the datetimepicker config plugin in `app.json` — easy to forget to stage. When adding native deps, also `git status` after the install.
 
-## Next session checklist
+## Phase 3 task summary (in progress)
 
-1. **Start Phase 3** — Note Capture (text + voice + photo + EXIF + GPS). Design-doc plan at `docs/superpowers/plans/plan-03-note-capture.md` predates the 2026-05-06 community redesign. Do the same prep we did for Phase 2:
-   - Freshness-check plan-03 against `docs/superpowers/specs/2026-05-06-into-your-stories-design.md`.
-   - Convert it into a numbered execution plan saved as `docs/superpowers/plans/YYYY-MM-DD-phase-3-note-capture.md`.
-   - Execute via `superpowers:subagent-driven-development` on a new branch `phase-3/note-capture`.
-2. **Workflow rule:** every phase gets its own branch + PR into main. Don't commit phase implementation work directly to main; plan/docs prep on main is fine. (Captured in memory as `feedback_per_phase_branch_pr.md`.)
-3. **Supabase project:** `dcejrbyujfcxartywpis` (org "Travel Diary App", slug `eztncwrnbtviqkrtcjsl`). If `mcp__supabase__list_projects` returns a different project on first call, the MCP plugin is reconfigured to a different account — that happened on 2026-05-22 and got fixed by editing the MCP entry URL to use `project_ref=dcejrbyujfcxartywpis` and re-authing as the right Supabase account.
-4. If Supabase has auto-paused after a week idle: restore at https://supabase.com/dashboard → project `dcejrbyujfcxartywpis` → "Restore project". Verify with `curl -s -o /dev/null -w "HTTP %{http_code}\n" https://dcejrbyujfcxartywpis.supabase.co/auth/v1/health` → `200` or `401` means awake.
-5. **Housekeeping (optional, not blocking Phase 3):** stale branches still in the repo after the Phase 1+2 merges:
-   - Local: `phase-1/scaffold-auth`, `phase-2/trip-management` (both fully merged into main).
-   - Remote: `origin/phase-1/auth-nav`, `origin/phase-1/scaffold-auth`.
-   - Safe to delete (`git branch -d <local>`, `git push origin --delete <remote>`) if you want a tidy branch list; leaving them is also fine.
+| Task | What | Status |
+|---|---|---|
+| 1 | Branch `phase-3/note-capture` + install `expo-location`, `expo-crypto`, `@react-native-community/netinfo` + iOS `NSLocationWhenInUseUsageDescription` | ✅ commit `f25b8a1` |
+| 2 | Migration 004 — `notes` table (RLS, `offline_id unique`, realtime) | ⏭ next |
+| 3 | Migration 005 — `trips.note_count` insert/delete triggers (hardened search_path + revokes) | ⏳ |
+| 4 | Regenerate `src/lib/database.types.ts` | ⏳ |
+| 5 | `noteHelpers` + tests (CATEGORIES, validateContent, formatRelativeTime) | ⏳ |
+| 6 | `offlineQueue` + tests (AsyncStorage queue + subscriber) | ⏳ |
+| 7 | `noteService` (createNote, listNotes, drainQueue) | ⏳ |
+| 8 | `locationService` (expo-location wrapper) | ⏳ |
+| 9 | `useConnectivity` + `useOnReconnect` hooks | ⏳ |
+| 10 | `useLocation` hook | ⏳ |
+| 11 | `useNotes` hook (server + queue merge + realtime) | ⏳ |
+| 12 | `CategoryPicker` component | ⏳ |
+| 13 | `TripSelector` component (0/1/many states) | ⏳ |
+| 14 | `NoteCard` component (shimmer + sync indicator) | ⏳ |
+| 15 | `NoteCaptureSheet` (pageSheet modal) | ⏳ |
+| 16 | `FloatingCaptureButton` (FAB) | ⏳ |
+| 17 | Wire `TripFeedScreen` to `useNotes` (FlatList of NoteCards) + pass `tripId` from TripDetail | ⏳ |
+| 18 | `MainStack` overlay (FAB + sheet + drain on mount / reconnect / foreground) | ⏳ |
+| 19 | DB smoke-test via MCP (insert/delete + note_count) | ⏳ |
+| 20 | Manual iOS simulator verification (online + offline + multi-trip + empty-trips + FAB persistence) | ⏳ |
+| 21 | Update `docs/progress.md` (mark Phase 3 complete, queue Phase 4) | ⏳ |
+| 22 | Push branch + open PR into main | ⏳ |
+
+### Resume instructions for next session
+
+1. **Working dir:** `/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories`. Confirm you're on branch `phase-3/note-capture` (`git rev-parse --abbrev-ref HEAD`). Last commit should be `f25b8a1 chore(phase-3): install expo-location, netinfo, expo-crypto`.
+2. **Plan:** execute `docs/superpowers/plans/2026-05-22-phase-3-note-capture.md` starting at **Task 2** via `superpowers:subagent-driven-development`. Pause between tasks for review.
+3. **Supabase project:** `dcejrbyujfcxartywpis` (org slug `eztncwrnbtviqkrtcjsl`). Last checked 2026-05-22, status `ACTIVE_HEALTHY`. If `mcp__supabase__list_projects` returns a different project, the MCP plugin is configured for the wrong account — fix by editing the MCP entry URL to use `project_ref=dcejrbyujfcxartywpis` and re-authing. If auto-paused, restore via https://supabase.com/dashboard → project `dcejrbyujfcxartywpis` → "Restore project".
+4. **`npx expo install` quirk hit on Task 1:** the plan's `npx expo install <deps> --legacy-peer-deps` form errored with `CommandError: Unexpected: --legacy-peer-deps`. Use `npx expo install <deps> -- --legacy-peer-deps` (with the `--` separator) instead.
+5. **app.json:** the `expo-location` plugin config and `ios.infoPlist.NSLocationWhenInUseUsageDescription` both carry the same permission string. That's intentional per the plan, even though the plugin alone would suffice — code reviewer flagged it as a minor duplication but it's not blocking.
+6. **Workflow rule still applies:** every phase has its own branch + PR into main. Don't commit Phase 3 work to main directly. (Memory: `feedback_per_phase_branch_pr.md`.)
+7. **Housekeeping (optional, not blocking):** stale branches from Phase 1+2 still present — local `phase-1/scaffold-auth`, `phase-2/trip-management`; remote `origin/phase-1/auth-nav`, `origin/phase-1/scaffold-auth`. All fully merged into main; safe to delete.
 
 ## Setup gotchas hit on 2026-05-21 (record so we don't re-hit)
 
