@@ -1,8 +1,8 @@
 # Into Your Stories — Project Progress
 
-**Last updated:** 2026-05-06  
+**Last updated:** 2026-05-21  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Design updated (2026-05-06 deep design session) — Phase 1 implementation paused pending design re-alignment
+**Status:** Phase 1 code complete (PR #1 open) — manual iOS verification paused. Supabase project `dcejrbyujfcxartywpis` is auto-paused (free tier, idle > 7 days). Resume by restoring the project in the Supabase dashboard, then reload the simulator.
 
 ---
 
@@ -33,13 +33,13 @@ A voice-first travel memory and community app. Travelers capture notes, photos, 
 | Dependencies installed | `package.json` | ✅ Done (Task 2) |
 | Theme constants | `src/theme/index.ts` | ✅ Done (Task 3) |
 | Supabase client | `src/lib/supabase.ts` | ✅ Done (Task 4) |
-| Navigation types | `src/navigation/types.ts` | ⏳ Pending |
-| AuthContext | `src/contexts/AuthContext.tsx` | ⏳ Pending |
-| Placeholder screens (4) | `src/screens/` | ⏳ Pending |
-| TabNavigator | `src/navigation/TabNavigator.tsx` | ⏳ Pending |
-| Login + Signup screens | `src/screens/auth/` | ⏳ Pending |
-| AppNavigator | `src/navigation/AppNavigator.tsx` | ⏳ Pending |
-| App.tsx wired | `App.tsx` | ⏳ Pending |
+| Navigation types | `src/navigation/types.ts` | ✅ Done (Task 5) |
+| AuthContext | `src/contexts/AuthContext.tsx` | ✅ Done (Task 6) |
+| Placeholder screens (4) | `src/screens/` | ✅ Done (Task 7) |
+| TabNavigator | `src/navigation/TabNavigator.tsx` | ✅ Done (Task 8) |
+| Login + Signup screens | `src/screens/auth/` | ✅ Done (Tasks 9–10) |
+| AppNavigator | `src/navigation/AppNavigator.tsx` | ✅ Done (Task 11) |
+| App.tsx wired | `App.tsx` | ✅ Done (Task 12) |
 
 Open `travel-diary-ui-mockups.html` in any browser to see all 8 screens.
 
@@ -122,11 +122,40 @@ Home · Explore · Search · Blog + Global floating capture button
 
 ## What's Next
 
-1. **Update UI mockups** — new screens needed: Explore, destination page, published post web view
-2. **Re-run `superpowers:write-plan`** — implementation phases need to be rewritten to reflect community features, multi-user auth, web URL layer, and aggregated community map
-3. **Resume Phase 1** — scaffold + auth (multi-user now, not single user)
+**Phase 1 is complete.** All 12 tasks done; `npx tsc --noEmit` passes clean. Branch: `phase-1/auth-nav`.
 
-**Key blocker for Phase 1 Cleared:** Supabase project URL + anon key configured.
+| Task | What | Status |
+|---|---|---|
+| 1 | Expo project scaffold | ✅ |
+| 2 | Dependencies installed | ✅ |
+| 3 | Theme constants (`src/theme/index.ts`) | ✅ |
+| 4 | Supabase client (`src/lib/supabase.ts`) — reads from `.env` | ✅ |
+| 5 | Navigation types (`src/navigation/types.ts`) | ✅ |
+| 6 | AuthContext (`src/contexts/AuthContext.tsx`) | ✅ |
+| 7 | Placeholder screens — Home, Explore, Search, Blog | ✅ |
+| 8 | TabNavigator (`src/navigation/TabNavigator.tsx`) | ✅ |
+| 9 | Login screen (`src/screens/auth/LoginScreen.tsx`) | ✅ |
+| 10 | Signup screen — email + password + display name | ✅ |
+| 11 | AppNavigator (`src/navigation/AppNavigator.tsx`) — auth gate | ✅ |
+| 12 | App.tsx wired (NavigationContainer + AuthProvider + SafeAreaProvider) | ✅ |
+
+## Resume checklist (next session)
+
+1. **Restore Supabase project** at https://supabase.com/dashboard → project `dcejrbyujfcxartywpis` → click "Restore project". Wait ~1–2 min.
+2. Verify it's back: `curl -s -o /dev/null -w "HTTP %{http_code}\n" https://dcejrbyujfcxartywpis.supabase.co/auth/v1/health` should return `200`.
+3. `cd "Into Your Stories" && git checkout phase-1/auth-nav && npx expo start` then press `i`.
+4. Walk the verification checklist: signup (email + password + display name) → confirm email → sign in → swipe tabs (Home·Explore·Search·Blog) → kill/relaunch (session persists) → sign out.
+5. If all good, merge PR #1: https://github.com/rutvijdhotey/into-your-stories/pull/1.
+6. **Then start Phase 2** — Trip CRUD + Home screen content. Plan at `docs/superpowers/plans/plan-02-trip-management.md`.
+
+## Setup gotchas hit on 2026-05-21 (record so we don't re-hit)
+
+- **Xcode 17 needed an iOS simulator runtime download** — fresh installs don't ship with one. Settings → Platforms (or Components on older Xcode) → download iOS runtime.
+- **`babel-preset-expo` was missing from devDependencies** in the scaffold. Fixed via `npx expo install --fix`, which also aligned `jest`, `jest-expo`, `@types/jest` to SDK-54-compatible versions.
+- **peer-dep conflict** between `react@19.1.0` (Expo SDK 54) and `react-test-renderer@19.2.0` (pulled by `@testing-library/react-native`). Workaround: `npm install --legacy-peer-deps` whenever installing new deps. Proper fix later: pin `react-test-renderer` to `19.1.0`.
+- **Supabase free tier auto-pauses** after ~7 days of inactivity. Restore via dashboard before resuming dev.
+
+**Note:** UI mockups and phase plans were written before the community features design session. They'll need a pass before Phase 3+ but Phase 1 scope (scaffold + auth) is unaffected.
 
 ---
 
