@@ -38,6 +38,7 @@ export default function TripSelector({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.scroll}
       contentContainerStyle={styles.chips}
     >
       {activeTrips.map((trip) => {
@@ -72,7 +73,8 @@ const styles = StyleSheet.create({
   link: { ...Typography.body, color: Colors.accent, fontWeight: '600' },
   singleRow: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   singleLabel: { ...Typography.heading, color: Colors.textPrimary },
-  chips: { gap: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
+  scroll: { flexGrow: 0 },
+  chips: { gap: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, alignItems: 'center' },
   chip: {
     borderRadius: 999,
     paddingHorizontal: Spacing.md,

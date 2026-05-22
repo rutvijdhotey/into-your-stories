@@ -12,6 +12,7 @@ export default function CategoryPicker({ value, onChange }: Props) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.scroll}
       contentContainerStyle={styles.row}
     >
       {CATEGORIES.map((c) => {
@@ -36,7 +37,8 @@ export default function CategoryPicker({ value, onChange }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: { paddingHorizontal: Spacing.md, gap: Spacing.sm, paddingVertical: Spacing.sm },
+  scroll: { flexGrow: 0 },
+  row: { paddingHorizontal: Spacing.md, gap: Spacing.sm, paddingVertical: Spacing.sm, alignItems: 'center' },
   pill: {
     borderRadius: 999,
     paddingHorizontal: Spacing.md,

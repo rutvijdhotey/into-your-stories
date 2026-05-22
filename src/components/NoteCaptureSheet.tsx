@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   input: {
     ...Typography.body,
     color: Colors.textPrimary,
-    minHeight: 120,
+    flex: 1,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     textAlignVertical: 'top',
