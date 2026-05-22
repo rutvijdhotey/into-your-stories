@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Colors } from '../theme';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
-import TabNavigator from './TabNavigator';
+import MainStack from './MainStack';
 import type { AuthStackParamList } from './types';
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -29,7 +29,7 @@ export default function AppNavigator() {
     );
   }
 
-  return session ? <TabNavigator /> : <AuthNavigator />;
+  return session ? <MainStack /> : <AuthNavigator />;
 }
 
 const styles = StyleSheet.create({
