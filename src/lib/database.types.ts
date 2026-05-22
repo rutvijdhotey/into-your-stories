@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      notes: {
+        Row: {
+          captured_at: string
+          category: string | null
+          city: string | null
+          content: string
+          created_at: string
+          id: string
+          lat: number | null
+          lng: number | null
+          offline_id: string
+          place_name: string | null
+          tagging_status: string
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          captured_at?: string
+          category?: string | null
+          city?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          offline_id: string
+          place_name?: string | null
+          tagging_status?: string
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          captured_at?: string
+          category?: string | null
+          city?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          offline_id?: string
+          place_name?: string | null
+          tagging_status?: string
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
