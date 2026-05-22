@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-22  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 2 complete ✅ — Trip CRUD + Home screen live; manual sim verified 2026-05-22. PR open on branch `phase-2/trip-management`. Next: Phase 3 (Note Capture).
+**Status:** Phase 2 merged ✅ — PR #2 (merge commit `b8489ec` on main); manual sim verified 2026-05-22. Next: Phase 3 (Note Capture).
 
 ---
 
@@ -182,9 +182,17 @@ These got fixed inline; flagging here so future phases keep the muscle memory:
 
 ## Next session checklist
 
-1. **Start Phase 3** — Note Capture (text + voice + photo + EXIF + GPS). Plan at `docs/superpowers/plans/plan-03-note-capture.md` — review against current design spec first; plan-03 predates the community design session.
-2. **Workflow rule:** every phase gets its own branch + PR into main. Don't commit phase implementation work directly to main; plan/docs prep on main is fine.
-3. If Supabase has auto-paused: restore at https://supabase.com/dashboard → project `dcejrbyujfcxartywpis` → "Restore project". Verify with `curl -s -o /dev/null -w "HTTP %{http_code}\n" https://dcejrbyujfcxartywpis.supabase.co/auth/v1/health` → `200` or `401` means awake.
+1. **Start Phase 3** — Note Capture (text + voice + photo + EXIF + GPS). Design-doc plan at `docs/superpowers/plans/plan-03-note-capture.md` predates the 2026-05-06 community redesign. Do the same prep we did for Phase 2:
+   - Freshness-check plan-03 against `docs/superpowers/specs/2026-05-06-into-your-stories-design.md`.
+   - Convert it into a numbered execution plan saved as `docs/superpowers/plans/YYYY-MM-DD-phase-3-note-capture.md`.
+   - Execute via `superpowers:subagent-driven-development` on a new branch `phase-3/note-capture`.
+2. **Workflow rule:** every phase gets its own branch + PR into main. Don't commit phase implementation work directly to main; plan/docs prep on main is fine. (Captured in memory as `feedback_per_phase_branch_pr.md`.)
+3. **Supabase project:** `dcejrbyujfcxartywpis` (org "Travel Diary App", slug `eztncwrnbtviqkrtcjsl`). If `mcp__supabase__list_projects` returns a different project on first call, the MCP plugin is reconfigured to a different account — that happened on 2026-05-22 and got fixed by editing the MCP entry URL to use `project_ref=dcejrbyujfcxartywpis` and re-authing as the right Supabase account.
+4. If Supabase has auto-paused after a week idle: restore at https://supabase.com/dashboard → project `dcejrbyujfcxartywpis` → "Restore project". Verify with `curl -s -o /dev/null -w "HTTP %{http_code}\n" https://dcejrbyujfcxartywpis.supabase.co/auth/v1/health` → `200` or `401` means awake.
+5. **Housekeeping (optional, not blocking Phase 3):** stale branches still in the repo after the Phase 1+2 merges:
+   - Local: `phase-1/scaffold-auth`, `phase-2/trip-management` (both fully merged into main).
+   - Remote: `origin/phase-1/auth-nav`, `origin/phase-1/scaffold-auth`.
+   - Safe to delete (`git branch -d <local>`, `git push origin --delete <remote>`) if you want a tidy branch list; leaving them is also fine.
 
 ## Setup gotchas hit on 2026-05-21 (record so we don't re-hit)
 
