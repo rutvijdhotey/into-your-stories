@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-21  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 1 code complete (PR #1 open) — manual iOS verification paused. Supabase project `dcejrbyujfcxartywpis` is auto-paused (free tier, idle > 7 days). Resume by restoring the project in the Supabase dashboard, then reload the simulator.
+**Status:** Phase 1 fully verified ✅ — PR #1 merged. Next: Phase 2 (Trip CRUD + Home screen).
 
 ---
 
@@ -139,14 +139,10 @@ Home · Explore · Search · Blog + Global floating capture button
 | 11 | AppNavigator (`src/navigation/AppNavigator.tsx`) — auth gate | ✅ |
 | 12 | App.tsx wired (NavigationContainer + AuthProvider + SafeAreaProvider) | ✅ |
 
-## Resume checklist (next session)
+## Next session checklist
 
-1. **Restore Supabase project** at https://supabase.com/dashboard → project `dcejrbyujfcxartywpis` → click "Restore project". Wait ~1–2 min.
-2. Verify it's back: `curl -s -o /dev/null -w "HTTP %{http_code}\n" https://dcejrbyujfcxartywpis.supabase.co/auth/v1/health` should return `200`.
-3. `cd "Into Your Stories" && git checkout phase-1/auth-nav && npx expo start` then press `i`.
-4. Walk the verification checklist: signup (email + password + display name) → confirm email → sign in → swipe tabs (Home·Explore·Search·Blog) → kill/relaunch (session persists) → sign out.
-5. If all good, merge PR #1: https://github.com/rutvijdhotey/into-your-stories/pull/1.
-6. **Then start Phase 2** — Trip CRUD + Home screen content. Plan at `docs/superpowers/plans/plan-02-trip-management.md`.
+1. **Start Phase 2** — Trip CRUD + Home screen content. Plan at `docs/superpowers/plans/plan-02-trip-management.md`.
+2. If Supabase has auto-paused: restore at https://supabase.com/dashboard → project `dcejrbyujfcxartywpis` → "Restore project". Verify with `curl -s -o /dev/null -w "HTTP %{http_code}\n" https://dcejrbyujfcxartywpis.supabase.co/auth/v1/health` → should return `200`.
 
 ## Setup gotchas hit on 2026-05-21 (record so we don't re-hit)
 
