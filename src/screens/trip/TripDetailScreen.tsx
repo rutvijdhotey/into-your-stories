@@ -97,7 +97,7 @@ export default function TripDetailScreen({ route }: Props) {
       </View>
 
       <View style={styles.tabBody}>
-        {tab === 'feed' ? <TripFeedScreen /> : <TripMapScreen />}
+        {tab === 'feed' ? <TripFeedScreen tripId={tripId} /> : <TripMapScreen />}
       </View>
     </View>
   );
