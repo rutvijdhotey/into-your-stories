@@ -34,7 +34,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const { session, signOut } = useAuth();
-  const { trips, loading, error } = useTrips(session?.user.id);
+  const { trips, loading, error, refresh, optimisticRemove } = useTrips(session?.user.id);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [completedExpanded, setCompletedExpanded] = useState(false);
 
@@ -69,10 +69,16 @@ export default function HomeScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            // Optimistic remove for instant feedback. The realtime DELETE event
+            // that follows is a no-op (filter already removed the row); if the
+            // server delete fails, we refetch to restore the trip and surface
+            // the error.
+            optimisticRemove(trip.id);
             try {
               await deleteTrip(trip.id);
             } catch (e) {
               Alert.alert('Could not delete trip', (e as Error).message);
+              void refresh();
             }
           },
         },

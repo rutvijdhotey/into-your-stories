@@ -8,6 +8,7 @@ type UseTripsState = {
   loading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
+  optimisticRemove: (id: string) => void;
 };
 
 export function useTrips(userId: string | undefined): UseTripsState {
@@ -70,5 +71,9 @@ export function useTrips(userId: string | undefined): UseTripsState {
     };
   }, [userId]);
 
-  return { trips, loading, error, refresh };
+  const optimisticRemove = useCallback((id: string) => {
+    setTrips((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  return { trips, loading, error, refresh, optimisticRemove };
 }
