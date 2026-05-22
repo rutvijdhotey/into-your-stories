@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-22  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 3 in progress 🟡 — branch `phase-3/note-capture`, Task 1 of 22 complete (commit `f25b8a1`). Resume at Task 2 (Migration 004 — notes table). Last full merge: Phase 2 ✅ (PR #2, merge `b8489ec`).
+**Status:** Phase 3 in progress 🟡 — branch `phase-3/note-capture`, Tasks 1–2 of 22 complete (HEAD `600b2f7`). Resume at Task 3 (Migration 005 — `trips.note_count` triggers). Last full merge: Phase 2 ✅ (PR #2, merge `b8489ec`).
 
 ---
 
@@ -52,6 +52,7 @@ A voice-first travel memory and community app. Travelers capture notes, photos, 
 | Jest config + datetimepicker config plugin | `jest.config.js`, `app.json` | ✅ Phase 2 |
 | **Phase 3 plan** | `docs/superpowers/plans/2026-05-22-phase-3-note-capture.md` | ✅ Written; Task 1/22 executed |
 | Phase 3 deps + iOS location permission | `package.json`, `app.json` | ✅ Phase 3 Task 1 |
+| Migration 004 — `notes` table (RLS, `offline_id unique`, realtime) | `supabase/migrations/004_notes.sql` | ✅ Phase 3 Task 2 |
 
 Open `travel-diary-ui-mockups.html` in any browser to see all 8 screens.
 
@@ -187,8 +188,8 @@ These got fixed inline; flagging here so future phases keep the muscle memory:
 | Task | What | Status |
 |---|---|---|
 | 1 | Branch `phase-3/note-capture` + install `expo-location`, `expo-crypto`, `@react-native-community/netinfo` + iOS `NSLocationWhenInUseUsageDescription` | ✅ commit `f25b8a1` |
-| 2 | Migration 004 — `notes` table (RLS, `offline_id unique`, realtime) | ⏭ next |
-| 3 | Migration 005 — `trips.note_count` insert/delete triggers (hardened search_path + revokes) | ⏳ |
+| 2 | Migration 004 — `notes` table (RLS, `offline_id unique`, realtime) | ✅ commit `600b2f7` |
+| 3 | Migration 005 — `trips.note_count` insert/delete triggers (hardened search_path + revokes) | ⏭ next |
 | 4 | Regenerate `src/lib/database.types.ts` | ⏳ |
 | 5 | `noteHelpers` + tests (CATEGORIES, validateContent, formatRelativeTime) | ⏳ |
 | 6 | `offlineQueue` + tests (AsyncStorage queue + subscriber) | ⏳ |
@@ -211,13 +212,15 @@ These got fixed inline; flagging here so future phases keep the muscle memory:
 
 ### Resume instructions for next session
 
-1. **Working dir:** `/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories`. Confirm you're on branch `phase-3/note-capture` (`git rev-parse --abbrev-ref HEAD`). Last commit should be `f25b8a1 chore(phase-3): install expo-location, netinfo, expo-crypto`.
-2. **Plan:** execute `docs/superpowers/plans/2026-05-22-phase-3-note-capture.md` starting at **Task 2** via `superpowers:subagent-driven-development`. Pause between tasks for review.
-3. **Supabase project:** `dcejrbyujfcxartywpis` (org slug `eztncwrnbtviqkrtcjsl`). Last checked 2026-05-22, status `ACTIVE_HEALTHY`. If `mcp__supabase__list_projects` returns a different project, the MCP plugin is configured for the wrong account — fix by editing the MCP entry URL to use `project_ref=dcejrbyujfcxartywpis` and re-authing. If auto-paused, restore via https://supabase.com/dashboard → project `dcejrbyujfcxartywpis` → "Restore project".
+1. **Working dir:** `/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories`. Confirm you're on branch `phase-3/note-capture` (`git rev-parse --abbrev-ref HEAD`). HEAD should be `600b2f7 feat(db): add notes table with RLS, offline_id unique, realtime`.
+2. **Plan:** execute `docs/superpowers/plans/2026-05-22-phase-3-note-capture.md` starting at **Task 3** via `superpowers:subagent-driven-development`. Pause between tasks for review.
+3. **Supabase project:** `dcejrbyujfcxartywpis` (org slug `eztncwrnbtviqkrtcjsl`). Last checked 2026-05-22, status `ACTIVE_HEALTHY`. If `mcp__supabase__list_projects` returns a different project, the MCP plugin is configured for the wrong account — fix by editing the MCP entry URL to use `project_ref=dcejrbyujfcxartywpis` and re-authing. If auto-paused, restore via https://supabase.com/dashboard → project `dcejrbyujfcxartywpis` → "Restore project". Note: in this MCP install the tool prefix is `mcp__7fbbe81e-73f2-44e8-81b3-e04e19180276__*` (e.g. `apply_migration`, `execute_sql`, `get_advisors`).
 4. **`npx expo install` quirk hit on Task 1:** the plan's `npx expo install <deps> --legacy-peer-deps` form errored with `CommandError: Unexpected: --legacy-peer-deps`. Use `npx expo install <deps> -- --legacy-peer-deps` (with the `--` separator) instead.
 5. **app.json:** the `expo-location` plugin config and `ios.infoPlist.NSLocationWhenInUseUsageDescription` both carry the same permission string. That's intentional per the plan, even though the plugin alone would suffice — code reviewer flagged it as a minor duplication but it's not blocking.
-6. **Workflow rule still applies:** every phase has its own branch + PR into main. Don't commit Phase 3 work to main directly. (Memory: `feedback_per_phase_branch_pr.md`.)
-7. **Housekeeping (optional, not blocking):** stale branches from Phase 1+2 still present — local `phase-1/scaffold-auth`, `phase-2/trip-management`; remote `origin/phase-1/auth-nav`, `origin/phase-1/scaffold-auth`. All fully merged into main; safe to delete.
+6. **Migration 004 verification (Task 2)** is already done — 4 RLS policies present (`notes_select/insert/update/delete_own`), `notes_set_updated_at` trigger present, `public.notes` is in the `supabase_realtime` publication, `get_advisors security` shows no new warnings. Pre-existing advisor lints to ignore: `extension_in_public` on `vector` (pgvector), two `*_security_definer_function_executable` warns on platform-injected `public.rls_auto_enable`, `auth_leaked_password_protection`.
+7. **Optional polish deferred on Task 2** (non-blocking, plan didn't ask for them): lat/lng range CHECKs and `city`/`place_name` length caps. Could land as a small 004a follow-up later if useful.
+8. **Workflow rule still applies:** every phase has its own branch + PR into main. Don't commit Phase 3 work to main directly. (Memory: `feedback_per_phase_branch_pr.md`.)
+9. **Housekeeping (optional, not blocking):** stale branches from Phase 1+2 still present — local `phase-1/scaffold-auth`, `phase-2/trip-management`; remote `origin/phase-1/auth-nav`, `origin/phase-1/scaffold-auth`. All fully merged into main; safe to delete.
 
 ## Setup gotchas hit on 2026-05-21 (record so we don't re-hit)
 
