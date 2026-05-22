@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-21  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 1 fully verified ✅ — PR #1 merged. Next: Phase 2 (Trip CRUD + Home screen).
+**Status:** Phase 2 in progress — plan written 2026-05-21 (20 tasks), executing via `superpowers:subagent-driven-development` on branch `phase-2/trip-management`.
 
 ---
 
@@ -141,8 +141,9 @@ Home · Explore · Search · Blog + Global floating capture button
 
 ## Next session checklist
 
-1. **Start Phase 2** — Trip CRUD + Home screen content. Plan at `docs/superpowers/plans/plan-02-trip-management.md`.
-2. If Supabase has auto-paused: restore at https://supabase.com/dashboard → project `dcejrbyujfcxartywpis` → "Restore project". Verify with `curl -s -o /dev/null -w "HTTP %{http_code}\n" https://dcejrbyujfcxartywpis.supabase.co/auth/v1/health` → should return `200`.
+1. **Phase 2 execution plan** — `docs/superpowers/plans/2026-05-21-phase-2-trip-management.md` (20 numbered tasks, supersedes the older design-doc `plan-02-trip-management.md`). Run via `superpowers:subagent-driven-development` on branch `phase-2/trip-management`. Schema scope is the minimal slice: `profiles` + `trips` + RLS + pgvector — other tables land with their phases.
+2. **Library calls locked in:** RN built-in `Modal presentationStyle="pageSheet"` for sheets; `@react-native-community/datetimepicker` for date pickers; `ActionSheetIOS` for long-press; text-only empty states.
+3. If Supabase has auto-paused: restore at https://supabase.com/dashboard → project `dcejrbyujfcxartywpis` → "Restore project". Verify with `curl -s -o /dev/null -w "HTTP %{http_code}\n" https://dcejrbyujfcxartywpis.supabase.co/auth/v1/health` → `200` or `401` means awake.
 
 ## Setup gotchas hit on 2026-05-21 (record so we don't re-hit)
 
