@@ -12,9 +12,14 @@ export type TabParamList = {
   Blog: undefined;
 };
 
+export type MainStackParamList = {
+  Tabs: NavigatorScreenParams<TabParamList>;
+  TripDetail: { tripId: string };
+};
+
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
-  Main: NavigatorScreenParams<TabParamList>;
+  Main: NavigatorScreenParams<MainStackParamList>;
 };
 
 declare global {
