@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { listTrips } from '../services/tripService';
 import type { Trip } from '../services/tripHelpers';
@@ -12,6 +12,7 @@ type UseTripsState = {
 };
 
 export function useTrips(userId: string | undefined): UseTripsState {
+  const instanceId = useRef(Math.random().toString(36).slice(2)).current;
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -41,7 +42,7 @@ export function useTrips(userId: string | undefined): UseTripsState {
     if (!userId) return;
 
     const channel = supabase
-      .channel(`trips:${userId}`)
+      .channel(`trips:${userId}:${instanceId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'trips', filter: `user_id=eq.${userId}` },
