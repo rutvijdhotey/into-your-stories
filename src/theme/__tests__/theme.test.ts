@@ -13,8 +13,8 @@ describe('getTripGradient', () => {
   });
 
   it('returns a tuple that exists in TripGradients', () => {
-    const result = getTripGradient('Barcelona');
-    expect(TripGradients).toContainEqual(result);
+    expect(TripGradients).toContainEqual(getTripGradient('Barcelona'));
+    expect(TripGradients).toContainEqual(getTripGradient(''));
   });
 
   it('distributes across multiple gradients for varied names', () => {
