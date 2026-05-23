@@ -1,27 +1,66 @@
+import { useCallback, useEffect, useState } from 'react';
+import { View, AppState, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { MainStackParamList } from './types';
 import { Colors } from '../theme';
 import TabNavigator from './TabNavigator';
 import TripDetailScreen from '../screens/trip/TripDetailScreen';
+import FloatingCaptureButton from '../components/FloatingCaptureButton';
+import NoteCaptureSheet from '../components/NoteCaptureSheet';
+import { useOnReconnect } from '../hooks/useConnectivity';
+import { drainQueue } from '../services/noteService';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
 export default function MainStack() {
+  const [captureOpen, setCaptureOpen] = useState(false);
+
+  useEffect(() => {
+    void drainQueue();
+  }, []);
+
+  useOnReconnect(
+    useCallback(() => {
+      void drainQueue();
+    }, []),
+  );
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void drainQueue();
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: Colors.background },
-        headerTitleStyle: { color: Colors.textPrimary },
-        headerTintColor: Colors.accent,
-        contentStyle: { backgroundColor: Colors.background },
-      }}
-    >
-      <Stack.Screen name="Tabs" component={TabNavigator} options={{ headerShown: false }} />
-      <Stack.Screen
-        name="TripDetail"
-        component={TripDetailScreen}
-        options={{ title: '', headerBackTitle: 'Home' }}
+    <View style={styles.root}>
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: { backgroundColor: Colors.background },
+          headerTitleStyle: { color: Colors.textPrimary },
+          headerTintColor: Colors.accent,
+          contentStyle: { backgroundColor: Colors.background },
+        }}
+      >
+        <Stack.Screen name="Tabs" component={TabNavigator} options={{ headerShown: false }} />
+        <Stack.Screen
+          name="TripDetail"
+          component={TripDetailScreen}
+          options={{ title: '', headerBackTitle: 'Home' }}
+        />
+      </Stack.Navigator>
+      <FloatingCaptureButton onPress={() => setCaptureOpen(true)} />
+      <NoteCaptureSheet
+        visible={captureOpen}
+        onClose={() => setCaptureOpen(false)}
+        onStartTrip={() => {
+          setCaptureOpen(false);
+        }}
       />
-    </Stack.Navigator>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});
