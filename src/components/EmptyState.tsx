@@ -1,16 +1,18 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Colors, Spacing, Typography } from '../theme';
+import { Colors, Spacing, Typography, BorderRadius } from '../theme';
 
 type Props = {
+  emoji?: string;
   title: string;
   subtitle?: string;
   ctaLabel?: string;
   onCtaPress?: () => void;
 };
 
-export default function EmptyState({ title, subtitle, ctaLabel, onCtaPress }: Props) {
+export default function EmptyState({ emoji, title, subtitle, ctaLabel, onCtaPress }: Props) {
   return (
     <View style={styles.container}>
+      {emoji ? <Text style={styles.emoji}>{emoji}</Text> : null}
       <Text style={styles.title}>{title}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       {ctaLabel && onCtaPress ? (
@@ -29,8 +31,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: Spacing.xl,
   },
+  emoji: { fontSize: 48, marginBottom: Spacing.md },
   title: {
-    ...Typography.heading,
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.textPrimary,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
@@ -42,9 +47,10 @@ const styles = StyleSheet.create({
   },
   cta: {
     backgroundColor: Colors.accent,
-    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    borderRadius: 12,
+    borderRadius: BorderRadius.input,
+    alignItems: 'center',
+    alignSelf: 'stretch',
   },
-  ctaLabel: { ...Typography.body, fontWeight: '600' },
+  ctaLabel: { ...Typography.body, fontWeight: '800' },
 });
