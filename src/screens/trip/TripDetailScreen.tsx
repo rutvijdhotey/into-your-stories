@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../navigation/types';
-import { Colors, Spacing, Typography } from '../../theme';
+import { Colors, Spacing, getTripGradient } from '../../theme';
 import { useTripDetail } from '../../hooks/useTripDetail';
 import { endTrip } from '../../services/tripService';
 import { formatDateRange, isOverdueActive } from '../../services/tripHelpers';
@@ -31,13 +32,15 @@ export default function TripDetailScreen({ route }: Props) {
   if (!trip) {
     return (
       <View style={styles.loading}>
-        <Text style={styles.body}>This trip is no longer available.</Text>
+        <Text style={styles.bodyText}>This trip is no longer available.</Text>
       </View>
     );
   }
 
   const overdue = isOverdueActive(trip);
-  const destinations = trip.destinations.length > 0 ? trip.destinations.join(', ') : 'No destination yet';
+  const destinations =
+    trip.destinations.length > 0 ? trip.destinations.join(', ') : 'No destination yet';
+  const gradient = getTripGradient(trip.name);
 
   const handleEndTrip = () => {
     Alert.alert(
@@ -70,28 +73,48 @@ export default function TripDetailScreen({ route }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.name}>{trip.name}</Text>
-        <Text style={styles.destinations}>{destinations}</Text>
-        <Text style={styles.dates}>{formatDateRange(trip.start_date, trip.end_date)}</Text>
-        <View style={styles.headerActions}>
-          <TripStatusBadge status={trip.status} overdue={overdue} />
-          {trip.status === 'active' ? (
-            <Pressable style={styles.endButton} onPress={handleEndTrip} disabled={ending}>
-              <Text style={styles.endButtonLabel}>{ending ? 'Ending...' : 'End Trip'}</Text>
-            </Pressable>
-          ) : (
-            <Pressable style={styles.generateButton} onPress={handleGenerateBlog}>
-              <Text style={styles.generateButtonLabel}>Generate Blog</Text>
-            </Pressable>
-          )}
+        <LinearGradient
+          colors={gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.headerScrim}
+        />
+        <View style={styles.headerContent}>
+          <Text style={styles.name}>{trip.name}</Text>
+          <Text style={styles.destinations}>{destinations}</Text>
+          <Text style={styles.dates}>{formatDateRange(trip.start_date, trip.end_date)}</Text>
+          <View style={styles.headerActions}>
+            <TripStatusBadge status={trip.status} overdue={overdue} />
+            {trip.status === 'active' ? (
+              <Pressable style={styles.endButton} onPress={handleEndTrip} disabled={ending}>
+                <Text style={styles.endButtonLabel}>{ending ? 'Ending...' : 'End Trip'}</Text>
+              </Pressable>
+            ) : (
+              <Pressable style={styles.generateButton} onPress={handleGenerateBlog}>
+                <Text style={styles.generateButtonLabel}>Generate Blog</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
       </View>
 
       <View style={styles.tabBar}>
-        <Pressable style={[styles.tab, tab === 'feed' && styles.tabActive]} onPress={() => setTab('feed')}>
+        <Pressable
+          style={[styles.tab, tab === 'feed' && styles.tabActive]}
+          onPress={() => setTab('feed')}
+        >
           <Text style={[styles.tabLabel, tab === 'feed' && styles.tabLabelActive]}>Feed</Text>
         </Pressable>
-        <Pressable style={[styles.tab, tab === 'map' && styles.tabActive]} onPress={() => setTab('map')}>
+        <Pressable
+          style={[styles.tab, tab === 'map' && styles.tabActive]}
+          onPress={() => setTab('map')}
+        >
           <Text style={[styles.tabLabel, tab === 'map' && styles.tabLabelActive]}>Map</Text>
         </Pressable>
       </View>
@@ -105,16 +128,30 @@ export default function TripDetailScreen({ route }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.background },
-  body: { ...Typography.body, color: Colors.textSecondary },
-  header: {
-    padding: Spacing.md,
-    borderBottomColor: Colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.background,
   },
-  name: { ...Typography.title, marginBottom: Spacing.xs },
-  destinations: { ...Typography.body, color: Colors.textSecondary, marginBottom: Spacing.xs },
-  dates: { ...Typography.caption, marginBottom: Spacing.sm },
+  bodyText: { fontSize: 16, color: Colors.textSecondary },
+  header: { height: 160, overflow: 'hidden' },
+  headerScrim: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '70%',
+  },
+  headerContent: {
+    position: 'absolute',
+    bottom: Spacing.md,
+    left: Spacing.md,
+    right: Spacing.md,
+  },
+  name: { fontSize: 22, fontWeight: '800', color: '#FFFFFF', marginBottom: 2 },
+  destinations: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 2 },
+  dates: { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: Spacing.sm },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -128,22 +165,25 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: 8,
   },
-  endButtonLabel: { ...Typography.body, color: Colors.error, fontWeight: '600' },
+  endButtonLabel: { fontSize: 14, color: Colors.error, fontWeight: '600' },
   generateButton: {
     backgroundColor: Colors.accent,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: 8,
   },
-  generateButtonLabel: { ...Typography.body, fontWeight: '600' },
+  generateButtonLabel: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
   tabBar: {
     flexDirection: 'row',
     borderBottomColor: Colors.border,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.background,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   tab: { flex: 1, paddingVertical: Spacing.md, alignItems: 'center' },
   tabActive: { borderBottomColor: Colors.accent, borderBottomWidth: 2 },
-  tabLabel: { ...Typography.body, color: Colors.textSecondary },
-  tabLabelActive: { color: Colors.textPrimary, fontWeight: '600' },
+  tabLabel: { fontSize: 15, fontWeight: '500', color: '#555555' },
+  tabLabelActive: { fontWeight: '700', color: Colors.textPrimary },
   tabBody: { flex: 1 },
 });
