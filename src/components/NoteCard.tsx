@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { View, Text, Animated, StyleSheet, Easing } from 'react-native';
-import { Colors, Spacing, Typography } from '../theme';
-import { categoryLabel, formatRelativeTime, type Note, type Category } from '../services/noteHelpers';
+import { Colors } from '../theme';
+import CategoryBadge from './CategoryBadge';
+import { formatRelativeTime, type Note } from '../services/noteHelpers';
 import type { PendingNote } from '../services/offlineQueue';
 import type { FeedItem } from '../hooks/useNotes';
 
@@ -26,7 +27,7 @@ function ServerNoteCard({ note }: { note: Note }) {
           {[note.city, formatRelativeTime(note.captured_at)].filter(Boolean).join(' · ')}
         </Text>
       </View>
-      <Text style={styles.content}>{note.content}</Text>
+      <Text style={styles.content} numberOfLines={3}>{note.content}</Text>
     </View>
   );
 }
@@ -35,20 +36,12 @@ function PendingNoteCard({ pending }: { pending: PendingNote }) {
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        {pending.category ? <CategoryBadge category={pending.category} /> : null}
+        <CategoryBadge category={pending.category} />
         <Text style={[styles.meta, styles.syncing]}>
           {[pending.city, '⏳ Syncing'].filter(Boolean).join(' · ')}
         </Text>
       </View>
-      <Text style={styles.content}>{pending.content}</Text>
-    </View>
-  );
-}
-
-function CategoryBadge({ category }: { category: Category }) {
-  return (
-    <View style={styles.badge}>
-      <Text style={styles.badgeLabel}>{categoryLabel(category)}</Text>
+      <Text style={styles.content} numberOfLines={3}>{pending.content}</Text>
     </View>
   );
 }
@@ -75,35 +68,41 @@ function ShimmerBadge() {
     loop.start();
     return () => loop.stop();
   }, [opacity]);
-  return <Animated.View style={[styles.badge, styles.shimmer, { opacity }]} />;
+  return <Animated.View style={[styles.shimmer, { opacity }]} />;
 }
 
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: Spacing.md,
-    marginHorizontal: Spacing.md,
-    marginBottom: Spacing.sm,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: 16,
+    marginBottom: 8,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.xs,
-    gap: Spacing.sm,
+    marginBottom: 6,
+    gap: 6,
   },
-  badge: {
-    backgroundColor: Colors.accent,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+  shimmer: {
+    backgroundColor: Colors.border,
+    width: 58,
+    height: 20,
     borderRadius: 999,
-    minHeight: 18,
-    minWidth: 56,
   },
-  badgeLabel: { ...Typography.caption, color: Colors.background, fontWeight: '600' },
-  shimmer: { backgroundColor: Colors.border },
-  meta: { ...Typography.caption, color: Colors.textSecondary, flexShrink: 1, textAlign: 'right' },
+  meta: {
+    fontSize: 10,
+    color: '#555555',
+    flexShrink: 1,
+    textAlign: 'right',
+  },
   syncing: { color: Colors.accent },
-  content: { ...Typography.body, color: Colors.textPrimary },
+  content: {
+    fontSize: 13,
+    color: '#E0E0E0',
+    lineHeight: 19,
+  },
 });
