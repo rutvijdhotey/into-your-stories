@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-22  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 3 merged ✅ — PR #3; manual sim verified 2026-05-22. Next: Phase 4 (Voice + Intent).
+**Status:** Phase 3 merged ✅ — PR #3; manual sim verified 2026-05-22. UI Polish phase being designed (inserting between Phase 3 and Phase 4).
 
 ---
 
@@ -226,12 +226,59 @@ These got fixed inline; flagging here so future phases keep the muscle memory:
 - **Offline airplane-mode test skipped:** Expo Go in the iOS simulator does not allow toggling Airplane Mode from within the app. The queue logic is covered by unit tests and the DB smoke test; a full offline round-trip test requires a device build.
 - **Smoke-test trip left in DB:** the MCP smoke test inserted a trip (`87f61a93-7c4d-4ffd-9c50-17e1ef0fae6a`) since no active trips existed. It has no notes and is harmless as dev seed data. Delete with `delete from public.trips where id='87f61a93-7c4d-4ffd-9c50-17e1ef0fae6a'` if it clutters the Home screen.
 
-### Next session checklist (Phase 4)
+### Next session checklist (UI Polish → then Phase 4)
 
-1. Plan exists at `docs/superpowers/plans/plan-04-voice-intent.md` — same prep pattern: freshness-check + numbered execution plan + new branch `phase-4/voice-intent`.
+1. UI Polish phase spec being written at `docs/superpowers/specs/2026-05-22-ui-polish-design.md`. Execute this before Phase 4.
 2. Phase 3 left these stubs in `NoteCaptureSheet`: mic button (🎙️) + photo picker icon (📷). Phase 4 wires the mic to iOS Native STT + Claude intent detection.
 3. Notes save with `tagging_status = 'pending'`; NoteCard shows a shimmer where the AI category badge will appear. AI smart tagging lands in Phase 6.
 4. Supabase project `dcejrbyujfcxartywpis` — if auto-paused, restore via dashboard before starting Phase 4. MCP prefix: `mcp__7fbbe81e-73f2-44e8-81b3-e04e19180276__*`.
+
+---
+
+## UI Polish Phase — Design Decisions (in progress)
+
+**Why:** Phases 1–3 were functional-first. The mockups define a significantly richer visual language that was never applied. Inserting a dedicated UI polish sprint now (before Phase 4) so all future phases inherit the right design system instead of continuing the barebones pattern.
+
+**Approach chosen:** Design system first, then screens. Nail shared tokens + components, then apply to each screen — no retrofit work, and all future phases build against a stable visual foundation.
+
+### Key decisions locked in
+
+| Decision | Choice | Reason |
+|---|---|---|
+| Trip card cover photo (pre-Phase 5) | Gradient placeholder — deterministic from trip name hash | Looks polished, zero backend work, trivially replaced by real photo in Phase 5 |
+| Tab bar icons | `@expo/vector-icons` (Ionicons) | Already bundled in Expo SDK, no new dep, correct icon style |
+| Category badge colours | Added to `src/theme/index.ts` as `CategoryColors` map | Design token, not business logic; consumed by NoteCard, CategoryPicker, Map pins, Search |
+| Screen scope | All screens including Explore/Search/Blog | Placeholder tabs with designed empty states; full app feels cohesive |
+| Architecture | Design system first (Option B) | Stable foundation before per-screen work; future phases inherit correct language |
+
+### Design system additions (`src/theme/index.ts`)
+
+**`CategoryColors`** — bg tint + foreground text per category:
+- food → `rgba(220,60,60,0.2)` / `#FF7878`
+- stay → `rgba(112,96,224,0.2)` / `#A898FF`
+- activity → `rgba(48,168,112,0.2)` / `#58D898`
+- shopping → `rgba(240,160,48,0.2)` / `#FFB060`
+- to-visit → `rgba(48,96,200,0.2)` / `#70A8FF`
+- general → `rgba(255,255,255,0.1)` / `#888888`
+
+**`TripGradients`** — 8 curated gradient pairs; deterministic hash of trip name → always same gradient per trip.
+
+**`Shadows`** — standard card shadow + FAB glow.
+
+**`BorderRadius`** — `card: 16`, `pill: 999`, `sheet: 24`.
+
+**New dep:** `expo-linear-gradient` (trip card gradients + FAB gradient).
+
+### Sections still to design (brainstorm in progress)
+
+- [ ] Shared components (CategoryBadge, tab bar icons, FAB gradient)
+- [ ] TripCard (full-bleed gradient, overlaid text, status badge, note count)
+- [ ] HomeScreen header + list layout
+- [ ] TripDetailScreen header
+- [ ] NoteCard (coloured badge, 2-line clamp, meta row)
+- [ ] NoteCaptureSheet (mic stub, trip selector cards, save button)
+- [ ] Explore / Search / Blog empty states
+- [ ] Login / Signup screens
 
 ## Setup gotchas hit on 2026-05-21 (record so we don't re-hit)
 
