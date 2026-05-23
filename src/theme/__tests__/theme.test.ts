@@ -19,7 +19,7 @@ describe('getTripGradient', () => {
 
   it('distributes across multiple gradients for varied names', () => {
     const results = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'Tokyo', 'Paris'].map(getTripGradient);
-    const unique = new Set(results.map(JSON.stringify));
+    const unique = new Set(results.map((r) => JSON.stringify(r)));
     expect(unique.size).toBeGreaterThan(1);
   });
 });
