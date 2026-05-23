@@ -14,7 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { MainStackParamList } from '../navigation/types';
-import { Colors, Spacing, Typography } from '../theme';
+import { Colors, Spacing, Typography, BorderRadius } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useTrips } from '../hooks/useTrips';
 import { splitByStatus, type Trip } from '../services/tripHelpers';
@@ -26,7 +26,7 @@ import CreateTripSheet from '../components/CreateTripSheet';
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Tabs'>;
 
 type Row =
-  | { kind: 'header'; id: string; label: string; count: number }
+  | { kind: 'header'; id: string; label: string }
   | { kind: 'trip'; id: string; trip: Trip }
   | { kind: 'toggle'; id: string; expanded: boolean; hidden: number };
 
@@ -38,15 +38,18 @@ export default function HomeScreen() {
   const [sheetVisible, setSheetVisible] = useState(false);
   const [completedExpanded, setCompletedExpanded] = useState(false);
 
+  const displayName =
+    ((session?.user.user_metadata?.display_name ?? '') as string) || 'Traveler';
+
   const rows = useMemo<Row[]>(() => {
     const { active, completed } = splitByStatus(trips);
     const out: Row[] = [];
     if (active.length > 0) {
-      out.push({ kind: 'header', id: 'h-active', label: 'Active', count: active.length });
+      out.push({ kind: 'header', id: 'h-active', label: 'Active' });
       for (const t of active) out.push({ kind: 'trip', id: t.id, trip: t });
     }
     if (completed.length > 0) {
-      out.push({ kind: 'header', id: 'h-completed', label: 'Completed', count: completed.length });
+      out.push({ kind: 'header', id: 'h-completed', label: 'Completed' });
       const collapsed = completed.length > 3 && !completedExpanded;
       const visible = collapsed ? completed.slice(0, 3) : completed;
       for (const t of visible) out.push({ kind: 'trip', id: t.id, trip: t });
@@ -69,10 +72,6 @@ export default function HomeScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            // Optimistic remove for instant feedback. The realtime DELETE event
-            // that follows is a no-op (filter already removed the row); if the
-            // server delete fails, we refetch to restore the trip and surface
-            // the error.
             optimisticRemove(trip.id);
             try {
               await deleteTrip(trip.id);
@@ -109,7 +108,7 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { paddingTop: insets.top }]}>
         <ActivityIndicator color={Colors.accent} />
       </View>
     );
@@ -117,7 +116,7 @@ export default function HomeScreen() {
 
   if (error) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { paddingTop: insets.top }]}>
         <Text style={styles.errorText}>Could not load trips.</Text>
         <Text style={styles.errorDetail}>{error.message}</Text>
       </View>
@@ -126,15 +125,24 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.topBar}>
-        <Text style={styles.heading}>My Trips</Text>
-        <Pressable onPress={signOut} hitSlop={8}>
-          <Text style={styles.signOut}>Sign out</Text>
-        </Pressable>
+      <View style={[styles.topBar, { paddingTop: insets.top + Spacing.sm }]}>
+        <View style={styles.topBarLeft}>
+          <Text style={styles.eyebrow}>INTO YOUR STORIES</Text>
+          <Text style={styles.greeting}>Hey, {displayName}</Text>
+        </View>
+        <View style={styles.topBarRight}>
+          <Pressable style={styles.addButton} onPress={() => setSheetVisible(true)}>
+            <Text style={styles.addButtonLabel}>＋</Text>
+          </Pressable>
+          <Pressable onPress={signOut} hitSlop={8} style={styles.signOutButton}>
+            <Text style={styles.signOutLabel}>Sign out</Text>
+          </Pressable>
+        </View>
       </View>
 
       {trips.length === 0 ? (
         <EmptyState
+          emoji="✈️"
           title="No trips yet"
           subtitle="Start your first trip to begin capturing notes, photos, and places."
           ctaLabel="Start your first trip"
@@ -147,11 +155,7 @@ export default function HomeScreen() {
           contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 96 }]}
           renderItem={({ item }) => {
             if (item.kind === 'header') {
-              return (
-                <Text style={styles.sectionHeader}>
-                  {item.label} ({item.count})
-                </Text>
-              );
+              return <Text style={styles.sectionHeader}>{item.label}</Text>;
             }
             if (item.kind === 'toggle') {
               return (
@@ -176,14 +180,6 @@ export default function HomeScreen() {
         />
       )}
 
-      {trips.length > 0 ? (
-        <View style={[styles.ctaContainer, { paddingBottom: insets.bottom + Spacing.md }]}>
-          <Pressable style={styles.cta} onPress={() => setSheetVisible(true)}>
-            <Text style={styles.ctaLabel}>Start new trip</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
       <CreateTripSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
     </View>
   );
@@ -191,39 +187,51 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  center: { flex: 1, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center', padding: Spacing.lg },
+  center: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
   topBar: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
   },
-  heading: { ...Typography.title },
-  signOut: { ...Typography.body, color: Colors.accent },
-  listContent: { padding: Spacing.md },
-  sectionHeader: { ...Typography.caption, marginTop: Spacing.md, marginBottom: Spacing.sm, textTransform: 'uppercase', letterSpacing: 0.5 },
-  toggleButton: { paddingVertical: Spacing.sm, alignItems: 'center' },
-  toggleLabel: { ...Typography.body, color: Colors.accent },
-  ctaContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.background,
-    borderTopColor: Colors.border,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: Spacing.md,
+  topBarLeft: { flex: 1 },
+  topBarRight: { alignItems: 'flex-end', gap: Spacing.sm },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2,
+    color: Colors.accent,
+    textTransform: 'uppercase',
+    marginBottom: 4,
   },
-  cta: {
+  greeting: { fontSize: 26, fontWeight: '800', color: Colors.textPrimary },
+  addButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: Colors.accent,
-    paddingVertical: Spacing.md,
-    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  ctaLabel: { ...Typography.body, fontWeight: '600' },
+  addButtonLabel: { color: '#FFFFFF', fontSize: 20, lineHeight: 22, fontWeight: '600' },
+  signOutButton: { paddingVertical: 2 },
+  signOutLabel: { fontSize: 12, color: '#555555' },
+  listContent: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm },
+  sectionHeader: {
+    ...Typography.label,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
+  },
+  toggleButton: { paddingVertical: Spacing.sm, alignItems: 'center' },
+  toggleLabel: { fontSize: 14, color: Colors.accent, fontWeight: '600' },
   errorText: { ...Typography.heading, marginBottom: Spacing.sm },
   errorDetail: { ...Typography.caption, textAlign: 'center' },
 });
