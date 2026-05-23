@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { useTrips } from '../hooks/useTrips';
 import { useLocation } from '../hooks/useLocation';
@@ -17,7 +18,7 @@ import { createNote } from '../services/noteService';
 import { validateContent, type Category } from '../services/noteHelpers';
 import CategoryPicker from './CategoryPicker';
 import TripSelector from './TripSelector';
-import { Colors, Spacing, Typography } from '../theme';
+import { Colors, Spacing, BorderRadius } from '../theme';
 
 type Props = {
   visible: boolean;
@@ -53,8 +54,7 @@ export default function NoteCaptureSheet({ visible, onClose, onStartTrip }: Prop
     void fetchLocation();
   }, [visible, fetchLocation]);
 
-  const canSave =
-    !saving && selectedTripId !== null && validateContent(content).ok;
+  const canSave = !saving && selectedTripId !== null && validateContent(content).ok;
 
   const handleSave = async () => {
     if (!userId || !selectedTripId) return;
@@ -117,6 +117,29 @@ export default function NoteCaptureSheet({ visible, onClose, onStartTrip }: Prop
           }}
         />
 
+        <View style={styles.micSection}>
+          <Pressable
+            style={styles.micButton}
+            accessibilityLabel="Voice recording (coming in Phase 4)"
+          >
+            <LinearGradient
+              colors={['#E08040', '#C0581A']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.micGradient}
+            >
+              <Text style={styles.micEmoji}>🎙️</Text>
+            </LinearGradient>
+          </Pressable>
+          <Text style={styles.micHint}>Hold to record</Text>
+        </View>
+
+        <View style={styles.orDivider}>
+          <View style={styles.orLine} />
+          <Text style={styles.orText}>OR</Text>
+          <View style={styles.orLine} />
+        </View>
+
         <TextInput
           value={content}
           onChangeText={setContent}
@@ -130,10 +153,14 @@ export default function NoteCaptureSheet({ visible, onClose, onStartTrip }: Prop
         <CategoryPicker value={category} onChange={setCategory} />
 
         <View style={styles.actionRow}>
-          <View style={styles.actionLeft}>
-            <InertIcon symbol="🎙️" accessibilityLabel="Voice (coming in Phase 4)" />
-            <InertIcon symbol="📷" accessibilityLabel="Photo (coming in Phase 5)" />
-            <Text style={styles.locationLabel}>{locationLabel}</Text>
+          <View
+            accessibilityLabel="Photo (coming in Phase 5)"
+            style={styles.inertIcon}
+          >
+            <Text style={styles.inertIconLabel}>📷</Text>
+          </View>
+          <View style={styles.locationPill}>
+            <Text style={styles.locationPillText}>{locationLabel}</Text>
           </View>
           <Pressable
             onPress={handleSave}
@@ -149,22 +176,32 @@ export default function NoteCaptureSheet({ visible, onClose, onStartTrip }: Prop
   );
 }
 
-function InertIcon({ symbol, accessibilityLabel }: { symbol: string; accessibilityLabel: string }) {
-  return (
-    <View accessibilityLabel={accessibilityLabel} style={styles.inertIcon}>
-      <Text style={styles.inertIconLabel}>{symbol}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: Colors.background },
   handleRow: { alignItems: 'center', paddingVertical: Spacing.sm },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border },
+  micSection: { alignItems: 'center', paddingVertical: Spacing.md },
+  micButton: { width: 68, height: 68, borderRadius: 34, overflow: 'hidden', opacity: 0.5 },
+  micGradient: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  micEmoji: { fontSize: 28 },
+  micHint: { marginTop: Spacing.sm, fontSize: 11, color: '#555555' },
+  orDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  orLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: '#444444' },
+  orText: { fontSize: 11, color: '#444444', fontWeight: '700' },
   input: {
-    ...Typography.body,
+    fontSize: 16,
     color: Colors.textPrimary,
     flex: 1,
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: BorderRadius.input,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     textAlignVertical: 'top',
@@ -172,22 +209,31 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border,
   },
-  actionLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flex: 1 },
   inertIcon: { opacity: 0.4, padding: Spacing.xs },
   inertIconLabel: { fontSize: 20 },
-  locationLabel: { ...Typography.caption, color: Colors.textSecondary, marginLeft: Spacing.sm },
+  locationPill: {
+    flex: 1,
+    marginHorizontal: Spacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: BorderRadius.pill,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  locationPillText: { fontSize: 12, color: Colors.textSecondary },
   saveButton: {
     backgroundColor: Colors.accent,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderRadius: 8,
+    borderRadius: BorderRadius.button,
+    minWidth: 60,
+    alignItems: 'center',
   },
   saveButtonDisabled: { opacity: 0.4 },
-  saveLabel: { ...Typography.body, color: Colors.background, fontWeight: '600' },
+  saveLabel: { fontSize: 16, color: Colors.background, fontWeight: '800' },
 });
