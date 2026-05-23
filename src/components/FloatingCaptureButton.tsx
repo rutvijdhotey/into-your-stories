@@ -1,6 +1,7 @@
 import { Pressable, Text, StyleSheet, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../theme';
+import { Shadows } from '../theme';
 
 type Props = {
   onPress: () => void;
@@ -18,13 +19,16 @@ export default function FloatingCaptureButton({ onPress }: Props) {
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel="Capture a note"
-      style={({ pressed }) => [
-        styles.fab,
-        { bottom },
-        pressed && styles.fabPressed,
-      ]}
+      style={({ pressed }) => [styles.fab, { bottom }, pressed && styles.fabPressed]}
     >
-      <Text style={styles.icon}>＋</Text>
+      <LinearGradient
+        colors={['#E08040', '#C0581A']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradient}
+      >
+        <Text style={styles.icon}>＋</Text>
+      </LinearGradient>
     </Pressable>
   );
 }
@@ -36,14 +40,13 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.accent,
+    overflow: 'hidden',
+    ...Shadows.fab,
+  },
+  gradient: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
   },
   fabPressed: { opacity: 0.85 },
   icon: { color: '#FFFFFF', fontSize: 28, lineHeight: 30, fontWeight: '600' },
