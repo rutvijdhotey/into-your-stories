@@ -1,5 +1,4 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Spacing, Typography } from '../theme';
 import type { TripStatus } from '../services/tripHelpers';
 
 type Props = {
@@ -8,10 +7,17 @@ type Props = {
 };
 
 export default function TripStatusBadge({ status, overdue = false }: Props) {
-  const label = status === 'active' ? (overdue ? 'Active · past end date' : 'Active') : 'Completed';
-  const tone = status === 'active' ? styles.active : styles.completed;
+  const label =
+    status === 'completed' ? 'Completed' : overdue ? 'Overdue' : 'Active';
+  const bgColor =
+    status === 'completed'
+      ? 'rgba(255,255,255,0.2)'
+      : overdue
+      ? 'rgba(255,69,58,0.9)'
+      : 'rgba(52,199,89,0.92)';
+
   return (
-    <View style={[styles.base, tone]}>
+    <View style={[styles.base, { backgroundColor: bgColor }]}>
       <Text style={styles.label}>{label}</Text>
     </View>
   );
@@ -20,11 +26,14 @@ export default function TripStatusBadge({ status, overdue = false }: Props) {
 const styles = StyleSheet.create({
   base: {
     alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 999,
   },
-  active: { backgroundColor: Colors.accent },
-  completed: { backgroundColor: Colors.border },
-  label: { ...Typography.caption, color: Colors.textPrimary, fontWeight: '600' },
+  label: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
 });
