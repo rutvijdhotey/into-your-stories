@@ -1,5 +1,6 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Colors, Spacing, Typography } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors, Spacing, Shadows, BorderRadius, getTripGradient } from '../theme';
 import TripStatusBadge from './TripStatusBadge';
 import { formatDateRange, isOverdueActive, type Trip } from '../services/tripHelpers';
 
@@ -11,8 +12,10 @@ type Props = {
 
 export default function TripCard({ trip, onPress, onLongPress }: Props) {
   const overdue = isOverdueActive(trip);
-  const destinations = trip.destinations.length > 0 ? trip.destinations.join(', ') : 'No destination yet';
+  const destinations =
+    trip.destinations.length > 0 ? trip.destinations.join(', ') : 'No destination yet';
   const noteCountLabel = `${trip.note_count} ${trip.note_count === 1 ? 'note' : 'notes'}`;
+  const gradient = getTripGradient(trip.name);
 
   return (
     <Pressable
@@ -21,46 +24,63 @@ export default function TripCard({ trip, onPress, onLongPress }: Props) {
       onLongPress={onLongPress}
       delayLongPress={400}
     >
-      <View style={styles.coverPlaceholder} />
-      <View style={styles.body}>
-        <View style={styles.headerRow}>
-          <Text style={styles.name} numberOfLines={1}>{trip.name}</Text>
-          <TripStatusBadge status={trip.status} overdue={overdue} />
-        </View>
-        <Text style={styles.destinations} numberOfLines={1}>{destinations}</Text>
-        <View style={styles.metaRow}>
-          <Text style={styles.meta}>{formatDateRange(trip.start_date, trip.end_date)}</Text>
-          <Text style={styles.metaDot}>·</Text>
-          <Text style={styles.meta}>{noteCountLabel}</Text>
-        </View>
+      <LinearGradient
+        colors={gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.6)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.scrim}
+      />
+      <View style={styles.statusBadgeWrap}>
+        <TripStatusBadge status={trip.status} overdue={overdue} />
       </View>
+      <View style={styles.bottomLeft}>
+        <Text style={styles.name} numberOfLines={1}>{trip.name}</Text>
+        <Text style={styles.destination} numberOfLines={1}>{destinations}</Text>
+        <Text style={styles.dates}>{formatDateRange(trip.start_date, trip.end_date)}</Text>
+      </View>
+      <Text style={styles.noteCount}>{noteCountLabel}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
+    height: 160,
+    borderRadius: BorderRadius.card,
     overflow: 'hidden',
     marginBottom: Spacing.md,
+    ...Shadows.card,
   },
-  cardPressed: { opacity: 0.7 },
-  coverPlaceholder: {
-    height: 120,
-    backgroundColor: Colors.border,
+  cardPressed: { opacity: 0.85 },
+  scrim: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '60%',
   },
-  body: { padding: Spacing.md },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-    gap: Spacing.sm,
+  statusBadgeWrap: { position: 'absolute', top: 10, right: 10 },
+  bottomLeft: { position: 'absolute', bottom: 10, left: 12, right: 80 },
+  name: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    letterSpacing: -0.3,
+    marginBottom: 2,
   },
-  name: { ...Typography.heading, flexShrink: 1 },
-  destinations: { ...Typography.body, color: Colors.textSecondary, marginBottom: Spacing.xs },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  meta: { ...Typography.caption },
-  metaDot: { ...Typography.caption, color: Colors.textSecondary },
+  destination: { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginBottom: 2 },
+  dates: { fontSize: 10, color: 'rgba(255,255,255,0.5)' },
+  noteCount: {
+    position: 'absolute',
+    bottom: 10,
+    right: 12,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.6)',
+  },
 });
