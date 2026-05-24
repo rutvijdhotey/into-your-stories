@@ -1,8 +1,8 @@
 # Into Your Stories — Project Progress
 
-**Last updated:** 2026-05-22  
+**Last updated:** 2026-05-23  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 3 merged ✅ — PR #3; manual sim verified 2026-05-22. UI Polish phase being designed (inserting between Phase 3 and Phase 4).
+**Status:** UI Polish phase merged ✅ — merged directly to main 2026-05-23; manual sim verified. Next: Phase 4 (Voice + Intent Detection).
 
 ---
 
@@ -62,6 +62,12 @@ A voice-first travel memory and community app. Travelers capture notes, photos, 
 | `CategoryPicker` / `TripSelector` / `NoteCard` / `NoteCaptureSheet` / `FloatingCaptureButton` | `src/components/` | ✅ Phase 3 |
 | `TripFeedScreen` — real FlatList feed | `src/screens/trip/TripFeedScreen.tsx` | ✅ Phase 3 |
 | `MainStack` overlay — FAB + capture sheet + drain triggers | `src/navigation/MainStack.tsx` | ✅ Phase 3 |
+| **UI Polish plan** | `docs/superpowers/plans/2026-05-22-ui-polish-design.md` | ✅ UI Polish |
+| **UI Polish spec** | `docs/superpowers/specs/2026-05-22-ui-polish-design.md` | ✅ UI Polish |
+| Full design system tokens | `src/theme/index.ts` | ✅ UI Polish |
+| `CategoryBadge` component | `src/components/CategoryBadge.tsx` | ✅ UI Polish |
+| Theme unit tests | `src/theme/__tests__/theme.test.ts` | ✅ UI Polish |
+| All screens + components restyled | `src/screens/`, `src/components/`, `src/navigation/` | ✅ UI Polish |
 
 Open `travel-diary-ui-mockups.html` in any browser to see all 8 screens.
 
@@ -226,59 +232,53 @@ These got fixed inline; flagging here so future phases keep the muscle memory:
 - **Offline airplane-mode test skipped:** Expo Go in the iOS simulator does not allow toggling Airplane Mode from within the app. The queue logic is covered by unit tests and the DB smoke test; a full offline round-trip test requires a device build.
 - **Smoke-test trip left in DB:** the MCP smoke test inserted a trip (`87f61a93-7c4d-4ffd-9c50-17e1ef0fae6a`) since no active trips existed. It has no notes and is harmless as dev seed data. Delete with `delete from public.trips where id='87f61a93-7c4d-4ffd-9c50-17e1ef0fae6a'` if it clutters the Home screen.
 
-### Next session checklist (UI Polish → then Phase 4)
+### Next session checklist (Phase 4 — Voice + Intent Detection)
 
-1. UI Polish phase spec being written at `docs/superpowers/specs/2026-05-22-ui-polish-design.md`. Execute this before Phase 4.
-2. Phase 3 left these stubs in `NoteCaptureSheet`: mic button (🎙️) + photo picker icon (📷). Phase 4 wires the mic to iOS Native STT + Claude intent detection.
-3. Notes save with `tagging_status = 'pending'`; NoteCard shows a shimmer where the AI category badge will appear. AI smart tagging lands in Phase 6.
-4. Supabase project `dcejrbyujfcxartywpis` — if auto-paused, restore via dashboard before starting Phase 4. MCP prefix: `mcp__7fbbe81e-73f2-44e8-81b3-e04e19180276__*`.
+1. Phase 4 wires the mic button (🎙️ stub in `NoteCaptureSheet`) to iOS Native STT (`SFSpeechRecognizer`) + Claude intent detection (save vs. search).
+2. Notes still save with `tagging_status = 'pending'`; NoteCard shimmer badge is live. AI smart tagging lands in Phase 6.
+3. Supabase project `dcejrbyujfcxartywpis` — if auto-paused, restore via dashboard before starting Phase 4. MCP prefix: `mcp__7fbbe81e-73f2-44e8-81b3-e04e19180276__*`.
+4. `@expo/vector-icons` was added as an explicit dep during UI Polish (it was implicitly bundled before). Already in `package.json`.
 
 ---
 
-## UI Polish Phase — Design Decisions (in progress)
+## UI Polish Phase — Summary (COMPLETE ✅)
 
-**Why:** Phases 1–3 were functional-first. The mockups define a significantly richer visual language that was never applied. Inserting a dedicated UI polish sprint now (before Phase 4) so all future phases inherit the right design system instead of continuing the barebones pattern.
+**Merged:** directly to `main` 2026-05-23 (21 files, 3187 insertions). No PR — merged locally after manual sim verification.  
+**Plan:** `docs/superpowers/plans/2026-05-22-ui-polish-design.md`  
+**Spec:** `docs/superpowers/specs/2026-05-22-ui-polish-design.md`
 
-**Approach chosen:** Design system first, then screens. Nail shared tokens + components, then apply to each screen — no retrofit work, and all future phases build against a stable visual foundation.
+### What shipped
 
-### Key decisions locked in
-
-| Decision | Choice | Reason |
+| Task | What | Status |
 |---|---|---|
-| Trip card cover photo (pre-Phase 5) | Gradient placeholder — deterministic from trip name hash | Looks polished, zero backend work, trivially replaced by real photo in Phase 5 |
-| Tab bar icons | `@expo/vector-icons` (Ionicons) | Already bundled in Expo SDK, no new dep, correct icon style |
-| Category badge colours | Added to `src/theme/index.ts` as `CategoryColors` map | Design token, not business logic; consumed by NoteCard, CategoryPicker, Map pins, Search |
-| Screen scope | All screens including Explore/Search/Blog | Placeholder tabs with designed empty states; full app feels cohesive |
-| Architecture | Design system first (Option B) | Stable foundation before per-screen work; future phases inherit correct language |
+| 1 | Install `expo-linear-gradient` | ✅ |
+| 2 | Extend `src/theme/index.ts` — TDD (CategoryColors, TripGradients, getTripGradient, Shadows, BorderRadius, Typography.label) | ✅ |
+| 3 | `CategoryBadge` component | ✅ |
+| 4 | `TripStatusBadge` — 3-case colours (active green, overdue red, completed white-tint) | ✅ |
+| 5 | `TabNavigator` — Ionicons tab icons, headerShown: false | ✅ |
+| 6 | `FloatingCaptureButton` — LinearGradient + amber glow shadow | ✅ |
+| 7 | `TripCard` — full gradient card (getTripGradient + scrim overlay) | ✅ |
+| 8 | `NoteCard` — uses CategoryBadge, tightened sizing | ✅ |
+| 9 | `TripSelector` — card-style redesign (single card / multi-scroll) | ✅ |
+| 10 | `NoteCaptureSheet` — mic stub, OR divider, restyled input + action row | ✅ |
+| 11 | `EmptyState` — emoji prop, bolder heading, full-width CTA | ✅ |
+| 12 | `HomeScreen` — amber eyebrow header, section labels, removed bottom CTA bar | ✅ |
+| 13 | `TripDetailScreen` — LinearGradient header with trip gradient | ✅ |
+| 14 | `ExploreScreen` — designed shell (search bar + empty state) | ✅ |
+| 15 | `SearchScreen` — designed shell (search bar + section headers) | ✅ |
+| 16 | `BlogScreen` — designed shell (Drafts + Published + Generate Blog stub) | ✅ |
+| 17 | `LoginScreen` — full restyle (brand header, amber focus borders) | ✅ |
+| 18 | `SignupScreen` — full restyle (brand header, amber focus borders) | ✅ |
 
 ### Design system additions (`src/theme/index.ts`)
 
-**`CategoryColors`** — bg tint + foreground text per category:
-- food → `rgba(220,60,60,0.2)` / `#FF7878`
-- stay → `rgba(112,96,224,0.2)` / `#A898FF`
-- activity → `rgba(48,168,112,0.2)` / `#58D898`
-- shopping → `rgba(240,160,48,0.2)` / `#FFB060`
-- to-visit → `rgba(48,96,200,0.2)` / `#70A8FF`
-- general → `rgba(255,255,255,0.1)` / `#888888`
-
-**`TripGradients`** — 8 curated gradient pairs; deterministic hash of trip name → always same gradient per trip.
-
-**`Shadows`** — standard card shadow + FAB glow.
-
-**`BorderRadius`** — `card: 16`, `pill: 999`, `sheet: 24`.
-
-**New dep:** `expo-linear-gradient` (trip card gradients + FAB gradient).
-
-### Sections still to design (brainstorm in progress)
-
-- [ ] Shared components (CategoryBadge, tab bar icons, FAB gradient)
-- [ ] TripCard (full-bleed gradient, overlaid text, status badge, note count)
-- [ ] HomeScreen header + list layout
-- [ ] TripDetailScreen header
-- [ ] NoteCard (coloured badge, 2-line clamp, meta row)
-- [ ] NoteCaptureSheet (mic stub, trip selector cards, save button)
-- [ ] Explore / Search / Blog empty states
-- [ ] Login / Signup screens
+- **`CategoryColors`** — bg tint + foreground text per category (food, stay, activity, shopping, to-visit, general)
+- **`TripGradients`** — 8 dark gradient pairs; `getTripGradient(name)` deterministically picks one from trip name hash
+- **`Shadows`** — `card` + `fab` presets
+- **`BorderRadius`** — `card: 16`, `sheet: 24`, `pill: 999`, `input: 12`, `button: 13`
+- **`Typography.label`** — uppercase label style (11px, 800 weight, letterSpacing 1)
+- **`Colors.textTertiary`** — `#555555`
+- **New dep:** `expo-linear-gradient`, `@expo/vector-icons` (explicit)
 
 ## Setup gotchas hit on 2026-05-21 (record so we don't re-hit)
 
