@@ -40,6 +40,7 @@ export function useVoiceRecording(): UseVoiceRecordingReturn {
   });
 
   const start = async () => {
+    if (status === 'recording') return;
     const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
     if (!granted) {
       setError('Microphone or speech recognition permission denied');
@@ -54,6 +55,7 @@ export function useVoiceRecording(): UseVoiceRecordingReturn {
   };
 
   const stop = () => {
+    if (status !== 'recording') return;
     ExpoSpeechRecognitionModule.stop();
   };
 

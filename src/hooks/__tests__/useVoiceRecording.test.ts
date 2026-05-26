@@ -112,4 +112,22 @@ describe('useVoiceRecording', () => {
     expect(result.current.status).toBe('idle');
     expect(result.current.error).toBeNull();
   });
+
+  it('stop() does not call module stop when not recording', () => {
+    const { result } = renderHook(() => useVoiceRecording());
+    // status is idle
+    act(() => { result.current.stop(); });
+    expect(mockModule.stop).not.toHaveBeenCalled();
+  });
+
+  it('start() does nothing when already recording', async () => {
+    const { result } = renderHook(() => useVoiceRecording());
+    await act(async () => { await result.current.start(); });
+    expect(result.current.status).toBe('recording');
+    // Call start() again while recording
+    await act(async () => { await result.current.start(); });
+    // requestPermissionsAsync should only have been called once
+    expect(mockModule.requestPermissionsAsync).toHaveBeenCalledTimes(1);
+    expect(mockModule.start).toHaveBeenCalledTimes(1);
+  });
 });
