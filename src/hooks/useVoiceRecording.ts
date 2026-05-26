@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
@@ -39,7 +39,7 @@ export function useVoiceRecording(): UseVoiceRecordingReturn {
     setStatus('error');
   });
 
-  const start = async () => {
+  const start = useCallback(async () => {
     if (status === 'recording') return;
     const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
     if (!granted) {
@@ -52,19 +52,19 @@ export function useVoiceRecording(): UseVoiceRecordingReturn {
     setError(null);
     setStatus('recording');
     ExpoSpeechRecognitionModule.start({ lang: 'en-US', continuous: false });
-  };
+  }, [status]);
 
-  const stop = () => {
+  const stop = useCallback(() => {
     if (status !== 'recording') return;
     ExpoSpeechRecognitionModule.stop();
-  };
+  }, [status]);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setStatus('idle');
     setPartialTranscript('');
     setFinalTranscript('');
     setError(null);
-  };
+  }, []);
 
   return { status, partialTranscript, finalTranscript, error, start, stop, reset };
 }

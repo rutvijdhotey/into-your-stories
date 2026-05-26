@@ -72,10 +72,12 @@ export default function NoteCaptureSheet({
   useEffect(() => {
     if (voice.status !== 'done' || !voice.finalTranscript) return;
     const transcript = voice.finalTranscript;
+    let cancelled = false;
     voice.reset();
     setIntentLoading(true);
     detectIntent(transcript)
       .then((result) => {
+        if (cancelled) return;
         if (result.intent === 'search') {
           onClose();
           onSearchIntent(result.text);
@@ -84,10 +86,12 @@ export default function NoteCaptureSheet({
         }
       })
       .catch(() => {
-        // On any error, treat as save
-        setContent(transcript);
+        if (!cancelled) setContent(transcript);
       })
-      .finally(() => setIntentLoading(false));
+      .finally(() => {
+        if (!cancelled) setIntentLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [voice.status, voice.finalTranscript, voice.reset, onClose, onSearchIntent]);
 
   useEffect(() => {
