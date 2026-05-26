@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-25  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 4 (Voice + Intent Detection) complete ✅ — branch `phase-4/voice-intent`, PR open, edge function deployed and smoke-tested. Next: Phase 5 (Photo Import).
+**Status:** Phase 4 (Voice + Intent Detection) complete ✅ — branch `phase-4/voice-intent`, PR open, edge function deployed and smoke-tested, iOS build patched and verified. Next: Phase 5 (Photo Import).
 
 ---
 
@@ -234,11 +234,12 @@ These got fixed inline; flagging here so future phases keep the muscle memory:
 
 ### Next session checklist (Phase 5 — Photo Import)
 
-1. Phase 5 wires the 📷 button in `NoteCaptureSheet` (currently inert) to the iOS photo library picker.
-2. After `npx expo prebuild --clean`, two Xcode path-with-spaces patches must be re-applied (see "Setup gotchas" below). Consider adding a postinstall script to automate this.
-3. Always launch the dev build with `LANG=en_US.UTF-8 npx expo run:ios` — never `npx expo start` (Expo Go won't have native modules).
-4. Supabase project `dcejrbyujfcxartywpis` — if auto-paused, restore via dashboard before starting. MCP prefix: `mcp__7fbbe81e-73f2-44e8-81b3-e04e19180276__*`.
-5. `detect-intent` edge function is live; ANTHROPIC_API_KEY secret is set. Model: `claude-haiku-4-5-20251001`.
+1. **Merge Phase 4 first** — complete the Phase 4 merge verification checklist above, then merge `phase-4/voice-intent` → `main` before branching for Phase 5.
+2. Phase 5 wires the 📷 button in `NoteCaptureSheet` (currently inert) to the iOS photo library picker.
+3. After `npx expo prebuild --clean`, three Xcode patches must be re-applied to `ios/intoyourstories.xcodeproj/project.pbxproj` (see "Phase 4 follow-ups / gotchas" above). **High priority for Phase 5: add a postinstall script to automate these patches** so they survive future clean prebuilds.
+4. Always launch the dev build with `LANG=en_US.UTF-8 npx expo run:ios` — never `npx expo start` (Expo Go won't have native modules).
+5. Supabase project `dcejrbyujfcxartywpis` — if auto-paused, restore via dashboard before starting. MCP prefix: `mcp__7fbbe81e-73f2-44e8-81b3-e04e19180276__*`.
+6. `detect-intent` edge function is live; ANTHROPIC_API_KEY secret is set. Model: `claude-haiku-4-5-20251001`.
 
 ## Phase 4 task summary — Voice + Intent Detection (COMPLETE ✅)
 
@@ -256,12 +257,43 @@ These got fixed inline; flagging here so future phases keep the muscle memory:
 
 ### Phase 4 follow-ups / gotchas
 
-- **`npx expo prebuild --clean` wipes Xcode patches.** Two files need re-patching after every clean prebuild (both are gitignored): `ios/Pods/Pods.xcodeproj/project.pbxproj` (quote path in `[CP-User] Generate app.config` shell script) and `ios/intoyourstories.xcodeproj/project.pbxproj` (quote backtick invocation of `react-native-xcode.sh`). A postinstall script should automate this in Phase 5.
+- **`npx expo prebuild --clean` wipes Xcode patches.** `ios/` is gitignored and fully regenerated on clean prebuild. The following three manual patches must be re-applied to `ios/intoyourstories.xcodeproj/project.pbxproj` after every clean prebuild. A postinstall script should automate this in Phase 5.
+  1. **Bundler shellScript command substitution** (line ~221): the generated script ends with `""$NODE_BINARY"..."` but should be `"$("$NODE_BINARY"...)"`. Fix: add `$(` after the opening `\"` and `)` before the closing `\"` at the end of that final line.
+  2. **Expo configure-project script** (line ~289): replace `bash -l -c \"./Pods/Target\\ Support\\ Files/...\"` with `bash -l \"./Pods/Target Support Files/...\"` (drop `-c`, remove `\\` escapes — outer shell handles quoting with `bash -l <file>`).
+  3. **`LIBRARY_SEARCH_PATHS`** (lines ~452, ~508): replace the single-string `"$(SDKROOT)/usr/lib/swift\"$(inherited)\""` with the list form `("$(SDKROOT)/usr/lib/swift", "$(inherited)",)` matching the `LD_RUNPATH_SEARCH_PATHS` pattern above it.
+  
+  Root cause: the `xcode` npm package v3.0.1's PEG parser does not support `\\` (escaped backslash) or unbalanced `"` inside pbxproj quoted strings, but `expo prebuild` generates files containing both patterns.
 - **`LANG=en_US.UTF-8` required** for CocoaPods to work on this machine. Add `export LANG=en_US.UTF-8` to `~/.zshrc` to make it permanent.
 - **Edge function model ID:** `claude-haiku-3-5` (as written in the plan) is not a valid Anthropic API model ID. Correct ID is `claude-haiku-4-5-20251001`. Plan doc updated in the fix commit.
 - **Claude returns markdown-wrapped JSON** despite the prompt saying "no markdown". Added regex strip before `JSON.parse` in the edge function.
 - **`isFinal` fix:** `expo-speech-recognition` puts `isFinal` on the event object, not the result item. Original hook implementation read `top.isFinal` (always `undefined`). Fixed in the Task 5 commit — hook would never have transitioned to `done` without this fix.
 - **Supabase CLI token:** stored only for the current shell session when run non-interactively. For future deployments, run `npx supabase login` in your own terminal (browser flow) so the session persists.
+
+### Phase 4 — Merge verification checklist
+
+All of the below must pass before merging `phase-4/voice-intent` → `main`.
+
+**Automated (already green)**
+- [x] 54 unit tests pass (`npx jest`) — 16 new tests: 11 for `useVoiceRecording`, 5 for `voiceService`
+- [x] TypeScript compiles clean (`npx tsc --noEmit`)
+- [x] `expo run:ios` builds and installs without errors (after applying the three pbxproj patches above)
+
+**Manual — mic button UX (iOS simulator or device)**
+- [ ] Open `NoteCaptureSheet` — mic button visible in the action row
+- [ ] Tap mic → button transitions to recording state (pulsing red ring animation)
+- [ ] Speak any phrase → partial transcript text appears in the text input while recording
+- [ ] Tap mic again to stop → recording stops, button returns to idle state
+- [ ] After stopping, transcript text remains in the input field (ready to save)
+
+**Manual — intent routing (requires `detect-intent` edge function + active network)**
+- [ ] Speak a **save intent** phrase (e.g. "just had amazing tacos at that street food place") → transcript populates input field, capture sheet stays open for confirmation
+- [ ] Speak a **search intent** phrase (e.g. "search for coffee shops nearby") → capture sheet closes, app navigates to the Search tab
+- [ ] Disable network → speak anything → falls back to save intent silently (no error shown to user)
+
+**Edge function smoke test**
+- [ ] `detect-intent` function returns `{ "intent": "save" }` for save-style inputs
+- [ ] `detect-intent` function returns `{ "intent": "search" }` for search-style inputs
+- [ ] Check Supabase edge function logs (`dcejrbyujfcxartywpis`) — no unhandled errors
 
 ---
 
