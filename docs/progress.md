@@ -1,8 +1,8 @@
 # Into Your Stories — Project Progress
 
-**Last updated:** 2026-05-23  
+**Last updated:** 2026-05-25  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** UI Polish phase merged ✅ — merged directly to main 2026-05-23; manual sim verified. Next: Phase 4 (Voice + Intent Detection).
+**Status:** Phase 4 (Voice + Intent Detection) complete ✅ — branch `phase-4/voice-intent`, PR open, edge function deployed and smoke-tested. Next: Phase 5 (Photo Import).
 
 ---
 
@@ -232,12 +232,36 @@ These got fixed inline; flagging here so future phases keep the muscle memory:
 - **Offline airplane-mode test skipped:** Expo Go in the iOS simulator does not allow toggling Airplane Mode from within the app. The queue logic is covered by unit tests and the DB smoke test; a full offline round-trip test requires a device build.
 - **Smoke-test trip left in DB:** the MCP smoke test inserted a trip (`87f61a93-7c4d-4ffd-9c50-17e1ef0fae6a`) since no active trips existed. It has no notes and is harmless as dev seed data. Delete with `delete from public.trips where id='87f61a93-7c4d-4ffd-9c50-17e1ef0fae6a'` if it clutters the Home screen.
 
-### Next session checklist (Phase 4 — Voice + Intent Detection)
+### Next session checklist (Phase 5 — Photo Import)
 
-1. Phase 4 wires the mic button (🎙️ stub in `NoteCaptureSheet`) to iOS Native STT (`SFSpeechRecognizer`) + Claude intent detection (save vs. search).
-2. Notes still save with `tagging_status = 'pending'`; NoteCard shimmer badge is live. AI smart tagging lands in Phase 6.
-3. Supabase project `dcejrbyujfcxartywpis` — if auto-paused, restore via dashboard before starting Phase 4. MCP prefix: `mcp__7fbbe81e-73f2-44e8-81b3-e04e19180276__*`.
-4. `@expo/vector-icons` was added as an explicit dep during UI Polish (it was implicitly bundled before). Already in `package.json`.
+1. Phase 5 wires the 📷 button in `NoteCaptureSheet` (currently inert) to the iOS photo library picker.
+2. After `npx expo prebuild --clean`, two Xcode path-with-spaces patches must be re-applied (see "Setup gotchas" below). Consider adding a postinstall script to automate this.
+3. Always launch the dev build with `LANG=en_US.UTF-8 npx expo run:ios` — never `npx expo start` (Expo Go won't have native modules).
+4. Supabase project `dcejrbyujfcxartywpis` — if auto-paused, restore via dashboard before starting. MCP prefix: `mcp__7fbbe81e-73f2-44e8-81b3-e04e19180276__*`.
+5. `detect-intent` edge function is live; ANTHROPIC_API_KEY secret is set. Model: `claude-haiku-4-5-20251001`.
+
+## Phase 4 task summary — Voice + Intent Detection (COMPLETE ✅)
+
+**Branch:** `phase-4/voice-intent` → PR open  
+**Plan:** `docs/superpowers/plans/2026-05-23-phase-4-voice-intent.md`  
+**Tests:** 54 passed (38 baseline + 16 new)
+
+| Task | What | Status |
+|---|---|---|
+| 1 | Install `expo-speech-recognition`, add iOS mic + speech permissions, migrate to dev build | ✅ |
+| 2 | `useVoiceRecording` hook — `idle → recording → done/error` state machine, 11 TDD tests, state guards on `start()`/`stop()` | ✅ |
+| 3 | `detect-intent` Supabase Edge Function — Claude `claude-haiku-4-5-20251001` binary classifier, markdown-strip fix, deployed to `dcejrbyujfcxartywpis` | ✅ |
+| 4 | `voiceService.detectIntent()` — client wrapper with save fallback, 5 TDD tests | ✅ |
+| 5 | Wire mic button in `NoteCaptureSheet` — pulsing red ring, partial transcript display, intent routing; `MainStack` `handleSearchIntent` navigates to Search tab | ✅ |
+
+### Phase 4 follow-ups / gotchas
+
+- **`npx expo prebuild --clean` wipes Xcode patches.** Two files need re-patching after every clean prebuild (both are gitignored): `ios/Pods/Pods.xcodeproj/project.pbxproj` (quote path in `[CP-User] Generate app.config` shell script) and `ios/intoyourstories.xcodeproj/project.pbxproj` (quote backtick invocation of `react-native-xcode.sh`). A postinstall script should automate this in Phase 5.
+- **`LANG=en_US.UTF-8` required** for CocoaPods to work on this machine. Add `export LANG=en_US.UTF-8` to `~/.zshrc` to make it permanent.
+- **Edge function model ID:** `claude-haiku-3-5` (as written in the plan) is not a valid Anthropic API model ID. Correct ID is `claude-haiku-4-5-20251001`. Plan doc updated in the fix commit.
+- **Claude returns markdown-wrapped JSON** despite the prompt saying "no markdown". Added regex strip before `JSON.parse` in the edge function.
+- **`isFinal` fix:** `expo-speech-recognition` puts `isFinal` on the event object, not the result item. Original hook implementation read `top.isFinal` (always `undefined`). Fixed in the Task 5 commit — hook would never have transitioned to `done` without this fix.
+- **Supabase CLI token:** stored only for the current shell session when run non-interactively. For future deployments, run `npx supabase login` in your own terminal (browser flow) so the session persists.
 
 ---
 
