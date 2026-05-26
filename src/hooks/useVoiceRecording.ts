@@ -25,7 +25,7 @@ export function useVoiceRecording(): UseVoiceRecordingReturn {
   useSpeechRecognitionEvent('result', (event) => {
     const top = event.results[0];
     if (!top) return;
-    if (top.isFinal) {
+    if (event.isFinal) {
       setFinalTranscript(top.transcript);
       setPartialTranscript('');
       setStatus('done');

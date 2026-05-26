@@ -58,7 +58,7 @@ describe('useVoiceRecording', () => {
     const { result } = renderHook(() => useVoiceRecording());
     await act(async () => { await result.current.start(); });
     act(() => {
-      capturedCallbacks['result']?.({ results: [{ transcript: 'hello wor', isFinal: false }] });
+      capturedCallbacks['result']?.({ isFinal: false, results: [{ transcript: 'hello wor' }] });
     });
     expect(result.current.partialTranscript).toBe('hello wor');
     expect(result.current.status).toBe('recording');
@@ -68,7 +68,7 @@ describe('useVoiceRecording', () => {
     const { result } = renderHook(() => useVoiceRecording());
     await act(async () => { await result.current.start(); });
     act(() => {
-      capturedCallbacks['result']?.({ results: [{ transcript: 'Hello world', isFinal: true }] });
+      capturedCallbacks['result']?.({ isFinal: true, results: [{ transcript: 'Hello world' }] });
     });
     expect(result.current.status).toBe('done');
     expect(result.current.finalTranscript).toBe('Hello world');
@@ -95,7 +95,7 @@ describe('useVoiceRecording', () => {
     const { result } = renderHook(() => useVoiceRecording());
     await act(async () => { await result.current.start(); });
     act(() => {
-      capturedCallbacks['result']?.({ results: [{ transcript: 'test', isFinal: true }] });
+      capturedCallbacks['result']?.({ isFinal: true, results: [{ transcript: 'test' }] });
     });
     expect(result.current.status).toBe('done');
     act(() => { result.current.reset(); });

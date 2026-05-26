@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, AppState, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { MainStackParamList } from './types';
 import { Colors } from '../theme';
 import TabNavigator from './TabNavigator';
@@ -12,8 +14,9 @@ import { drainQueue } from '../services/noteService';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
-export default function MainStack() {
+function MainStackInner() {
   const [captureOpen, setCaptureOpen] = useState(false);
+  const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
 
   useEffect(() => {
     void drainQueue();
@@ -31,6 +34,14 @@ export default function MainStack() {
     });
     return () => sub.remove();
   }, []);
+
+  const handleSearchIntent = useCallback(
+    (_query: string) => {
+      // Navigate to the Search tab — query pre-fill wired in Phase 7
+      navigation.navigate('Tabs', { screen: 'Search' });
+    },
+    [navigation],
+  );
 
   return (
     <View style={styles.root}>
@@ -53,12 +64,15 @@ export default function MainStack() {
       <NoteCaptureSheet
         visible={captureOpen}
         onClose={() => setCaptureOpen(false)}
-        onStartTrip={() => {
-          setCaptureOpen(false);
-        }}
+        onStartTrip={() => setCaptureOpen(false)}
+        onSearchIntent={handleSearchIntent}
       />
     </View>
   );
+}
+
+export default function MainStack() {
+  return <MainStackInner />;
 }
 
 const styles = StyleSheet.create({
