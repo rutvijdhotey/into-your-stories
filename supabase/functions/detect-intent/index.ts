@@ -43,7 +43,7 @@ serve(async (req) => {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-haiku-3-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 60,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: transcript.trim() }],
@@ -62,9 +62,12 @@ serve(async (req) => {
   };
   const rawText = claudeData.content[0]?.text ?? '';
 
+  // Strip markdown code fences if Claude wraps the JSON
+  const jsonText = (rawText.match(/```(?:json)?\s*([\s\S]*?)```/)?.[1] ?? rawText).trim();
+
   let result: { intent: string; text: string };
   try {
-    result = JSON.parse(rawText);
+    result = JSON.parse(jsonText);
   } catch {
     // Parse error → default to save
     result = { intent: 'save', text: transcript.trim() };
