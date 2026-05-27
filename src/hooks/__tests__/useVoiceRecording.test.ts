@@ -39,7 +39,7 @@ describe('useVoiceRecording', () => {
       await result.current.start();
     });
     expect(mockModule.requestPermissionsAsync).toHaveBeenCalledTimes(1);
-    expect(mockModule.start).toHaveBeenCalledWith({ lang: 'en-US', continuous: false });
+    expect(mockModule.start).toHaveBeenCalledWith({ lang: 'en-US', continuous: false, interimResults: true });
     expect(result.current.status).toBe('recording');
   });
 
@@ -109,6 +109,34 @@ describe('useVoiceRecording', () => {
     await act(async () => { await result.current.start(); });
     expect(result.current.status).toBe('error');
     act(() => { result.current.reset(); });
+    expect(result.current.status).toBe('idle');
+    expect(result.current.error).toBeNull();
+  });
+
+  it('end event without prior final result returns to idle (fixes stuck-recording bug)', async () => {
+    const { result } = renderHook(() => useVoiceRecording());
+    await act(async () => { await result.current.start(); });
+    expect(result.current.status).toBe('recording');
+    // Session ends with no result (silence timeout, user tapped stop before speaking)
+    act(() => { capturedCallbacks['end']?.({} as unknown); });
+    expect(result.current.status).toBe('idle');
+  });
+
+  it('end event after a final result does not overwrite done state', async () => {
+    const { result } = renderHook(() => useVoiceRecording());
+    await act(async () => { await result.current.start(); });
+    act(() => {
+      capturedCallbacks['result']?.({ isFinal: true, results: [{ transcript: 'Hello' }] });
+    });
+    expect(result.current.status).toBe('done');
+    act(() => { capturedCallbacks['end']?.({} as unknown); });
+    expect(result.current.status).toBe('done');
+  });
+
+  it('nomatch event returns to idle without setting error', async () => {
+    const { result } = renderHook(() => useVoiceRecording());
+    await act(async () => { await result.current.start(); });
+    act(() => { capturedCallbacks['nomatch']?.({} as unknown); });
     expect(result.current.status).toBe('idle');
     expect(result.current.error).toBeNull();
   });
