@@ -43,3 +43,6 @@ yarn-error.*
 
 # Supabase CLI temp files
 supabase/.temp/
+
+# Git worktrees
+.worktrees/
