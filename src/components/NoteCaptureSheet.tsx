@@ -71,16 +71,20 @@ export default function NoteCaptureSheet({
     }
   }, [voice.status, pulseAnim]);
 
-  // Handle completed transcription
+  // Handle completed transcription.
+  // NOTE: voice.reset() is intentionally called AFTER detectIntent resolves, not
+  // before. Calling it first changes voice.status + voice.finalTranscript (both
+  // deps), which triggers the effect cleanup and sets cancelled=true before the
+  // async work finishes — permanently blocking setIntentLoading(false).
   useEffect(() => {
     if (voice.status !== 'done' || !voice.finalTranscript) return;
     const transcript = voice.finalTranscript;
     let cancelled = false;
-    voice.reset();
     setIntentLoading(true);
     detectIntent(transcript)
       .then((result) => {
         if (cancelled) return;
+        voice.reset();
         if (result.intent === 'search') {
           onClose();
           onSearchIntent(result.text);
@@ -89,7 +93,10 @@ export default function NoteCaptureSheet({
         }
       })
       .catch(() => {
-        if (!cancelled) setContent(transcript);
+        if (!cancelled) {
+          voice.reset();
+          setContent(transcript);
+        }
       })
       .finally(() => {
         if (!cancelled) setIntentLoading(false);
@@ -109,6 +116,7 @@ export default function NoteCaptureSheet({
     if (!visible) return;
     setContent('');
     setCategory(null);
+    setIntentLoading(false);
     voice.reset();
     void fetchLocation();
     if (autoRecord) {
