@@ -5,20 +5,23 @@ import { Shadows } from '../theme';
 
 type Props = {
   onPress: () => void;
+  onLongPress?: () => void;
 };
 
 const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 49 : 56;
 const FAB_GAP = 16;
 
-export default function FloatingCaptureButton({ onPress }: Props) {
+export default function FloatingCaptureButton({ onPress, onLongPress }: Props) {
   const insets = useSafeAreaInsets();
   const bottom = insets.bottom + TAB_BAR_HEIGHT + FAB_GAP;
 
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
       accessibilityRole="button"
-      accessibilityLabel="Capture a note"
+      accessibilityLabel="Capture a note. Long press to record instantly."
       style={({ pressed }) => [styles.fab, { bottom }, pressed && styles.fabPressed]}
     >
       <LinearGradient

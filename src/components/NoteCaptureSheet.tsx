@@ -29,6 +29,8 @@ type Props = {
   onClose: () => void;
   onStartTrip: () => void;
   onSearchIntent: (query: string) => void;
+  /** When true, start voice recording as soon as the sheet opens. */
+  autoRecord?: boolean;
 };
 
 export default function NoteCaptureSheet({
@@ -36,6 +38,7 @@ export default function NoteCaptureSheet({
   onClose,
   onStartTrip,
   onSearchIntent,
+  autoRecord = false,
 }: Props) {
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -108,6 +111,9 @@ export default function NoteCaptureSheet({
     setCategory(null);
     voice.reset();
     void fetchLocation();
+    if (autoRecord) {
+      void voice.start();
+    }
   }, [visible, fetchLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canSave = !saving && !intentLoading && selectedTripId !== null && validateContent(content).ok;

@@ -16,6 +16,7 @@ const Stack = createNativeStackNavigator<MainStackParamList>();
 
 function MainStackInner() {
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [captureAutoRecord, setCaptureAutoRecord] = useState(false);
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
 
   useEffect(() => {
@@ -60,11 +61,15 @@ function MainStackInner() {
           options={{ title: '', headerBackTitle: 'Home' }}
         />
       </Stack.Navigator>
-      <FloatingCaptureButton onPress={() => setCaptureOpen(true)} />
+      <FloatingCaptureButton
+        onPress={() => { setCaptureAutoRecord(false); setCaptureOpen(true); }}
+        onLongPress={() => { setCaptureAutoRecord(true); setCaptureOpen(true); }}
+      />
       <NoteCaptureSheet
         visible={captureOpen}
-        onClose={() => setCaptureOpen(false)}
-        onStartTrip={() => setCaptureOpen(false)}
+        autoRecord={captureAutoRecord}
+        onClose={() => { setCaptureOpen(false); setCaptureAutoRecord(false); }}
+        onStartTrip={() => { setCaptureOpen(false); setCaptureAutoRecord(false); }}
         onSearchIntent={handleSearchIntent}
       />
     </View>
