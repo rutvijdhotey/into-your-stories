@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, AppState, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { MainStackParamList } from './types';
 import { Colors } from '../theme';
 import TabNavigator from './TabNavigator';
@@ -12,8 +14,10 @@ import { drainQueue } from '../services/noteService';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
-export default function MainStack() {
+function MainStackInner() {
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [captureAutoRecord, setCaptureAutoRecord] = useState(false);
+  const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
 
   useEffect(() => {
     void drainQueue();
@@ -32,6 +36,14 @@ export default function MainStack() {
     return () => sub.remove();
   }, []);
 
+  const handleSearchIntent = useCallback(
+    (_query: string) => {
+      // Navigate to the Search tab — query pre-fill wired in Phase 7
+      navigation.navigate('Tabs', { screen: 'Search' });
+    },
+    [navigation],
+  );
+
   return (
     <View style={styles.root}>
       <Stack.Navigator
@@ -49,16 +61,23 @@ export default function MainStack() {
           options={{ title: '', headerBackTitle: 'Home' }}
         />
       </Stack.Navigator>
-      <FloatingCaptureButton onPress={() => setCaptureOpen(true)} />
+      <FloatingCaptureButton
+        onPress={() => { setCaptureAutoRecord(false); setCaptureOpen(true); }}
+        onLongPress={() => { setCaptureAutoRecord(true); setCaptureOpen(true); }}
+      />
       <NoteCaptureSheet
         visible={captureOpen}
-        onClose={() => setCaptureOpen(false)}
-        onStartTrip={() => {
-          setCaptureOpen(false);
-        }}
+        autoRecord={captureAutoRecord}
+        onClose={() => { setCaptureOpen(false); setCaptureAutoRecord(false); }}
+        onStartTrip={() => { setCaptureOpen(false); setCaptureAutoRecord(false); }}
+        onSearchIntent={handleSearchIntent}
       />
     </View>
   );
+}
+
+export default function MainStack() {
+  return <MainStackInner />;
 }
 
 const styles = StyleSheet.create({

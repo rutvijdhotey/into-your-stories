@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   View,
@@ -9,12 +9,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { useTrips } from '../hooks/useTrips';
 import { useLocation } from '../hooks/useLocation';
+import { useVoiceRecording } from '../hooks/useVoiceRecording';
 import { createNote } from '../services/noteService';
+import { detectIntent } from '../services/voiceService';
 import { validateContent, type Category } from '../services/noteHelpers';
 import CategoryPicker from './CategoryPicker';
 import TripSelector from './TripSelector';
@@ -24,13 +28,23 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   onStartTrip: () => void;
+  onSearchIntent: (query: string) => void;
+  /** When true, start voice recording as soon as the sheet opens. */
+  autoRecord?: boolean;
 };
 
-export default function NoteCaptureSheet({ visible, onClose, onStartTrip }: Props) {
+export default function NoteCaptureSheet({
+  visible,
+  onClose,
+  onStartTrip,
+  onSearchIntent,
+  autoRecord = false,
+}: Props) {
   const { session } = useAuth();
   const userId = session?.user.id;
   const { trips } = useTrips(userId);
   const { fix, loading: locating, fetch: fetchLocation } = useLocation();
+  const voice = useVoiceRecording();
 
   const activeTrips = useMemo(() => trips.filter((t) => t.status === 'active'), [trips]);
 
@@ -38,6 +52,57 @@ export default function NoteCaptureSheet({ visible, onClose, onStartTrip }: Prop
   const [category, setCategory] = useState<Category | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [intentLoading, setIntentLoading] = useState(false);
+
+  // Pulsing ring animation for recording state
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (voice.status === 'recording') {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.35, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        ]),
+      );
+      loop.start();
+      return () => loop.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [voice.status, pulseAnim]);
+
+  // Handle completed transcription.
+  // NOTE: voice.reset() is intentionally called AFTER detectIntent resolves, not
+  // before. Calling it first changes voice.status + voice.finalTranscript (both
+  // deps), which triggers the effect cleanup and sets cancelled=true before the
+  // async work finishes — permanently blocking setIntentLoading(false).
+  useEffect(() => {
+    if (voice.status !== 'done' || !voice.finalTranscript) return;
+    const transcript = voice.finalTranscript;
+    let cancelled = false;
+    setIntentLoading(true);
+    detectIntent(transcript)
+      .then((result) => {
+        if (cancelled) return;
+        voice.reset();
+        if (result.intent === 'search') {
+          onClose();
+          onSearchIntent(result.text);
+        } else {
+          setContent(result.text);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          voice.reset();
+          setContent(transcript);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIntentLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [voice.status, voice.finalTranscript, voice.reset, onClose, onSearchIntent]);
 
   useEffect(() => {
     if (!visible) return;
@@ -51,10 +116,15 @@ export default function NoteCaptureSheet({ visible, onClose, onStartTrip }: Prop
     if (!visible) return;
     setContent('');
     setCategory(null);
+    setIntentLoading(false);
+    voice.reset();
     void fetchLocation();
-  }, [visible, fetchLocation]);
+    if (autoRecord) {
+      void voice.start();
+    }
+  }, [visible, fetchLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const canSave = !saving && selectedTripId !== null && validateContent(content).ok;
+  const canSave = !saving && !intentLoading && selectedTripId !== null && validateContent(content).ok;
 
   const handleSave = async () => {
     if (!userId || !selectedTripId) return;
@@ -86,11 +156,32 @@ export default function NoteCaptureSheet({ visible, onClose, onStartTrip }: Prop
     }
   };
 
+  const handleMicPress = async () => {
+    if (intentLoading) return;
+    if (voice.status === 'recording') {
+      voice.stop();
+    } else if (voice.status === 'idle' || voice.status === 'error') {
+      await voice.start();
+    }
+  };
+
   const locationLabel = locating
     ? '📍 Locating…'
     : fix?.city
     ? `📍 ${fix.city}`
     : '📍 No location';
+
+  const isRecording = voice.status === 'recording';
+  const micLabel =
+    intentLoading
+      ? 'Thinking…'
+      : isRecording
+      ? (voice.partialTranscript || 'Listening…')
+      : voice.status === 'error'
+      ? (voice.error ?? 'Try again')
+      : 'Hold to record';
+  const micLabelColor =
+    voice.status === 'error' ? Colors.error : isRecording ? Colors.accent : '#555555';
 
   return (
     <Modal
@@ -119,19 +210,32 @@ export default function NoteCaptureSheet({ visible, onClose, onStartTrip }: Prop
 
         <View style={styles.micSection}>
           <Pressable
-            style={styles.micButton}
-            accessibilityLabel="Voice recording (coming in Phase 4)"
+            onPress={handleMicPress}
+            accessibilityRole="button"
+            accessibilityLabel={isRecording ? 'Stop recording' : 'Start voice recording'}
+            style={styles.micOuter}
           >
+            {isRecording && (
+              <Animated.View
+                style={[styles.micRing, { transform: [{ scale: pulseAnim }] }]}
+              />
+            )}
             <LinearGradient
               colors={['#E08040', '#C0581A']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.micGradient}
+              style={[styles.micButton, !isRecording && styles.micButtonIdle]}
             >
-              <Text style={styles.micEmoji}>🎙️</Text>
+              {intentLoading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.micEmoji}>{isRecording ? '⏹' : '🎙️'}</Text>
+              )}
             </LinearGradient>
           </Pressable>
-          <Text style={styles.micHint}>Hold to record</Text>
+          <Text style={[styles.micHint, { color: micLabelColor }]} numberOfLines={2}>
+            {micLabel}
+          </Text>
         </View>
 
         <View style={styles.orDivider}>
@@ -146,7 +250,7 @@ export default function NoteCaptureSheet({ visible, onClose, onStartTrip }: Prop
           placeholder="What's on your mind?"
           placeholderTextColor={Colors.textSecondary}
           multiline
-          autoFocus
+          autoFocus={!isRecording}
           style={styles.input}
         />
 
@@ -181,10 +285,25 @@ const styles = StyleSheet.create({
   handleRow: { alignItems: 'center', paddingVertical: Spacing.sm },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border },
   micSection: { alignItems: 'center', paddingVertical: Spacing.md },
-  micButton: { width: 68, height: 68, borderRadius: 34, overflow: 'hidden', opacity: 0.5 },
-  micGradient: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  micOuter: { alignItems: 'center', justifyContent: 'center', width: 80, height: 80 },
+  micRing: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: 'rgba(255,69,58,0.7)',
+  },
+  micButton: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micButtonIdle: { opacity: 0.5 },
   micEmoji: { fontSize: 28 },
-  micHint: { marginTop: Spacing.sm, fontSize: 11, color: '#555555' },
+  micHint: { marginTop: Spacing.sm, fontSize: 11, textAlign: 'center', paddingHorizontal: Spacing.lg },
   orDivider: {
     flexDirection: 'row',
     alignItems: 'center',
