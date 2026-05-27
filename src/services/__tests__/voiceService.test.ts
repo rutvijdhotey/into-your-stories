@@ -15,6 +15,11 @@ const mockInvoke = supabase.functions.invoke as jest.MockedFunction<
 
 beforeEach(() => {
   jest.clearAllMocks();
+  jest.useRealTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 describe('detectIntent', () => {
@@ -64,5 +69,18 @@ describe('detectIntent', () => {
     } as never);
     const result = await detectIntent('fallback test');
     expect(result).toEqual({ intent: 'save', text: 'fallback test' });
+  });
+
+  it('falls back to save intent when the request times out', async () => {
+    jest.useFakeTimers();
+    // Simulates a hung network request; we settle it after the race so the
+    // event loop can clean up and Jest exits cleanly.
+    let settle!: (v: unknown) => void;
+    mockInvoke.mockReturnValueOnce(new Promise((r) => { settle = r; }) as never);
+    const resultPromise = detectIntent('timeout test');
+    jest.advanceTimersByTime(6001);
+    const result = await resultPromise;
+    settle({ data: null, error: null }); // unblock the hung promise
+    expect(result).toEqual({ intent: 'save', text: 'timeout test' });
   });
 });

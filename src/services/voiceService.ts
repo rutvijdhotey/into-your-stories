@@ -7,15 +7,26 @@ export type IntentResult = {
   text: string;
 };
 
+const INTENT_TIMEOUT_MS = 6000;
+
 export async function detectIntent(transcript: string): Promise<IntentResult> {
   const fallback: IntentResult = { intent: 'save', text: transcript };
 
-  const { data, error } = await supabase.functions.invoke('detect-intent', {
-    body: { transcript },
-  });
+  try {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), INTENT_TIMEOUT_MS),
+    );
 
-  if (error || !data) return fallback;
+    const { data, error } = await Promise.race([
+      supabase.functions.invoke('detect-intent', { body: { transcript } }),
+      timeout,
+    ]);
 
-  const intent = data.intent === 'search' ? 'search' : 'save';
-  return { intent, text: data.text ?? transcript };
+    if (error || !data) return fallback;
+
+    const intent = data.intent === 'search' ? 'search' : 'save';
+    return { intent, text: data.text ?? transcript };
+  } catch {
+    return fallback;
+  }
 }
