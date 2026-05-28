@@ -25,6 +25,7 @@ export type Database = {
           lat: number | null
           lng: number | null
           offline_id: string
+          photo_urls: string[]
           place_name: string | null
           tagging_status: string
           trip_id: string
@@ -41,6 +42,7 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           offline_id: string
+          photo_urls?: string[]
           place_name?: string | null
           tagging_status?: string
           trip_id: string
@@ -57,6 +59,7 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           offline_id?: string
+          photo_urls?: string[]
           place_name?: string | null
           tagging_status?: string
           trip_id?: string
