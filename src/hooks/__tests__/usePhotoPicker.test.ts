@@ -26,7 +26,7 @@ const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockRequestPermissions.mockResolvedValue({ status: 'granted', granted: true, expires: 'never', canAskAgain: true });
+  mockRequestPermissions.mockResolvedValue({ status: 'granted', granted: true, expires: 'never', canAskAgain: true } as never);
   mockExtractExif.mockReturnValue(null);
 });
 
@@ -44,7 +44,7 @@ describe('usePhotoPicker', () => {
       granted: false,
       expires: 'never',
       canAskAgain: false,
-    });
+    } as never);
     const { result } = renderHook(() => usePhotoPicker());
     await act(async () => { await result.current.pick(); });
     expect(alertSpy).toHaveBeenCalledWith(
