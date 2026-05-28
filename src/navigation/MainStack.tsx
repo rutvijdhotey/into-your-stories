@@ -39,7 +39,7 @@ function MainStackInner() {
   const handleSearchIntent = useCallback(
     (_query: string) => {
       // Navigate to the Search tab — query pre-fill wired in Phase 7
-      navigation.navigate('Tabs', { screen: 'Search' });
+      navigation.navigate('Tabs');
     },
     [navigation],
   );

@@ -13,7 +13,7 @@ export type TabParamList = {
 };
 
 export type MainStackParamList = {
-  Tabs: NavigatorScreenParams<TabParamList>;
+  Tabs: undefined;
   TripDetail: { tripId: string };
 };
 
