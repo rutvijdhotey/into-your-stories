@@ -1,3 +1,5 @@
+import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -19,13 +21,15 @@ const navTheme = {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <NavigationContainer theme={navTheme}>
-          <AppNavigator />
-          <StatusBar style="light" />
-        </NavigationContainer>
-      </AuthProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <NavigationContainer theme={navTheme}>
+            <AppNavigator />
+            <StatusBar style="light" />
+          </NavigationContainer>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
