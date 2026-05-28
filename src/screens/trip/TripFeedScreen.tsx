@@ -1,6 +1,7 @@
 import { FlatList, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNotes } from '../../hooks/useNotes';
 import NoteCard from '../../components/NoteCard';
+import PhotoGrid from '../../components/PhotoGrid';
 import { Colors, Spacing, Typography } from '../../theme';
 
 type Props = { tripId: string };
@@ -35,6 +36,10 @@ export default function TripFeedScreen({ tripId }: Props) {
     );
   }
 
+  const allPhotoUrls = items
+    .filter((item) => item.kind === 'note')
+    .flatMap((item) => (item.kind === 'note' ? item.note.photo_urls : []));
+
   return (
     <FlatList
       data={items}
@@ -43,6 +48,7 @@ export default function TripFeedScreen({ tripId }: Props) {
       }
       renderItem={({ item }) => <NoteCard item={item} />}
       contentContainerStyle={styles.list}
+      ListHeaderComponent={<PhotoGrid photoUrls={allPhotoUrls} />}
     />
   );
 }

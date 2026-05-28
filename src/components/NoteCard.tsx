@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { View, Text, Animated, StyleSheet, Easing } from 'react-native';
 import { Colors } from '../theme';
 import CategoryBadge from './CategoryBadge';
+import PhotoStrip from './PhotoStrip';
 import { formatRelativeTime, type Note } from '../services/noteHelpers';
 import type { PendingNote } from '../services/offlineQueue';
 import type { FeedItem } from '../hooks/useNotes';
@@ -28,6 +29,7 @@ function ServerNoteCard({ note }: { note: Note }) {
         </Text>
       </View>
       <Text style={styles.content} numberOfLines={3}>{note.content}</Text>
+      {note.photo_urls.length > 0 && <PhotoStrip urls={note.photo_urls} />}
     </View>
   );
 }
