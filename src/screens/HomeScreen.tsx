@@ -131,8 +131,8 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Hey, {displayName}</Text>
         </View>
         <View style={styles.topBarRight}>
-          <Pressable style={styles.addButton} onPress={() => setSheetVisible(true)}>
-            <Text style={styles.addButtonLabel}>＋</Text>
+          <Pressable onPress={() => setSheetVisible(true)} hitSlop={8}>
+            <Text style={styles.newTripLabel}>＋ New trip</Text>
           </Pressable>
           <Pressable onPress={signOut} hitSlop={8} style={styles.signOutButton}>
             <Text style={styles.signOutLabel}>Sign out</Text>
@@ -212,15 +212,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   greeting: { fontSize: 26, fontWeight: '800', color: Colors.textPrimary },
-  addButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addButtonLabel: { color: '#FFFFFF', fontSize: 20, lineHeight: 22, fontWeight: '600' },
+  newTripLabel: { fontSize: 14, color: Colors.accent, fontWeight: '700' },
   signOutButton: { paddingVertical: 2 },
   signOutLabel: { fontSize: 12, color: '#555555' },
   listContent: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm },
