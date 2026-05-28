@@ -24,7 +24,7 @@ import { useVoiceRecording } from '../hooks/useVoiceRecording';
 import { usePhotoPicker } from '../hooks/usePhotoPicker';
 import { useConnectivity } from '../hooks/useConnectivity';
 import { createNote } from '../services/noteService';
-import { uploadPhoto } from '../services/photoService';
+import { uploadPhoto, deletePhotos } from '../services/photoService';
 import { detectIntent } from '../services/voiceService';
 import { validateContent, type Category } from '../services/noteHelpers';
 import CategoryPicker from './CategoryPicker';
@@ -151,6 +151,9 @@ export default function NoteCaptureSheet({
     if (autoRecord) {
       void voice.start();
     }
+  // Intentional: runs only when the sheet opens (visible flip). autoRecord, voice.*
+  // and photoPicker.clear are excluded — their identities change each render and
+  // including them would re-fire the reset on every keystroke.
   }, [visible, fetchLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const photos = photoPicker.photos;
@@ -202,7 +205,10 @@ export default function NoteCaptureSheet({
               ],
             );
           });
-          if (!saveWithout) return;
+          if (!saveWithout) {
+            void deletePhotos(uploadedUrls); // best-effort cleanup of partially-uploaded files
+            return;
+          }
           uploadedUrls = [];
         }
       }
