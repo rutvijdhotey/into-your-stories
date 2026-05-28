@@ -32,7 +32,7 @@ export function usePhotoPicker(): UsePhotoPickerResult {
       selectionLimit: 5,
       exif: true,
       quality: 0.7,
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'] as ImagePicker.MediaType[],
     });
 
     if (result.canceled) return;

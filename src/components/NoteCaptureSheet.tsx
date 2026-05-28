@@ -335,11 +335,23 @@ export default function NoteCaptureSheet({
           placeholder="What's on your mind?"
           placeholderTextColor={Colors.textSecondary}
           multiline
-          autoFocus={!isRecording}
+          autoFocus={false}
           style={styles.input}
         />
 
         <CategoryPicker value={category} onChange={setCategory} />
+
+        <Pressable
+          onPress={photoPicker.pick}
+          accessibilityRole="button"
+          accessibilityLabel="Add photos"
+          style={styles.addPhotosButton}
+        >
+          <Text style={styles.addPhotosEmoji}>📷</Text>
+          <Text style={styles.addPhotosLabel}>
+            {photos.length > 0 ? `${photos.length} photo${photos.length > 1 ? 's' : ''} added` : 'Add photos'}
+          </Text>
+        </Pressable>
 
         {photos.length > 0 && (
           <ScrollView
@@ -369,14 +381,6 @@ export default function NoteCaptureSheet({
         )}
 
         <View style={styles.actionRow}>
-          <Pressable
-            onPress={photoPicker.pick}
-            accessibilityRole="button"
-            accessibilityLabel="Add photos"
-            style={[styles.photoButton, photos.length > 0 && styles.photoButtonActive]}
-          >
-            <Text style={styles.photoButtonLabel}>📷</Text>
-          </Pressable>
           <View style={styles.locationPill}>
             <Text style={styles.locationPillText}>{locationLabel}</Text>
           </View>
@@ -474,9 +478,21 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border,
   },
-  photoButton: { padding: Spacing.xs, opacity: 0.5 },
-  photoButtonActive: { opacity: 1.0 },
-  photoButtonLabel: { fontSize: 20 },
+  addPhotosButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: BorderRadius.input,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    gap: 8,
+  },
+  addPhotosEmoji: { fontSize: 18 },
+  addPhotosLabel: { fontSize: 14, color: Colors.textSecondary },
   locationPill: {
     flex: 1,
     marginHorizontal: Spacing.sm,

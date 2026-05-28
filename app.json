@@ -47,7 +47,13 @@
           "locationWhenInUsePermission": "Into Your Stories tags notes with the city you captured them in."
         }
       ],
-      "expo-speech-recognition"
+      "expo-speech-recognition",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Into Your Stories uses your photos so you can attach them to notes."
+        }
+      ]
     ]
   }
 }

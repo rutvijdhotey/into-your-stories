@@ -111,7 +111,7 @@ describe('usePhotoPicker', () => {
       selectionLimit: 5,
       exif: true,
       quality: 0.7,
-      mediaTypes: 'Images',
+      mediaTypes: ['images'],
     });
   });
 
