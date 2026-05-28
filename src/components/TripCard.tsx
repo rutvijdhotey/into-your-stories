@@ -35,6 +35,7 @@ export default function TripCard({ trip, onPress, onLongPress }: Props) {
 
   const panGesture = Gesture.Pan()
     .activeOffsetX([-10, 10])
+    .failOffsetY([-5, 5])
     .onUpdate((e) => {
       // Clamp to [−SWIPE_THRESHOLD, 0]: card follows finger left but stops at threshold
       translateX.value = Math.max(-SWIPE_THRESHOLD, Math.min(0, e.translationX));
