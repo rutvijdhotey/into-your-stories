@@ -1,8 +1,18 @@
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Shadows, BorderRadius, getTripGradient } from '../theme';
 import TripStatusBadge from './TripStatusBadge';
 import { formatDateRange, isOverdueActive, type Trip } from '../services/tripHelpers';
+
+export const SWIPE_THRESHOLD = 80;
 
 type Props = {
   trip: Trip;
@@ -17,35 +27,62 @@ export default function TripCard({ trip, onPress, onLongPress }: Props) {
   const noteCountLabel = `${trip.note_count} ${trip.note_count === 1 ? 'note' : 'notes'}`;
   const gradient = getTripGradient(trip.name);
 
+  const translateX = useSharedValue(0);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  const panGesture = Gesture.Pan()
+    .activeOffsetX([-10, 10])
+    .onUpdate((e) => {
+      // Clamp to [−SWIPE_THRESHOLD, 0]: card follows finger left but stops at threshold
+      translateX.value = Math.max(-SWIPE_THRESHOLD, Math.min(0, e.translationX));
+    })
+    .onEnd((e) => {
+      if (e.translationX < -SWIPE_THRESHOLD) {
+        // Crossed threshold: slide off-screen then fire navigation
+        translateX.value = withTiming(-500, { duration: 150 }, (finished) => {
+          if (finished) runOnJS(onPress)();
+        });
+      } else {
+        translateX.value = withSpring(0);
+      }
+    });
+
   return (
-    <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-      onPress={onPress}
-      onLongPress={onLongPress}
-      delayLongPress={400}
-    >
-      <LinearGradient
-        colors={gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.6)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.scrim}
-      />
-      <View style={styles.statusBadgeWrap}>
-        <TripStatusBadge status={trip.status} overdue={overdue} />
-      </View>
-      <View style={styles.bottomLeft}>
-        <Text style={styles.name} numberOfLines={1}>{trip.name}</Text>
-        <Text style={styles.destination} numberOfLines={1}>{destinations}</Text>
-        <Text style={styles.dates}>{formatDateRange(trip.start_date, trip.end_date)}</Text>
-      </View>
-      <Text style={styles.noteCount}>{noteCountLabel}</Text>
-    </Pressable>
+    <GestureDetector gesture={panGesture}>
+      <Animated.View style={[styles.card, animatedStyle]}>
+        <Pressable
+          style={({ pressed }) => [styles.inner, pressed && styles.cardPressed]}
+          onPress={onPress}
+          onLongPress={onLongPress}
+          delayLongPress={400}
+        >
+          <LinearGradient
+            colors={gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.6)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.scrim}
+          />
+          <View style={styles.statusBadgeWrap}>
+            <TripStatusBadge status={trip.status} overdue={overdue} />
+          </View>
+          <View style={styles.bottomLeft}>
+            <Text style={styles.name} numberOfLines={1}>{trip.name}</Text>
+            <Text style={styles.destination} numberOfLines={1}>{destinations}</Text>
+            <Text style={styles.dates}>{formatDateRange(trip.start_date, trip.end_date)}</Text>
+          </View>
+          <Text style={styles.noteCount}>{noteCountLabel}</Text>
+        </Pressable>
+      </Animated.View>
+    </GestureDetector>
   );
 }
 
@@ -57,6 +94,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     ...Shadows.card,
   },
+  inner: { flex: 1 },
   cardPressed: { opacity: 0.85 },
   scrim: {
     position: 'absolute',
