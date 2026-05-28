@@ -66,14 +66,24 @@ patch(
   'LIBRARY_SEARCH_PATHS = (\n\t\t\t\t\t"$(SDKROOT)/usr/lib/swift",\n\t\t\t\t\t"$(inherited)",\n\t\t\t\t);',
 );
 
-// D. Bundler shellScript: add $() command-substitution wrapping around the
-//    final NODE_BINARY invocation (otherwise the shell sees two separate words).
-//    broken: ""$NODE_BINARY" --print "...xcode.sh""\n\n
-//    fixed:  "$("$NODE_BINARY" --print "...xcode.sh")"\n\n
+// D. Bundler shellScript: wrap the final NODE_BINARY invocation in quotes so
+//    the resolved path (which may contain spaces) is treated as one word.
+//    expo prebuild writes one of two forms depending on version:
+//    broken (backtick): `\"$NODE_BINARY\" --print \"...xcode.sh\"`\n\n
+//    broken (dbl-quote): \"\"$NODE_BINARY\" --print \"...xcode.sh\"\"\n\n
+//    fixed:  \"$(\"$NODE_BINARY\" --print \"...xcode.sh\")\"\n\n
 const RN_SCRIPT = "require('path').dirname(require.resolve('react-native/package.json')) + '/scripts/react-native-xcode.sh'";
+// form 1 — backtick (expo prebuild SDK 54)
 patch(
   MAIN_PBX,
-  'D: bundler shellScript $() command substitution',
+  'D1: bundler shellScript backtick → quoted $()',
+  '`\\"$NODE_BINARY\\" --print \\"' + RN_SCRIPT + '\\"`\\n\\n',
+  '\\"$(\\"$NODE_BINARY\\" --print \\"' + RN_SCRIPT + '\\")\\"\\n\\n',
+);
+// form 2 — double-quote (older expo prebuild)
+patch(
+  MAIN_PBX,
+  'D2: bundler shellScript dbl-quote → quoted $()',
   `\\"\\"\$NODE_BINARY\\" --print \\"${RN_SCRIPT}\\"\\"\n\n`,
   `\\"$(\\"$NODE_BINARY\\" --print \\"${RN_SCRIPT}\\")\\"\\n\\n`,
 );
