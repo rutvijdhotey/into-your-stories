@@ -44,7 +44,10 @@ export default function TripCard({ trip, onPress, onLongPress }: Props) {
       if (e.translationX < -SWIPE_THRESHOLD) {
         // Crossed threshold: slide off-screen then fire navigation
         translateX.value = withTiming(-500, { duration: 150 }, (finished) => {
-          if (finished) runOnJS(onPress)();
+          if (finished) {
+            translateX.value = 0; // reset before navigating so card is in place on back
+            runOnJS(onPress)();
+          }
         });
       } else {
         translateX.value = withSpring(0);

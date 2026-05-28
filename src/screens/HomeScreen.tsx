@@ -172,7 +172,7 @@ export default function HomeScreen() {
             return (
               <TripCard
                 trip={item.trip}
-                onPress={() => navigation.getParent()?.navigate('TripDetail', { tripId: item.trip.id })}
+                onPress={() => navigation.navigate('TripDetail', { tripId: item.trip.id })}
                 onLongPress={() => handleLongPressTrip(item.trip)}
               />
             );
