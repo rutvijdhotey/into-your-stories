@@ -15,9 +15,9 @@ jest.mock('../../lib/supabase', () => ({
   },
 }));
 
-// Mock global fetch for URI → Blob conversion
-const mockBlob = new Blob(['fake-image-data'], { type: 'image/jpeg' });
-const mockFetchResponse = { blob: jest.fn().mockResolvedValue(mockBlob) };
+// Mock global fetch for URI → ArrayBuffer conversion
+const mockArrayBuffer = new ArrayBuffer(16);
+const mockFetchResponse = { arrayBuffer: jest.fn().mockResolvedValue(mockArrayBuffer) };
 global.fetch = jest.fn().mockResolvedValue(mockFetchResponse) as jest.Mock;
 
 import { uploadPhoto, deletePhotos } from '../photoService';
@@ -39,7 +39,7 @@ describe('uploadPhoto', () => {
     expect(global.fetch).toHaveBeenCalledWith('file:///photo.jpg');
     expect(mockUpload).toHaveBeenCalledWith(
       'user1/note1/0.jpg',
-      mockBlob,
+      mockArrayBuffer,
       { contentType: 'image/jpeg', upsert: true },
     );
     expect(mockGetPublicUrl).toHaveBeenCalledWith('user1/note1/0.jpg');

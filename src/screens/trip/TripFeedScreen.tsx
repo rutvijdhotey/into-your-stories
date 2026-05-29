@@ -1,7 +1,7 @@
 import { FlatList, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNotes } from '../../hooks/useNotes';
 import NoteCard from '../../components/NoteCard';
-import PhotoGrid from '../../components/PhotoGrid';
+import PhotoStrip from '../../components/PhotoStrip';
 import { Colors, Spacing, Typography } from '../../theme';
 
 type Props = { tripId: string };
@@ -48,7 +48,7 @@ export default function TripFeedScreen({ tripId }: Props) {
       }
       renderItem={({ item }) => <NoteCard item={item} />}
       contentContainerStyle={styles.list}
-      ListHeaderComponent={<PhotoGrid photoUrls={allPhotoUrls} />}
+      ListHeaderComponent={<PhotoStrip urls={allPhotoUrls} />}
     />
   );
 }

@@ -8,11 +8,11 @@ export async function uploadPhoto(
 ): Promise<string> {
   const path = `${userId}/${noteOfflineId}/${index}.jpg`;
   const response = await fetch(uri);
-  const blob = await response.blob();
+  const arrayBuffer = await response.arrayBuffer();
 
   const { error } = await supabase.storage
     .from('photos')
-    .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+    .upload(path, arrayBuffer, { contentType: 'image/jpeg', upsert: true });
 
   if (error) throw error;
 

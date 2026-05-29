@@ -58,7 +58,7 @@ export default function NoteCaptureSheet({
   const activeTrips = useMemo(() => trips.filter((t) => t.status === 'active'), [trips]);
 
   const [content, setContent] = useState('');
-  const [category, setCategory] = useState<Category | null>(null);
+  const [category, setCategory] = useState<Category | null>('activity');
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [intentLoading, setIntentLoading] = useState(false);
@@ -142,7 +142,7 @@ export default function NoteCaptureSheet({
   useEffect(() => {
     if (!visible) return;
     setContent('');
-    setCategory(null);
+    setCategory('activity');
     setIntentLoading(false);
     setExifCity(null);
     photoPicker.clear();
@@ -183,11 +183,14 @@ export default function NoteCaptureSheet({
       let uploadedUrls: string[] = [];
       if (photos.length > 0) {
         let allUploaded = true;
+        let uploadError: string | null = null;
         for (let i = 0; i < photos.length; i++) {
           try {
             const url = await uploadPhoto(userId, offlineId, i, photos[i].uri);
             uploadedUrls.push(url);
-          } catch {
+          } catch (uploadErr) {
+            console.error('[PhotoUpload] failed:', uploadErr);
+            uploadError = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
             allUploaded = false;
             break;
           }
@@ -198,7 +201,7 @@ export default function NoteCaptureSheet({
           await new Promise<void>((resolve) => {
             Alert.alert(
               'Upload failed',
-              'Some photos could not be uploaded.',
+              uploadError ?? 'Some photos could not be uploaded.',
               [
                 { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
                 { text: 'Save without photos', onPress: () => { saveWithout = true; resolve(); } },

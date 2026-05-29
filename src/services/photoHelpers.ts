@@ -6,21 +6,30 @@ export function parseDMS(dms: number[], ref: 'N' | 'S' | 'E' | 'W'): number {
 export function extractExifLocation(
   exif: Record<string, unknown>,
 ): { lat: number; lng: number } | null {
-  const latArr = exif['GPSLatitude'];
+  const latRaw = exif['GPSLatitude'];
   const latRef = exif['GPSLatitudeRef'];
-  const lngArr = exif['GPSLongitude'];
+  const lngRaw = exif['GPSLongitude'];
   const lngRef = exif['GPSLongitudeRef'];
 
-  if (!Array.isArray(latArr) || !Array.isArray(lngArr)) return null;
+  // iOS (expo-image-picker on device/simulator) returns decimal degrees directly.
+  if (typeof latRaw === 'number' && typeof lngRaw === 'number') {
+    const lat = latRef === 'S' ? -Math.abs(latRaw) : Math.abs(latRaw);
+    const lng = lngRef === 'W' ? -Math.abs(lngRaw) : Math.abs(lngRaw);
+    if (!isFinite(lat) || !isFinite(lng)) return null;
+    return { lat, lng };
+  }
+
+  // Android / some metadata tools return DMS arrays: [degrees, minutes, seconds].
+  if (!Array.isArray(latRaw) || !Array.isArray(lngRaw)) return null;
   if (typeof latRef !== 'string' || typeof lngRef !== 'string') return null;
-  if (latArr.length !== 3 || lngArr.length !== 3) return null;
-  if (!latArr.every((v) => typeof v === 'number')) return null;
-  if (!lngArr.every((v) => typeof v === 'number')) return null;
+  if (latRaw.length !== 3 || lngRaw.length !== 3) return null;
+  if (!latRaw.every((v) => typeof v === 'number')) return null;
+  if (!lngRaw.every((v) => typeof v === 'number')) return null;
   if (!['N', 'S'].includes(latRef) || !['E', 'W'].includes(lngRef)) return null;
 
   return {
-    lat: parseDMS(latArr as number[], latRef as 'N' | 'S'),
-    lng: parseDMS(lngArr as number[], lngRef as 'E' | 'W'),
+    lat: parseDMS(latRaw as number[], latRef as 'N' | 'S'),
+    lng: parseDMS(lngRaw as number[], lngRef as 'E' | 'W'),
   };
 }
 
