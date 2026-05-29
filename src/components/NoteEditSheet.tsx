@@ -17,7 +17,7 @@ import * as Crypto from 'expo-crypto';
 import { uploadPhoto, deletePhotos } from '../services/photoService';
 import { updateNote, deleteNote } from '../services/noteService';
 import { validateContent, type Category, type Note } from '../services/noteHelpers';
-import { usePhotoPicker } from '../hooks/usePhotoPicker';
+import { usePhotoPicker, MAX_PHOTOS_PER_NOTE } from '../hooks/usePhotoPicker';
 import CategoryPicker from './CategoryPicker';
 import { Colors, Spacing, BorderRadius } from '../theme';
 
@@ -53,6 +53,17 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
   };
 
   const canSave = !saving && validateContent(content).ok;
+
+  // Cap total photos per note: existing (kept) + newly picked must not exceed the limit.
+  const remainingPhotoSlots = MAX_PHOTOS_PER_NOTE - existingUrls.length - photoPicker.photos.length;
+
+  const handleAddPhotos = () => {
+    if (remainingPhotoSlots <= 0) {
+      Alert.alert('Photo limit reached', `You can add up to ${MAX_PHOTOS_PER_NOTE} photos per note.`);
+      return;
+    }
+    void photoPicker.pick(remainingPhotoSlots);
+  };
 
   const handleSave = async () => {
     const validation = validateContent(content);
@@ -200,13 +211,17 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
         )}
 
         <Pressable
-          onPress={photoPicker.pick}
+          onPress={handleAddPhotos}
           accessibilityRole="button"
           accessibilityLabel="Add photos"
           style={styles.addPhotosButton}
         >
           <Text style={styles.addPhotosEmoji}>📷</Text>
-          <Text style={styles.addPhotosLabel}>Add photos</Text>
+          <Text style={styles.addPhotosLabel}>
+            {remainingPhotoSlots > 0
+              ? `Add photos (${remainingPhotoSlots} left)`
+              : `Photo limit reached (${MAX_PHOTOS_PER_NOTE} max)`}
+          </Text>
         </Pressable>
 
         <View style={styles.actionRow}>

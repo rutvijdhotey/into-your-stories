@@ -3,6 +3,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
 import { extractExifLocation } from '../services/photoHelpers';
 
+/** Maximum number of photos allowed on a single note (across existing + new). */
+export const MAX_PHOTOS_PER_NOTE = 4;
+
 export type PickedPhoto = {
   uri: string;
   width: number;
@@ -12,7 +15,8 @@ export type PickedPhoto = {
 
 type UsePhotoPickerResult = {
   photos: PickedPhoto[];
-  pick: () => Promise<void>;
+  /** @param remaining how many more photos may be added (caps the OS picker). */
+  pick: (remaining?: number) => Promise<void>;
   remove: (index: number) => void;
   clear: () => void;
 };
@@ -20,7 +24,9 @@ type UsePhotoPickerResult = {
 export function usePhotoPicker(): UsePhotoPickerResult {
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
 
-  const pick = async () => {
+  const pick = async (remaining: number = MAX_PHOTOS_PER_NOTE) => {
+    if (remaining <= 0) return;
+
     const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!granted) {
       Alert.alert('Photo access required', 'Go to Settings to allow photo access.');
@@ -29,7 +35,7 @@ export function usePhotoPicker(): UsePhotoPickerResult {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsMultipleSelection: true,
-      selectionLimit: 5,
+      selectionLimit: remaining,
       exif: true,
       quality: 0.7,
       mediaTypes: ['images'] as ImagePicker.MediaType[],
@@ -46,7 +52,8 @@ export function usePhotoPicker(): UsePhotoPickerResult {
         : null,
     }));
 
-    setPhotos((prev) => [...prev, ...picked].slice(0, 5));
+    // Clamp defensively: never exceed the slots the caller said were free.
+    setPhotos((prev) => [...prev, ...picked].slice(0, prev.length + remaining));
   };
 
   const remove = (index: number) => {
