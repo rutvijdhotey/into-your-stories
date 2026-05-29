@@ -48,3 +48,27 @@ export function filterPins(pins: MapPin[], category: Category | null): MapPin[] 
   if (category == null) return pins;
   return pins.filter((p) => p.category === category);
 }
+
+const DEFAULT_DELTA = 0.02;
+const MIN_DELTA = 0.01;
+const PADDING = 1.4;
+
+export function regionForPins(pins: MapPin[]): Region | null {
+  if (pins.length === 0) return null;
+  if (pins.length === 1) {
+    return { latitude: pins[0].lat, longitude: pins[0].lng, latitudeDelta: DEFAULT_DELTA, longitudeDelta: DEFAULT_DELTA };
+  }
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  for (const p of pins) {
+    if (p.lat < minLat) minLat = p.lat;
+    if (p.lat > maxLat) maxLat = p.lat;
+    if (p.lng < minLng) minLng = p.lng;
+    if (p.lng > maxLng) maxLng = p.lng;
+  }
+  return {
+    latitude: (minLat + maxLat) / 2,
+    longitude: (minLng + maxLng) / 2,
+    latitudeDelta: Math.max((maxLat - minLat) * PADDING, MIN_DELTA),
+    longitudeDelta: Math.max((maxLng - minLng) * PADDING, MIN_DELTA),
+  };
+}

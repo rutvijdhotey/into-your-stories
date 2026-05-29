@@ -1,4 +1,4 @@
-import { pinColor, toPins, countWithoutLocation, filterPins, type MapPin } from '../mapHelpers';
+import { pinColor, toPins, countWithoutLocation, filterPins, regionForPins, type MapPin } from '../mapHelpers';
 import { CategoryColors } from '../../theme';
 import type { Note } from '../noteHelpers';
 import type { FeedItem } from '../../hooks/useNotes';
@@ -62,5 +62,29 @@ describe('filterPins', () => {
   });
   it('returns only pins matching the given category', () => {
     expect(filterPins(pins, 'food').map((p) => p.id)).toEqual(['a', 'c']);
+  });
+});
+
+describe('regionForPins', () => {
+  it('returns null for no pins', () => {
+    expect(regionForPins([])).toBeNull();
+  });
+  it('centers on a single pin with the default delta', () => {
+    const region = regionForPins([pin('a', 'food')]);
+    expect(region).toEqual({ latitude: 1, longitude: 2, latitudeDelta: 0.02, longitudeDelta: 0.02 });
+  });
+  it('returns the padded bounding box for multiple pins', () => {
+    const pins = [ { ...pin('a', 'food'), lat: 10, lng: 20 }, { ...pin('b', 'stay'), lat: 12, lng: 26 } ];
+    const region = regionForPins(pins)!;
+    expect(region.latitude).toBeCloseTo(11, 5);
+    expect(region.longitude).toBeCloseTo(23, 5);
+    expect(region.latitudeDelta).toBeCloseTo(2 * 1.4, 5);
+    expect(region.longitudeDelta).toBeCloseTo(6 * 1.4, 5);
+  });
+  it('clamps tiny spans to the minimum delta', () => {
+    const pins = [ { ...pin('a', 'food'), lat: 10, lng: 20 }, { ...pin('b', 'stay'), lat: 10.0001, lng: 20.0001 } ];
+    const region = regionForPins(pins)!;
+    expect(region.latitudeDelta).toBe(0.01);
+    expect(region.longitudeDelta).toBe(0.01);
   });
 });
