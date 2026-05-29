@@ -1,8 +1,8 @@
 # Phase 9 — Blog Generation (Design)
 
 **App:** Into Your Stories
-**Status:** Approved design — pending implementation plan
-**Date:** 2026-05-28
+**Status:** Code complete (on-device QA pending) — implemented per `docs/superpowers/plans/2026-05-29-phase-9-blog-generation.md`
+**Date:** 2026-05-28 (implemented 2026-05-29)
 **Branch:** `phase-9/blog-generation`
 
 > Supersedes the stale `plan-09-blog-generation.md`, which assumed foundations that were never built (`blog_posts`/`style_profiles` tables, a `photo_descriptions` vision pipeline, a `places` table, semantic-search `embeddings` from Module 8, `community_destinations` from Module 10, a web layer for real URLs from Module 11, and `expo-notifications`). This spec re-scopes Phase 9 to what is buildable on today's foundation — the same way Phases 7 and 8 re-scoped their stale predecessors.
