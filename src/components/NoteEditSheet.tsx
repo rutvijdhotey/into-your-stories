@@ -1,0 +1,311 @@
+import { useState } from 'react';
+import {
+  Modal,
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  ScrollView,
+  Image,
+  ActivityIndicator,
+} from 'react-native';
+import * as Crypto from 'expo-crypto';
+import { uploadPhoto, deletePhotos } from '../services/photoService';
+import { updateNote, deleteNote } from '../services/noteService';
+import { validateContent, type Category, type Note } from '../services/noteHelpers';
+import { usePhotoPicker } from '../hooks/usePhotoPicker';
+import CategoryPicker from './CategoryPicker';
+import { Colors, Spacing, BorderRadius } from '../theme';
+
+type Props = {
+  note: Note;
+  visible: boolean;
+  onClose: () => void;
+  onDeleted: () => void;
+};
+
+export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Props) {
+  const [content, setContent] = useState(note.content);
+  const [category, setCategory] = useState<Category | null>(note.category);
+  // existingUrls: photos already on the note; removedUrls: staged for deletion on Save
+  const [existingUrls, setExistingUrls] = useState<string[]>(note.photo_urls);
+  const [removedUrls, setRemovedUrls] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const photoPicker = usePhotoPicker();
+
+  // Reset local state each time the sheet opens for a (potentially different) note
+  const handleShow = () => {
+    setContent(note.content);
+    setCategory(note.category);
+    setExistingUrls(note.photo_urls);
+    setRemovedUrls([]);
+    photoPicker.clear();
+  };
+
+  const handleRemoveExisting = (url: string) => {
+    setExistingUrls((prev) => prev.filter((u) => u !== url));
+    setRemovedUrls((prev) => [...prev, url]);
+  };
+
+  const canSave = !saving && validateContent(content).ok;
+
+  const handleSave = async () => {
+    const validation = validateContent(content);
+    if (!validation.ok) {
+      Alert.alert(
+        'Cannot save note',
+        validation.reason === 'empty' ? 'Add some text first.' : 'Note is too long (max 8000 chars).',
+      );
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // 1. Upload new photos
+      const newUrls: string[] = [];
+      const tempId = Crypto.randomUUID();
+      for (let i = 0; i < photoPicker.photos.length; i++) {
+        const url = await uploadPhoto(note.user_id, tempId, i, photoPicker.photos[i].uri);
+        newUrls.push(url);
+      }
+
+      // 2. Delete removed photos from Storage
+      if (removedUrls.length > 0) {
+        await deletePhotos(removedUrls);
+      }
+
+      // 3. Update note record
+      const finalUrls = [...existingUrls, ...newUrls];
+      await updateNote(note.id, {
+        content: validation.value,
+        category,
+        photo_urls: finalUrls,
+      });
+
+      photoPicker.clear();
+      onClose();
+    } catch (e) {
+      Alert.alert('Could not save note', (e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete note?',
+      'This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Best-effort delete all photos from Storage
+              const allUrls = [...existingUrls, ...removedUrls, ...note.photo_urls];
+              const uniqueUrls = [...new Set(allUrls)];
+              if (uniqueUrls.length > 0) await deletePhotos(uniqueUrls);
+              await deleteNote(note.id);
+              onDeleted();
+            } catch (e) {
+              Alert.alert('Could not delete note', (e as Error).message);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      onRequestClose={onClose}
+      presentationStyle="pageSheet"
+      animationType="slide"
+      onShow={handleShow}
+    >
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.handleRow}>
+          <View style={styles.handle} />
+        </View>
+
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Edit Note</Text>
+          <Pressable onPress={onClose} style={styles.cancelButton} accessibilityRole="button">
+            <Text style={styles.cancelLabel}>Cancel</Text>
+          </Pressable>
+        </View>
+
+        <TextInput
+          value={content}
+          onChangeText={setContent}
+          placeholder="What's on your mind?"
+          placeholderTextColor={Colors.textSecondary}
+          multiline
+          autoFocus={false}
+          style={styles.input}
+        />
+
+        <CategoryPicker value={category} onChange={setCategory} />
+
+        {/* Existing photos with delete badges */}
+        {(existingUrls.length > 0 || photoPicker.photos.length > 0) && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.previewStrip}
+            contentContainerStyle={styles.previewStripContent}
+          >
+            {existingUrls.map((url) => (
+              <View key={url} style={styles.thumbContainer}>
+                <Image source={{ uri: url }} style={styles.thumb} resizeMode="cover" />
+                <Pressable
+                  style={styles.removeButton}
+                  onPress={() => handleRemoveExisting(url)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove photo"
+                >
+                  <Text style={styles.removeText}>×</Text>
+                </Pressable>
+              </View>
+            ))}
+            {photoPicker.photos.map((photo, index) => (
+              <View key={photo.uri} style={styles.thumbContainer}>
+                <Image source={{ uri: photo.uri }} style={styles.thumb} resizeMode="cover" />
+                <Pressable
+                  style={styles.removeButton}
+                  onPress={() => photoPicker.remove(index)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove photo"
+                >
+                  <Text style={styles.removeText}>×</Text>
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+
+        <Pressable
+          onPress={photoPicker.pick}
+          accessibilityRole="button"
+          accessibilityLabel="Add photos"
+          style={styles.addPhotosButton}
+        >
+          <Text style={styles.addPhotosEmoji}>📷</Text>
+          <Text style={styles.addPhotosLabel}>Add photos</Text>
+        </Pressable>
+
+        <View style={styles.actionRow}>
+          <Pressable
+            onPress={handleSave}
+            disabled={!canSave}
+            style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
+            accessibilityRole="button"
+          >
+            {saving ? (
+              <ActivityIndicator color={Colors.background} size="small" />
+            ) : (
+              <Text style={styles.saveLabel}>Save</Text>
+            )}
+          </Pressable>
+        </View>
+
+        <Pressable onPress={handleDelete} style={styles.deleteButton} accessibilityRole="button">
+          <Text style={styles.deleteLabel}>Delete Note</Text>
+        </Pressable>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  flex: { flex: 1, backgroundColor: Colors.background },
+  handleRow: { alignItems: 'center', paddingVertical: Spacing.sm },
+  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  title: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary },
+  cancelButton: { padding: 4 },
+  cancelLabel: { fontSize: 16, color: Colors.accent },
+  input: {
+    fontSize: 16,
+    color: Colors.textPrimary,
+    flex: 1,
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: BorderRadius.input,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    textAlignVertical: 'top',
+  },
+  previewStrip: { maxHeight: 76 },
+  previewStripContent: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.xs,
+    gap: 8,
+  },
+  thumbContainer: { position: 'relative' },
+  thumb: { width: 60, height: 60, borderRadius: 8 },
+  removeButton: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeText: { color: '#fff', fontSize: 14, lineHeight: 16, fontWeight: '700' },
+  addPhotosButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: BorderRadius.input,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    gap: 8,
+  },
+  addPhotosEmoji: { fontSize: 18 },
+  addPhotosLabel: { fontSize: 14, color: Colors.textSecondary },
+  actionRow: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+  },
+  saveButton: {
+    backgroundColor: Colors.accent,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.button,
+    alignItems: 'center',
+  },
+  saveButtonDisabled: { opacity: 0.4 },
+  saveLabel: { fontSize: 16, color: Colors.background, fontWeight: '800' },
+  deleteButton: {
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  deleteLabel: { fontSize: 15, color: Colors.error },
+});
