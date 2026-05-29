@@ -81,6 +81,8 @@ export default function TripDetailScreen({ route, navigation }: Props) {
       } else {
         Alert.alert('Could not start generation', 'Please try again.');
       }
+    } catch (e) {
+      Alert.alert('Could not start generation', (e as Error).message);
     } finally {
       setGeneratingBlog(false);
     }
