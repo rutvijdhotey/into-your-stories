@@ -24,24 +24,31 @@ export function pinColor(category: Category | null): string {
   return (CategoryColors[key] ?? CategoryColors.general).text;
 }
 
+function hasLocation(note: Note): note is Note & { lat: number; lng: number } {
+  return note.lat != null && note.lng != null;
+}
+
 export function toPins(items: FeedItem[]): MapPin[] {
   const pins: MapPin[] = [];
   for (const item of items) {
     if (item.kind !== 'note') continue;
     const { note } = item;
-    if (note.lat == null || note.lng == null) continue;
+    if (!hasLocation(note)) continue;
     pins.push({
-      id: note.id, lat: note.lat, lng: note.lng,
-      category: note.category, place_name: note.place_name, content: note.content, note,
+      id: note.id,
+      lat: note.lat,
+      lng: note.lng,
+      category: note.category,
+      place_name: note.place_name,
+      content: note.content,
+      note,
     });
   }
   return pins;
 }
 
 export function countWithoutLocation(items: FeedItem[]): number {
-  return items.filter(
-    (item) => item.kind === 'note' && (item.note.lat == null || item.note.lng == null),
-  ).length;
+  return items.filter((item) => item.kind === 'note' && !hasLocation(item.note)).length;
 }
 
 export function filterPins(pins: MapPin[], category: Category | null): MapPin[] {
@@ -53,12 +60,21 @@ const DEFAULT_DELTA = 0.02;
 const MIN_DELTA = 0.01;
 const PADDING = 1.4;
 
+// Returns null when there are no pins to display (caller shows the empty state).
 export function regionForPins(pins: MapPin[]): Region | null {
   if (pins.length === 0) return null;
   if (pins.length === 1) {
-    return { latitude: pins[0].lat, longitude: pins[0].lng, latitudeDelta: DEFAULT_DELTA, longitudeDelta: DEFAULT_DELTA };
+    return {
+      latitude: pins[0].lat,
+      longitude: pins[0].lng,
+      latitudeDelta: DEFAULT_DELTA,
+      longitudeDelta: DEFAULT_DELTA,
+    };
   }
-  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLng = Infinity;
+  let maxLng = -Infinity;
   for (const p of pins) {
     if (p.lat < minLat) minLat = p.lat;
     if (p.lat > maxLat) maxLat = p.lat;
