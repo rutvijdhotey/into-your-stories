@@ -10,16 +10,20 @@ import { formatDateRange, isOverdueActive } from '../../services/tripHelpers';
 import TripStatusBadge from '../../components/TripStatusBadge';
 import TripFeedScreen from './TripFeedScreen';
 import TripMapScreen from './TripMapScreen';
+import { useAuth } from '../../contexts/AuthContext';
+import { generateBlog } from '../../services/blogService';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'TripDetail'>;
 
 type Tab = 'feed' | 'map';
 
-export default function TripDetailScreen({ route }: Props) {
+export default function TripDetailScreen({ route, navigation }: Props) {
   const { tripId } = route.params;
   const { trip, loading } = useTripDetail(tripId);
   const [tab, setTab] = useState<Tab>('feed');
   const [ending, setEnding] = useState(false);
+  const { session } = useAuth();
+  const [generatingBlog, setGeneratingBlog] = useState(false);
 
   if (loading) {
     return (
@@ -66,8 +70,20 @@ export default function TripDetailScreen({ route }: Props) {
     );
   };
 
-  const handleGenerateBlog = () => {
-    Alert.alert('Generate Blog', 'Blog generation lands in Phase 9.');
+  const handleGenerateBlog = async () => {
+    const userId = session?.user.id;
+    if (!userId) return;
+    setGeneratingBlog(true);
+    try {
+      const postId = await generateBlog(trip.id, userId);
+      if (postId) {
+        navigation.navigate('BlogPost', { postId });
+      } else {
+        Alert.alert('Could not start generation', 'Please try again.');
+      }
+    } finally {
+      setGeneratingBlog(false);
+    }
   };
 
   return (
@@ -96,8 +112,14 @@ export default function TripDetailScreen({ route }: Props) {
                 <Text style={styles.endButtonLabel}>{ending ? 'Ending...' : 'End Trip'}</Text>
               </Pressable>
             ) : (
-              <Pressable style={styles.generateButton} onPress={handleGenerateBlog}>
-                <Text style={styles.generateButtonLabel}>Generate Blog</Text>
+              <Pressable
+                style={styles.generateButton}
+                onPress={handleGenerateBlog}
+                disabled={generatingBlog}
+              >
+                <Text style={styles.generateButtonLabel}>
+                  {generatingBlog ? 'Starting…' : 'Generate Blog'}
+                </Text>
               </Pressable>
             )}
           </View>
