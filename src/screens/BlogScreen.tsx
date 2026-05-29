@@ -20,6 +20,7 @@ import { useTrips } from '../hooks/useTrips';
 import { splitByStatus, formatDateRange } from '../services/tripHelpers';
 import { generateBlog } from '../services/blogService';
 import BlogPostCard from '../components/BlogPostCard';
+import GradientButton from '../components/GradientButton';
 
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Tabs'>;
 
@@ -101,15 +102,11 @@ export default function BlogScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
-        <Pressable
-          style={[styles.generateButton, generating && styles.disabled]}
+        <GradientButton
+          label={generating ? 'Starting…' : 'Generate Blog'}
           onPress={handleGeneratePress}
           disabled={generating}
-        >
-          <Text style={styles.generateButtonLabel}>
-            {generating ? 'Starting…' : 'Generate Blog'}
-          </Text>
-        </Pressable>
+        />
       </View>
 
       <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
@@ -170,14 +167,6 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  generateButton: {
-    backgroundColor: Colors.accent,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.button,
-    alignItems: 'center',
-  },
-  generateButtonLabel: { fontSize: 16, fontWeight: '800', color: Colors.textPrimary },
-  disabled: { opacity: 0.5 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: Colors.surface,

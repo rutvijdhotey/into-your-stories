@@ -16,6 +16,7 @@ import * as Sharing from 'expo-sharing';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../navigation/types';
 import { Colors, Spacing, BorderRadius } from '../../theme';
+import GradientButton from '../../components/GradientButton';
 import { getBlogPost, publishPost, unpublish, discardDraft } from '../../services/blogService';
 import { markdownToHtml, statusLabel, type BlogPost } from '../../services/blogHelpers';
 import { supabase } from '../../lib/supabase';
@@ -170,20 +171,22 @@ export default function BlogPostScreen({ route, navigation }: Props) {
           <Text style={styles.statusPill}>{statusLabel(post.status)}</Text>
           <Text style={styles.title}>{post.title ?? 'Untitled'}</Text>
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <Markdown style={markdownStyles as any}>{post.content_markdown ?? ''}</Markdown>
+          <Markdown style={markdownStyles as any} rules={markdownRules}>
+            {post.content_markdown ?? ''}
+          </Markdown>
         </View>
       </ScrollView>
 
       <View style={styles.actions}>
         {post.status === 'draft' ? (
           <>
-            <Pressable
-              style={[styles.primaryButton, busy && styles.disabled]}
+            <GradientButton
+              label="Publish"
               onPress={handlePublish}
               disabled={busy}
-            >
-              <Text style={styles.primaryLabel}>Publish</Text>
-            </Pressable>
+              style={styles.flexButton}
+              textStyle={styles.primaryLabel}
+            />
             <Pressable style={styles.secondaryButton} onPress={handleExport}>
               <Text style={styles.secondaryLabel}>Export</Text>
             </Pressable>
@@ -209,6 +212,38 @@ export default function BlogPostScreen({ route, navigation }: Props) {
     </View>
   );
 }
+
+type MarkdownImageNode = { key: string; attributes: { src?: string } };
+
+// Custom image renderer. react-native-markdown-display's default image rule
+// spreads `key` into <FitImage {...props}>, which React 19 warns about. We pass
+// `key` directly and size each image to its natural aspect ratio so inline trip
+// photos render without cropping or a fixed-height guess.
+function MarkdownImage({ uri }: { uri: string }) {
+  const [ratio, setRatio] = useState(4 / 3);
+  useEffect(() => {
+    let active = true;
+    Image.getSize(
+      uri,
+      (w, h) => {
+        if (active && w > 0 && h > 0) setRatio(w / h);
+      },
+      () => {},
+    );
+    return () => {
+      active = false;
+    };
+  }, [uri]);
+  return <Image source={{ uri }} style={[styles.mdImage, { aspectRatio: ratio }]} resizeMode="cover" />;
+}
+
+const markdownRules = {
+  image: (node: MarkdownImageNode) => {
+    const uri = node.attributes?.src;
+    if (!uri) return null;
+    return <MarkdownImage key={node.key} uri={uri} />;
+  },
+};
 
 async function exportMarkdown(post: BlogPost) {
   try {
@@ -268,13 +303,7 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     backgroundColor: Colors.background,
   },
-  primaryButton: {
-    flex: 1,
-    backgroundColor: Colors.accent,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.button,
-    alignItems: 'center',
-  },
+  flexButton: { flex: 1 },
   primaryLabel: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
   secondaryButton: {
     flex: 1,
@@ -295,6 +324,12 @@ const styles = StyleSheet.create({
   },
   destructiveLabel: { fontSize: 15, fontWeight: '700', color: Colors.error },
   disabled: { opacity: 0.5 },
+  mdImage: {
+    width: '100%',
+    borderRadius: BorderRadius.card,
+    marginVertical: Spacing.sm,
+    backgroundColor: Colors.surface,
+  },
 });
 
 const markdownStyles = StyleSheet.create({

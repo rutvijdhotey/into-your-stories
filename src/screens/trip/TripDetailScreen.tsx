@@ -8,6 +8,7 @@ import { useTripDetail } from '../../hooks/useTripDetail';
 import { endTrip } from '../../services/tripService';
 import { formatDateRange, isOverdueActive } from '../../services/tripHelpers';
 import TripStatusBadge from '../../components/TripStatusBadge';
+import GradientButton from '../../components/GradientButton';
 import TripFeedScreen from './TripFeedScreen';
 import TripMapScreen from './TripMapScreen';
 import { useAuth } from '../../contexts/AuthContext';
@@ -114,15 +115,13 @@ export default function TripDetailScreen({ route, navigation }: Props) {
                 <Text style={styles.endButtonLabel}>{ending ? 'Ending...' : 'End Trip'}</Text>
               </Pressable>
             ) : (
-              <Pressable
-                style={styles.generateButton}
+              <GradientButton
+                label={generatingBlog ? 'Starting…' : 'Generate Blog'}
                 onPress={handleGenerateBlog}
                 disabled={generatingBlog}
-              >
-                <Text style={styles.generateButtonLabel}>
-                  {generatingBlog ? 'Starting…' : 'Generate Blog'}
-                </Text>
-              </Pressable>
+                contentStyle={styles.generateButton}
+                textStyle={styles.generateButtonLabel}
+              />
             )}
           </View>
         </View>
@@ -191,7 +190,6 @@ const styles = StyleSheet.create({
   },
   endButtonLabel: { fontSize: 14, color: Colors.error, fontWeight: '600' },
   generateButton: {
-    backgroundColor: Colors.accent,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: 8,
