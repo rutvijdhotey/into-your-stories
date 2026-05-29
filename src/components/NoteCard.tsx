@@ -37,6 +37,9 @@ function ServerNoteCard({ note, onPress }: { note: Note; onPress?: (note: Note) 
         </Text>
       </View>
       <Text style={styles.content} numberOfLines={3}>{note.content}</Text>
+      {note.place_name ? (
+        <Text style={styles.placeName}>📍 {note.place_name}</Text>
+      ) : null}
       {note.photo_urls.length > 0 && <PhotoStrip urls={note.photo_urls} />}
     </Pressable>
   );
@@ -115,5 +118,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#E0E0E0',
     lineHeight: 19,
+  },
+  placeName: {
+    fontSize: 11,
+    color: Colors.accent,
+    marginTop: 4,
   },
 });
