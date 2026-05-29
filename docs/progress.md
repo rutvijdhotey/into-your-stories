@@ -1,8 +1,8 @@
 # Into Your Stories — Project Progress
 
-**Last updated:** 2026-05-26  
+**Last updated:** 2026-05-28  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 4 (Voice + Intent Detection) complete ✅ — merged to `main` 2026-05-26. 58 tests passing. Next: Phase 5 (Photo Import).
+**Status:** Phase 5 (Photo Import) complete ✅ — merged to `main` 2026-05-28. 94 tests passing. Next: Phase 6 (AI Smart Tagging).
 
 ---
 
@@ -232,15 +232,86 @@ These got fixed inline; flagging here so future phases keep the muscle memory:
 - **Offline airplane-mode test skipped:** Expo Go in the iOS simulator does not allow toggling Airplane Mode from within the app. The queue logic is covered by unit tests and the DB smoke test; a full offline round-trip test requires a device build.
 - **Smoke-test trip left in DB:** the MCP smoke test inserted a trip (`87f61a93-7c4d-4ffd-9c50-17e1ef0fae6a`) since no active trips existed. It has no notes and is harmless as dev seed data. Delete with `delete from public.trips where id='87f61a93-7c4d-4ffd-9c50-17e1ef0fae6a'` if it clutters the Home screen.
 
-### Next session checklist (Phase 5 — Photo Import)
+## Swipe Navigation — Summary (COMPLETE ✅)
 
-1. **Branch from `main`** — Phase 4 is already merged. Create `phase-5/photo-import` from main.
-2. Phase 5 wires the 📷 button in `NoteCaptureSheet` (currently inert) to the iOS photo library picker.
+**Branch:** `feature/swipe-navigation` → merged to `main` 2026-05-27  
+**Plan:** `docs/superpowers/plans/2026-05-27-swipe-navigation.md`  
+**Tests:** 64 passed (58 baseline + 6 new)
+
+### What shipped
+
+| Task | What | Status |
+|---|---|---|
+| 1 | Replace `createBottomTabNavigator` with `PagerView`-based `TabNavigator` — swipe between tabs | ✅ |
+| 2 | Add swipe-left-to-navigate gesture to `TripCard` (pan gesture, 80px threshold, slide-off animation) | ✅ |
+| 3 | Replace `+` icon button with `＋ New trip` text button in HomeScreen header | ✅ |
+| 4 | Fix `npm run ios` — always run pods + patch before build, pass `--no-install` to skip expo's pod install (which wiped patches) | ✅ |
+| 5 | Fix `HomeScreen` navigation — drop `getParent()` since `TabNavigator` is now a plain component, not a RN navigator | ✅ |
+| 6 | Fix `TripCard` — reset `translateX` to 0 before firing `onPress` so card is in place on back navigation | ✅ |
+
+### Bugs fixed during testing
+
+- **Cards disappearing after swipe:** `translateX` was set to `-500` and never reset. React Navigation keeps HomeScreen mounted; card stayed off-screen on return. Fixed by resetting `translateX.value = 0` before `runOnJS(onPress)()`.
+- **Swipe opened nothing:** `navigation.getParent()?.navigate('TripDetail', ...)` silently failed — `getParent()` now points above `MainStack` (no `TripDetail` there) since `TabNavigator` is a plain component. Fixed by calling `navigation.navigate('TripDetail', ...)` directly.
+- **`expo run:ios` re-ran pod install, wiping patches:** Added `--no-install` flag and always run `npm run pods` first in the `ios` script.
+- **ExpoFont / native module not found:** Worktree `ios/Pods/` was a leftover shell with empty `Manifest.lock`. Fixed by running `npm run pods` in the correct directory.
+
+### `npm run ios` script (permanent fix)
+
+```json
+"ios": "npm run pods && LANG=en_US.UTF-8 expo run:ios --no-install"
+```
+
+---
+
+### Next session checklist (Phase 6 — AI Smart Tagging)
+
+1. **Branch from `main`** — Phase 5 is merged. Create `phase-6/ai-smart-tagging` from main.
+2. Phase 6 wires Claude to auto-assign `category` + `place_name` + `city` to notes when connectivity is available.
 3. **iOS pbxproj patches are now automated** — use `npm run pods` (instead of `pod install` directly) and `npm run prebuild:clean` (instead of `expo prebuild --clean`). Script: `scripts/patch-ios-pbxproj.js`. Never run `pod install` or `expo prebuild --clean` naked — always use the npm scripts.
 4. **iOS deployment target is 16.4** — set in `app.json` and patched into `project.pbxproj` by the postinstall script.
 5. Always build the dev build with `npm run ios` or `npm run ios -- --device` — never `npx expo start` (Expo Go won't have native modules).
 6. Supabase project `dcejrbyujfcxartywpis` — if auto-paused, restore via dashboard before starting. MCP prefix: `mcp__7fbbe81e-73f2-44e8-81b3-e04e19180276__*`.
 7. `detect-intent` edge function is live; ANTHROPIC_API_KEY secret is set. Model: `claude-haiku-4-5-20251001`.
+
+## Phase 5 — Photo Import (COMPLETE ✅)
+
+**Branch:** `phase-5/photo-import` → merged to `main` 2026-05-28  
+**Plan:** `docs/superpowers/plans/2026-05-27-phase-5-photo-import.md`  
+**Tests:** 94 passed (64 baseline + 30 new)
+
+### What shipped
+
+| Task | What | Status |
+|---|---|---|
+| 1 | `expo-image-picker` installed; `NSPhotoLibraryUsageDescription` + `NSCameraUsageDescription` added to `Info.plist` | ✅ |
+| 2 | `usePhotoPicker` hook — permissions, multi-select (max 5), EXIF extraction | ✅ |
+| 3 | `photoHelpers` — `extractExifLocation` (DMS array + iOS decimal), `parseDMS`, `validatePhotoCount` | ✅ |
+| 4 | `photoService` — `uploadPhoto` (fetch → arrayBuffer → Supabase storage), `deletePhotos` (best-effort cleanup) | ✅ |
+| 5 | Migration 006 — `photo_urls text[]` column on `notes` | ✅ |
+| 6 | Migration 007 — Supabase storage RLS policies for `photos` bucket (INSERT/UPDATE/SELECT/DELETE scoped to `{userId}/**`) | ✅ |
+| 7 | `NoteCaptureSheet` — 📷 button wired; preview strip with × remove; EXIF GPS overrides live location; offline guard blocks save with photos; real upload error exposed in alert | ✅ |
+| 8 | `PhotoStrip` — horizontal strip capped at 3 thumbnails; 3rd tile shows `+N` overflow; tapping opens full-screen paged gallery modal | ✅ |
+| 9 | `NoteCard` renders `PhotoStrip` per note | ✅ |
+| 10 | `TripFeedScreen` — replaced unbounded `PhotoGrid` header with `PhotoStrip` (same 3-cap + gallery) | ✅ |
+| 11 | Default note category set to `activity` | ✅ |
+
+### Bugs fixed during testing
+
+- **iOS crash on picker open:** `NSPhotoLibraryUsageDescription` missing from `Info.plist`. The `photosPermission` in `app.json` plugin config is only applied by `expo prebuild` — bare native files need it added directly.
+- **Upload failed (blob):** React Native's `fetch().blob()` cannot be serialised by the Supabase JS storage client. Fixed: `blob()` → `arrayBuffer()`.
+- **StorageApiError RLS:** `photos` bucket had no RLS policies (default = fully restricted). Added migration 007 with all four required policies.
+- **EXIF GPS ignored on iOS:** iOS converts DMS → decimal before handing EXIF to `expo-image-picker`, so `GPSLatitude` arrives as a `number`. The old code only handled DMS arrays and returned `null`. Fixed: `extractExifLocation` now handles both decimal and DMS.
+- **Feed showed all photos:** `TripFeedScreen` used `PhotoGrid` as `ListHeaderComponent` which rendered every photo from every note with no cap. Replaced with `PhotoStrip`.
+
+### Follow-ups / gotchas
+
+- **`expo-file-system` not needed:** `fetch().arrayBuffer()` works in React Native 0.81+ for local `file://` URIs.
+- **Supabase migration history out of sync:** local files use sequential names (`006_`, `007_`); remote uses timestamps. Use `npx supabase db query --file <migration> --linked` to apply individual migrations directly when `db push` fails on history mismatch.
+- **`upsert` requires both INSERT and UPDATE policies:** Supabase storage `upsert: true` tries INSERT first, then UPDATE on conflict — both policies must exist for the operation to succeed.
+- **`PhotoGrid` component is now dead code** — superseded by `PhotoStrip`. Safe to delete.
+
+---
 
 ## Phase 4 task summary — Voice + Intent Detection (COMPLETE ✅)
 
