@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, Animated, StyleSheet, Easing } from 'react-native';
+import { View, Text, Animated, StyleSheet, Easing, Pressable } from 'react-native';
 import { Colors } from '../theme';
 import CategoryBadge from './CategoryBadge';
 import PhotoStrip from './PhotoStrip';
@@ -7,17 +7,25 @@ import { formatRelativeTime, type Note } from '../services/noteHelpers';
 import type { PendingNote } from '../services/offlineQueue';
 import type { FeedItem } from '../hooks/useNotes';
 
-type Props = { item: FeedItem };
+type Props = {
+  item: FeedItem;
+  onPressNote?: (note: Note) => void;
+};
 
-export default function NoteCard({ item }: Props) {
-  if (item.kind === 'note') return <ServerNoteCard note={item.note} />;
+export default function NoteCard({ item, onPressNote }: Props) {
+  if (item.kind === 'note') return <ServerNoteCard note={item.note} onPress={onPressNote} />;
   return <PendingNoteCard pending={item.pending} />;
 }
 
-function ServerNoteCard({ note }: { note: Note }) {
+function ServerNoteCard({ note, onPress }: { note: Note; onPress?: (note: Note) => void }) {
   const showShimmer = note.tagging_status === 'pending' && !note.category;
   return (
-    <View style={styles.card}>
+    <Pressable
+      onPress={() => onPress?.(note)}
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      accessibilityRole="button"
+      accessibilityLabel="Edit note"
+    >
       <View style={styles.headerRow}>
         {note.category ? (
           <CategoryBadge category={note.category} />
@@ -30,7 +38,7 @@ function ServerNoteCard({ note }: { note: Note }) {
       </View>
       <Text style={styles.content} numberOfLines={3}>{note.content}</Text>
       {note.photo_urls.length > 0 && <PhotoStrip urls={note.photo_urls} />}
-    </View>
+    </Pressable>
   );
 }
 
@@ -82,6 +90,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 8,
   },
+  cardPressed: { opacity: 0.75 },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
