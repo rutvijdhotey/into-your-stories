@@ -85,9 +85,11 @@ export default function TripMapScreen({ tripId }: Props) {
             })}
           </MapView>
         ) : (
-          <View style={styles.center}>
+          <View style={[styles.center, styles.emptyPad]}>
             <Text style={styles.emptyBody}>
-              Places appear here as you capture notes with locations.
+              {pins.length > 0 && filter
+                ? `No ${categoryLabel(filter)} places on the map.`
+                : 'Places appear here as you capture notes with locations.'}
             </Text>
           </View>
         )}
@@ -116,9 +118,11 @@ export default function TripMapScreen({ tripId }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.lg },
-  mapWrap: { flex: 1 },
+  mapWrap: { flex: 1, position: 'relative' },
   error: { ...Typography.body, color: Colors.error, textAlign: 'center' },
   emptyBody: { ...Typography.body, color: Colors.textSecondary, textAlign: 'center' },
+  // Clears the absolute no-location banner so the empty-state text never sits under it.
+  emptyPad: { paddingBottom: 64 },
   banner: {
     position: 'absolute',
     bottom: Spacing.md,
