@@ -11,13 +11,20 @@ import {
   Alert,
   Animated,
   ActivityIndicator,
+  ScrollView,
+  Image,
 } from 'react-native';
+import * as Crypto from 'expo-crypto';
+import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { useTrips } from '../hooks/useTrips';
 import { useLocation } from '../hooks/useLocation';
 import { useVoiceRecording } from '../hooks/useVoiceRecording';
+import { usePhotoPicker } from '../hooks/usePhotoPicker';
+import { useConnectivity } from '../hooks/useConnectivity';
 import { createNote } from '../services/noteService';
+import { uploadPhoto, deletePhotos } from '../services/photoService';
 import { detectIntent } from '../services/voiceService';
 import { validateContent, type Category } from '../services/noteHelpers';
 import CategoryPicker from './CategoryPicker';
@@ -45,14 +52,17 @@ export default function NoteCaptureSheet({
   const { trips } = useTrips(userId);
   const { fix, loading: locating, fetch: fetchLocation } = useLocation();
   const voice = useVoiceRecording();
+  const photoPicker = usePhotoPicker();
+  const { isOnline } = useConnectivity();
 
   const activeTrips = useMemo(() => trips.filter((t) => t.status === 'active'), [trips]);
 
   const [content, setContent] = useState('');
-  const [category, setCategory] = useState<Category | null>(null);
+  const [category, setCategory] = useState<Category | null>('activity');
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [intentLoading, setIntentLoading] = useState(false);
+  const [exifCity, setExifCity] = useState<string | null>(null);
 
   // Pulsing ring animation for recording state
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -70,6 +80,23 @@ export default function NoteCaptureSheet({
       pulseAnim.setValue(1);
     }
   }, [voice.status, pulseAnim]);
+
+  // Reverse-geocode EXIF GPS from the first photo that has it
+  const exifLocation = useMemo(
+    () => photoPicker.photos.find((p) => p.exifLocation)?.exifLocation ?? null,
+    [photoPicker.photos],
+  );
+
+  useEffect(() => {
+    if (!exifLocation) { setExifCity(null); return; }
+    let cancelled = false;
+    Location.reverseGeocodeAsync({ latitude: exifLocation.lat, longitude: exifLocation.lng })
+      .then(([geo]) => {
+        if (!cancelled) setExifCity(geo?.city ?? geo?.district ?? null);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [exifLocation]);
 
   // Handle completed transcription.
   // NOTE: voice.reset() is intentionally called AFTER detectIntent resolves, not
@@ -115,16 +142,28 @@ export default function NoteCaptureSheet({
   useEffect(() => {
     if (!visible) return;
     setContent('');
-    setCategory(null);
+    setCategory('activity');
     setIntentLoading(false);
+    setExifCity(null);
+    photoPicker.clear();
     voice.reset();
     void fetchLocation();
     if (autoRecord) {
       void voice.start();
     }
+  // Intentional: runs only when the sheet opens (visible flip). autoRecord, voice.*
+  // and photoPicker.clear are excluded — their identities change each render and
+  // including them would re-fire the reset on every keystroke.
   }, [visible, fetchLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const canSave = !saving && !intentLoading && selectedTripId !== null && validateContent(content).ok;
+  const photos = photoPicker.photos;
+  const photosBlockSave = photos.length > 0 && !isOnline;
+  const canSave =
+    !saving &&
+    !intentLoading &&
+    selectedTripId !== null &&
+    validateContent(content).ok &&
+    !photosBlockSave;
 
   const handleSave = async () => {
     if (!userId || !selectedTripId) return;
@@ -138,16 +177,64 @@ export default function NoteCaptureSheet({
     }
     setSaving(true);
     try {
+      const offlineId = Crypto.randomUUID();
+
+      // Upload photos sequentially
+      let uploadedUrls: string[] = [];
+      if (photos.length > 0) {
+        let allUploaded = true;
+        let uploadError: string | null = null;
+        for (let i = 0; i < photos.length; i++) {
+          try {
+            const url = await uploadPhoto(userId, offlineId, i, photos[i].uri);
+            uploadedUrls.push(url);
+          } catch (uploadErr) {
+            console.error('[PhotoUpload] failed:', uploadErr);
+            uploadError = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
+            allUploaded = false;
+            break;
+          }
+        }
+
+        if (!allUploaded) {
+          let saveWithout = false;
+          await new Promise<void>((resolve) => {
+            Alert.alert(
+              'Upload failed',
+              uploadError ?? 'Some photos could not be uploaded.',
+              [
+                { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
+                { text: 'Save without photos', onPress: () => { saveWithout = true; resolve(); } },
+              ],
+            );
+          });
+          if (!saveWithout) {
+            void deletePhotos(uploadedUrls); // best-effort cleanup of partially-uploaded files
+            return;
+          }
+          uploadedUrls = [];
+        }
+      }
+
+      // Determine final location: EXIF overrides live GPS
       const latest = await fetchLocation();
+      const noteLat = exifLocation ? exifLocation.lat : (latest?.lat ?? fix?.lat ?? null);
+      const noteLng = exifLocation ? exifLocation.lng : (latest?.lng ?? fix?.lng ?? null);
+      const noteCity = exifLocation ? exifCity : (latest?.city ?? fix?.city ?? null);
+
       await createNote({
         userId,
         tripId: selectedTripId,
         content: validation.value,
         category,
-        lat: latest?.lat ?? fix?.lat ?? null,
-        lng: latest?.lng ?? fix?.lng ?? null,
-        city: latest?.city ?? fix?.city ?? null,
+        lat: noteLat,
+        lng: noteLng,
+        city: noteCity,
+        photo_urls: uploadedUrls,
+        offline_id: offlineId,
       });
+
+      photoPicker.clear();
       onClose();
     } catch (e) {
       Alert.alert('Could not save note', (e as Error).message);
@@ -165,10 +252,11 @@ export default function NoteCaptureSheet({
     }
   };
 
-  const locationLabel = locating
+  const displayCity = exifCity ?? (locating ? null : fix?.city ?? null);
+  const locationLabel = locating && !exifCity
     ? '📍 Locating…'
-    : fix?.city
-    ? `📍 ${fix.city}`
+    : displayCity
+    ? `📍 ${displayCity}`
     : '📍 No location';
 
   const isRecording = voice.status === 'recording';
@@ -250,19 +338,52 @@ export default function NoteCaptureSheet({
           placeholder="What's on your mind?"
           placeholderTextColor={Colors.textSecondary}
           multiline
-          autoFocus={!isRecording}
+          autoFocus={false}
           style={styles.input}
         />
 
         <CategoryPicker value={category} onChange={setCategory} />
 
-        <View style={styles.actionRow}>
-          <View
-            accessibilityLabel="Photo (coming in Phase 5)"
-            style={styles.inertIcon}
+        <Pressable
+          onPress={photoPicker.pick}
+          accessibilityRole="button"
+          accessibilityLabel="Add photos"
+          style={styles.addPhotosButton}
+        >
+          <Text style={styles.addPhotosEmoji}>📷</Text>
+          <Text style={styles.addPhotosLabel}>
+            {photos.length > 0 ? `${photos.length} photo${photos.length > 1 ? 's' : ''} added` : 'Add photos'}
+          </Text>
+        </Pressable>
+
+        {photos.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.previewStrip}
+            contentContainerStyle={styles.previewStripContent}
           >
-            <Text style={styles.inertIconLabel}>📷</Text>
-          </View>
+            {photos.map((photo, index) => (
+              <View key={photo.uri} style={styles.previewThumbContainer}>
+                <Image source={{ uri: photo.uri }} style={styles.previewThumb} resizeMode="cover" />
+                <Pressable
+                  style={styles.removeButton}
+                  onPress={() => photoPicker.remove(index)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove photo"
+                >
+                  <Text style={styles.removeButtonText}>×</Text>
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+
+        {photosBlockSave && (
+          <Text style={styles.offlineWarning}>Connect to save with photos</Text>
+        )}
+
+        <View style={styles.actionRow}>
           <View style={styles.locationPill}>
             <Text style={styles.locationPillText}>{locationLabel}</Text>
           </View>
@@ -325,6 +446,33 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     textAlignVertical: 'top',
   },
+  previewStrip: { maxHeight: 76 },
+  previewStripContent: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.xs,
+    gap: 8,
+  },
+  previewThumbContainer: { position: 'relative' },
+  previewThumb: { width: 60, height: 60, borderRadius: 8 },
+  removeButton: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeButtonText: { color: '#fff', fontSize: 14, lineHeight: 16, fontWeight: '700' },
+  offlineWarning: {
+    fontSize: 12,
+    color: Colors.error,
+    textAlign: 'center',
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -333,8 +481,21 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border,
   },
-  inertIcon: { opacity: 0.4, padding: Spacing.xs },
-  inertIconLabel: { fontSize: 20 },
+  addPhotosButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: BorderRadius.input,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    gap: 8,
+  },
+  addPhotosEmoji: { fontSize: 18 },
+  addPhotosLabel: { fontSize: 14, color: Colors.textSecondary },
   locationPill: {
     flex: 1,
     marginHorizontal: Spacing.sm,

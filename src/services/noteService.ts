@@ -16,11 +16,13 @@ export type CreateNoteInput = {
   lat: number | null;
   lng: number | null;
   city: string | null;
+  photo_urls?: string[];
+  offline_id?: string;
 };
 
 export async function createNote(input: CreateNoteInput): Promise<PendingNote> {
   const pending: PendingNote = {
-    offline_id: Crypto.randomUUID(),
+    offline_id: input.offline_id ?? Crypto.randomUUID(),
     user_id: input.userId,
     trip_id: input.tripId,
     content: input.content,
@@ -32,11 +34,11 @@ export async function createNote(input: CreateNoteInput): Promise<PendingNote> {
   };
 
   await enqueue(pending);
-  void trySync(pending);
+  void trySync(pending, input.photo_urls ?? []);
   return pending;
 }
 
-async function trySync(pending: PendingNote): Promise<void> {
+async function trySync(pending: PendingNote, photoUrls: string[] = []): Promise<void> {
   const row: NoteInsert = {
     user_id: pending.user_id,
     trip_id: pending.trip_id,
@@ -47,6 +49,7 @@ async function trySync(pending: PendingNote): Promise<void> {
     city: pending.city,
     offline_id: pending.offline_id,
     captured_at: pending.captured_at,
+    photo_urls: photoUrls,
   };
 
   const { error } = await supabase
@@ -83,6 +86,7 @@ export async function drainQueue(): Promise<number> {
       city: item.city,
       offline_id: item.offline_id,
       captured_at: item.captured_at,
+      photo_urls: [],
     };
     const { error } = await supabase
       .from('notes')
