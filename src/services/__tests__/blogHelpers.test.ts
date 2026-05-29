@@ -1,4 +1,4 @@
-import { statusLabel, formatBlogDate, collectPlaces } from '../blogHelpers';
+import { statusLabel, formatBlogDate, collectPlaces, validateBlogResult } from '../blogHelpers';
 import type { Note } from '../noteHelpers';
 
 describe('statusLabel', () => {
@@ -61,5 +61,43 @@ describe('collectPlaces', () => {
 
   it('returns an empty array when no notes have places', () => {
     expect(collectPlaces([makeNote(), makeNote()])).toEqual([]);
+  });
+});
+
+describe('validateBlogResult', () => {
+  const valid = {
+    title: 'Five Days in Tokyo',
+    content_markdown: '# Tokyo\n\nWhat a trip.',
+    cover_photo_url: 'https://x/p.jpg',
+    selected_photo_urls: ['https://x/p.jpg'],
+  };
+
+  it('returns the typed result for a well-formed object', () => {
+    expect(validateBlogResult(valid)).toEqual(valid);
+  });
+
+  it('accepts a null cover_photo_url and empty photo list', () => {
+    const r = validateBlogResult({ ...valid, cover_photo_url: null, selected_photo_urls: [] });
+    expect(r).not.toBeNull();
+    expect(r!.cover_photo_url).toBeNull();
+    expect(r!.selected_photo_urls).toEqual([]);
+  });
+
+  it('returns null when title is missing', () => {
+    const { title: _omit, ...rest } = valid;
+    expect(validateBlogResult(rest)).toBeNull();
+  });
+
+  it('returns null when content_markdown is not a string', () => {
+    expect(validateBlogResult({ ...valid, content_markdown: 123 })).toBeNull();
+  });
+
+  it('returns null when selected_photo_urls contains a non-string', () => {
+    expect(validateBlogResult({ ...valid, selected_photo_urls: ['ok', 5] })).toBeNull();
+  });
+
+  it('returns null for non-object input', () => {
+    expect(validateBlogResult(null)).toBeNull();
+    expect(validateBlogResult('nope')).toBeNull();
   });
 });

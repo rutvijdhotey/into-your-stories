@@ -50,3 +50,19 @@ export function collectPlaces(notes: Note[]): Place[] {
   }
   return places;
 }
+
+export function validateBlogResult(data: unknown): BlogResult | null {
+  if (typeof data !== 'object' || data === null) return null;
+  const obj = data as Record<string, unknown>;
+  if (typeof obj.title !== 'string') return null;
+  if (typeof obj.content_markdown !== 'string') return null;
+  if (!(obj.cover_photo_url === null || typeof obj.cover_photo_url === 'string')) return null;
+  if (!Array.isArray(obj.selected_photo_urls)) return null;
+  if (!obj.selected_photo_urls.every((u) => typeof u === 'string')) return null;
+  return {
+    title: obj.title,
+    content_markdown: obj.content_markdown,
+    cover_photo_url: obj.cover_photo_url as string | null,
+    selected_photo_urls: obj.selected_photo_urls as string[],
+  };
+}
