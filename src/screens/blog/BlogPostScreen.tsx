@@ -29,9 +29,14 @@ export default function BlogPostScreen({ route, navigation }: Props) {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const row = await getBlogPost(postId);
-    setPost(row);
-    setLoading(false);
+    try {
+      const row = await getBlogPost(postId);
+      setPost(row);
+    } catch {
+      setPost(null);
+    } finally {
+      setLoading(false);
+    }
   }, [postId]);
 
   useEffect(() => {
@@ -45,7 +50,15 @@ export default function BlogPostScreen({ route, navigation }: Props) {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'blog_posts', filter: `id=eq.${postId}` },
-        (payload) => setPost(payload.new as BlogPost),
+        (payload) => {
+          const next = payload.new as BlogPost;
+          setPost((prev) => {
+            // Ignore strictly-older updates so an out-of-order event can't
+            // clobber fresher state (e.g. a stale 'draft' arriving post-publish).
+            if (prev && next.updated_at < prev.updated_at) return prev;
+            return next;
+          });
+        },
       )
       .subscribe();
     return () => {
@@ -200,7 +213,8 @@ async function exportMarkdown(post: BlogPost) {
 async function exportHtml(post: BlogPost) {
   try {
     const html = markdownToHtml(post.content_markdown ?? '');
-    const safeName = (post.title ?? 'post').replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'post';
+    const safeName =
+      (post.title ?? 'post').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'post';
     const file = new File(Paths.cache, `${safeName}.html`);
     file.create({ overwrite: true });
     file.write(html);
