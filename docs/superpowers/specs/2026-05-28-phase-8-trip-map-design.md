@@ -2,7 +2,7 @@
 
 **App:** Into Your Stories
 **Date:** 2026-05-28
-**Status:** Implemented (code complete; automated tests + type-check green) — pending on-device verification
+**Status:** Implemented ✅ — automated tests + type-check green, on-device QA passed 2026-05-28
 **Branch:** `phase-8/trip-map`
 
 > Supersedes the stale `docs/superpowers/plans/plan-07-maps-places.md`, which assumed a
