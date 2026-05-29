@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     alignItems: 'center',
   },
-  emptyCardText: { fontSize: 14, color: '#555555' },
+  emptyCardText: { fontSize: 14, color: Colors.textTertiary },
   footer: {
     position: 'absolute',
     bottom: 0,
