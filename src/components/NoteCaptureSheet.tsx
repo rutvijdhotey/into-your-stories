@@ -21,7 +21,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTrips } from '../hooks/useTrips';
 import { useLocation } from '../hooks/useLocation';
 import { useVoiceRecording } from '../hooks/useVoiceRecording';
-import { usePhotoPicker } from '../hooks/usePhotoPicker';
+import { usePhotoPicker, MAX_PHOTOS_PER_NOTE } from '../hooks/usePhotoPicker';
 import { useConnectivity } from '../hooks/useConnectivity';
 import { createNote } from '../services/noteService';
 import { uploadPhoto, deletePhotos } from '../services/photoService';
@@ -157,7 +157,16 @@ export default function NoteCaptureSheet({
   }, [visible, fetchLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const photos = photoPicker.photos;
+  const remainingPhotoSlots = MAX_PHOTOS_PER_NOTE - photos.length;
   const photosBlockSave = photos.length > 0 && !isOnline;
+
+  const handleAddPhotos = () => {
+    if (remainingPhotoSlots <= 0) {
+      Alert.alert('Photo limit reached', `You can add up to ${MAX_PHOTOS_PER_NOTE} photos per note.`);
+      return;
+    }
+    void photoPicker.pick(remainingPhotoSlots);
+  };
   const canSave =
     !saving &&
     !intentLoading &&
@@ -345,7 +354,7 @@ export default function NoteCaptureSheet({
         <CategoryPicker value={category} onChange={setCategory} />
 
         <Pressable
-          onPress={photoPicker.pick}
+          onPress={handleAddPhotos}
           accessibilityRole="button"
           accessibilityLabel="Add photos"
           style={styles.addPhotosButton}

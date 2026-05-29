@@ -98,3 +98,32 @@ export async function drainQueue(): Promise<number> {
   }
   return synced;
 }
+
+export type UpdateNoteInput = {
+  content: string;
+  category: Category | null;
+  photo_urls: string[];
+};
+
+export async function updateNote(id: string, patch: UpdateNoteInput): Promise<void> {
+  const { error } = await supabase
+    .from('notes')
+    .update({
+      content: patch.content,
+      category: patch.category,
+      photo_urls: patch.photo_urls,
+      tagging_status: 'pending',
+    })
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('notes')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}

@@ -115,6 +115,32 @@ describe('usePhotoPicker', () => {
     });
   });
 
+  it('limits the picker selection to the remaining slots passed in', async () => {
+    mockLaunchLibrary.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        { uri: 'file:///a.jpg', width: 1, height: 1, exif: null },
+        { uri: 'file:///b.jpg', width: 1, height: 1, exif: null },
+        { uri: 'file:///c.jpg', width: 1, height: 1, exif: null },
+      ],
+    } as never);
+    const { result } = renderHook(() => usePhotoPicker());
+    await act(async () => { await result.current.pick(2); });
+    expect(mockLaunchLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({ selectionLimit: 2 }),
+    );
+    // Even if the OS over-returns, the hook clamps to the remaining slots.
+    expect(result.current.photos).toHaveLength(2);
+  });
+
+  it('does not open the picker when no slots remain', async () => {
+    const { result } = renderHook(() => usePhotoPicker());
+    await act(async () => { await result.current.pick(0); });
+    expect(mockRequestPermissions).not.toHaveBeenCalled();
+    expect(mockLaunchLibrary).not.toHaveBeenCalled();
+    expect(result.current.photos).toEqual([]);
+  });
+
   it('removes a photo at the given index', async () => {
     mockLaunchLibrary.mockResolvedValueOnce({
       canceled: false,

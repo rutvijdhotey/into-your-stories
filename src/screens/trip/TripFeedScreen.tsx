@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import { FlatList, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNotes } from '../../hooks/useNotes';
 import NoteCard from '../../components/NoteCard';
+import NoteEditSheet from '../../components/NoteEditSheet';
 import PhotoStrip from '../../components/PhotoStrip';
 import { Colors, Spacing, Typography } from '../../theme';
+import type { Note } from '../../services/noteHelpers';
 
 type Props = { tripId: string };
 
 export default function TripFeedScreen({ tripId }: Props) {
   const { items, loading, error } = useNotes(tripId);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
 
   if (loading) {
     return (
@@ -41,15 +45,31 @@ export default function TripFeedScreen({ tripId }: Props) {
     .flatMap((item) => (item.kind === 'note' ? item.note.photo_urls : []));
 
   return (
-    <FlatList
-      data={items}
-      keyExtractor={(item) =>
-        item.kind === 'note' ? `note:${item.note.id}` : `pending:${item.pending.offline_id}`
-      }
-      renderItem={({ item }) => <NoteCard item={item} />}
-      contentContainerStyle={styles.list}
-      ListHeaderComponent={<PhotoStrip urls={allPhotoUrls} />}
-    />
+    <>
+      <FlatList
+        data={items}
+        keyExtractor={(item) =>
+          item.kind === 'note' ? `note:${item.note.id}` : `pending:${item.pending.offline_id}`
+        }
+        renderItem={({ item }) => (
+          <NoteCard
+            item={item}
+            onPressNote={(note) => setEditingNote(note)}
+          />
+        )}
+        contentContainerStyle={styles.list}
+        ListHeaderComponent={<PhotoStrip urls={allPhotoUrls} />}
+      />
+
+      {editingNote && (
+        <NoteEditSheet
+          note={editingNote}
+          visible={true}
+          onClose={() => setEditingNote(null)}
+          onDeleted={() => setEditingNote(null)}
+        />
+      )}
+    </>
   );
 }
 
