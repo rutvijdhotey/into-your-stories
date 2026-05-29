@@ -133,4 +133,9 @@ describe('markdownToHtml', () => {
   it('escapes HTML-significant characters in prose', () => {
     expect(markdownToHtml('2 < 3 & 4 > 1')).toContain('2 &lt; 3 &amp; 4 &gt; 1');
   });
+
+  it('escapes double-quotes in image alt text so they cannot break the attribute', () => {
+    const html = markdownToHtml('![a "quoted" caption](https://x/p.jpg)');
+    expect(html).toContain('<img alt="a &quot;quoted&quot; caption" src="https://x/p.jpg" />');
+  });
 });
