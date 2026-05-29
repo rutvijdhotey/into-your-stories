@@ -46,7 +46,7 @@ export default function BlogScreen() {
     setPickerOpen(false);
     setGenerating(true);
     try {
-      const id = await generateBlog(tripId, userId);
+      const id = await generateBlog(tripId);
       if (id) {
         openPost(id);
       } else {

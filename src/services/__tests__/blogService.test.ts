@@ -44,17 +44,17 @@ describe('generateBlog', () => {
   it('invokes generate-blog and returns the new post id', async () => {
     mockInvoke.mockResolvedValueOnce({ data: { id: 'post-1' }, error: null });
 
-    const id = await generateBlog('trip-1', 'user-1');
+    const id = await generateBlog('trip-1');
 
     expect(mockInvoke).toHaveBeenCalledWith('generate-blog', {
-      body: { trip_id: 'trip-1', user_id: 'user-1' },
+      body: { trip_id: 'trip-1' },
     });
     expect(id).toBe('post-1');
   });
 
   it('returns null when the function errors', async () => {
     mockInvoke.mockResolvedValueOnce({ data: null, error: new Error('boom') });
-    expect(await generateBlog('trip-1', 'user-1')).toBeNull();
+    expect(await generateBlog('trip-1')).toBeNull();
   });
 });
 

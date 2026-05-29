@@ -5,11 +5,12 @@ import type { BlogPost } from './blogHelpers';
  * Kicks off generation via the generate-blog edge function. The function inserts
  * a `generating` row and returns its id immediately; the heavy Claude work runs
  * in the background and flips the row to `draft` (surfaced live via Realtime).
- * Returns the new post id, or null if the invoke failed.
+ * The user identity is derived server-side from the verified JWT, so only the
+ * trip id is sent. Returns the new post id, or null if the invoke failed.
  */
-export async function generateBlog(tripId: string, userId: string): Promise<string | null> {
+export async function generateBlog(tripId: string): Promise<string | null> {
   const { data, error } = await supabase.functions.invoke('generate-blog', {
-    body: { trip_id: tripId, user_id: userId },
+    body: { trip_id: tripId },
   });
   if (error || !data) return null;
   return (data as { id?: string }).id ?? null;

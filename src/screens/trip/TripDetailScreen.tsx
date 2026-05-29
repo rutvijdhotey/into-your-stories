@@ -75,7 +75,7 @@ export default function TripDetailScreen({ route, navigation }: Props) {
     if (!userId) return;
     setGeneratingBlog(true);
     try {
-      const postId = await generateBlog(trip.id, userId);
+      const postId = await generateBlog(trip.id);
       if (postId) {
         navigation.navigate('BlogPost', { postId });
       } else {

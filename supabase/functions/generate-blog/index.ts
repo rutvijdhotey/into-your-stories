@@ -165,6 +165,19 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: JSON_HEADERS });
   }
 
+  // Authorize the trip: the service-role client bypasses RLS, so we must confirm
+  // the requested trip belongs to the authenticated user before reading its notes
+  // or writing a post for it. Without this, any authenticated user could generate
+  // a blog from another user's private trip.
+  const { data: tripOwner, error: tripOwnerError } = await admin
+    .from('trips')
+    .select('user_id')
+    .eq('id', trip_id)
+    .single();
+  if (tripOwnerError || !tripOwner || tripOwner.user_id !== user_id) {
+    return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: JSON_HEADERS });
+  }
+
   // One active post per trip: drop any prior non-published row before inserting
   // the fresh generating row (the partial unique index would otherwise reject it).
   await admin.from('blog_posts').delete().eq('trip_id', trip_id).neq('status', 'published');
