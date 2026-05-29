@@ -90,21 +90,30 @@ async function generate(admin: any, postId: string, tripId: string) {
       .order('created_at', { ascending: true });
 
     const noteRows: NoteRow[] = notes ?? [];
+    if (noteRows.length === 0) throw new Error('no_notes');
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: buildUserPrompt(trip, noteRows) }],
-      }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90_000);
+    let response: Response;
+    try {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 8192,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: buildUserPrompt(trip, noteRows) }],
+        }),
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) throw new Error(`claude_error_${response.status}`);
 
@@ -140,12 +149,21 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
   }
 
-  const { trip_id, user_id } = (await req.json()) as { trip_id?: string; user_id?: string };
-  if (!trip_id || !user_id) {
+  const { trip_id } = (await req.json()) as { trip_id?: string };
+  if (!trip_id) {
     return new Response(JSON.stringify({ error: 'bad_request' }), { status: 400, headers: JSON_HEADERS });
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+  // Authoritative user id from the verified JWT — never trust a client-supplied id,
+  // since the service-role client bypasses RLS.
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  const { data: userData, error: userError } = await admin.auth.getUser(token);
+  const user_id = userData?.user?.id;
+  if (userError || !user_id) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: JSON_HEADERS });
+  }
 
   // One active post per trip: drop any prior non-published row before inserting
   // the fresh generating row (the partial unique index would otherwise reject it).
