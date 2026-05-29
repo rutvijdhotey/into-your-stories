@@ -7,6 +7,7 @@ import {
   removeByOfflineId,
   type PendingNote,
 } from './offlineQueue';
+import { drainTagging } from './taggingService';
 
 export type CreateNoteInput = {
   userId: string;
@@ -34,11 +35,13 @@ export async function createNote(input: CreateNoteInput): Promise<PendingNote> {
   };
 
   await enqueue(pending);
-  void trySync(pending, input.photo_urls ?? []);
+  void trySync(pending, input.photo_urls ?? []).then((synced) => {
+    if (synced) void drainTagging();
+  });
   return pending;
 }
 
-async function trySync(pending: PendingNote, photoUrls: string[] = []): Promise<void> {
+async function trySync(pending: PendingNote, photoUrls: string[] = []): Promise<boolean> {
   const row: NoteInsert = {
     user_id: pending.user_id,
     trip_id: pending.trip_id,
@@ -58,7 +61,9 @@ async function trySync(pending: PendingNote, photoUrls: string[] = []): Promise<
 
   if (!error) {
     await removeByOfflineId(pending.offline_id);
+    return true;
   }
+  return false;
 }
 
 export async function listNotes(tripId: string): Promise<Note[]> {

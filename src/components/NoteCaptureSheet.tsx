@@ -7,6 +7,8 @@ import {
   Pressable,
   StyleSheet,
   KeyboardAvoidingView,
+  Keyboard,
+  TouchableWithoutFeedback,
   Platform,
   Alert,
   Animated,
@@ -58,7 +60,7 @@ export default function NoteCaptureSheet({
   const activeTrips = useMemo(() => trips.filter((t) => t.status === 'active'), [trips]);
 
   const [content, setContent] = useState('');
-  const [category, setCategory] = useState<Category | null>('activity');
+  const [category, setCategory] = useState<Category | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [intentLoading, setIntentLoading] = useState(false);
@@ -142,7 +144,7 @@ export default function NoteCaptureSheet({
   useEffect(() => {
     if (!visible) return;
     setContent('');
-    setCategory('activity');
+    setCategory(null);
     setIntentLoading(false);
     setExifCity(null);
     photoPicker.clear();
@@ -291,6 +293,8 @@ export default function NoteCaptureSheet({
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={styles.flex}>
         <View style={styles.handleRow}>
           <View style={styles.handle} />
         </View>
@@ -405,6 +409,8 @@ export default function NoteCaptureSheet({
             <Text style={styles.saveLabel}>{saving ? 'Saving…' : 'Save'}</Text>
           </Pressable>
         </View>
+        </View>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </Modal>
   );

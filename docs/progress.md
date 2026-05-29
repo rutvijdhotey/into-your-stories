@@ -148,6 +148,16 @@ Home · Explore · Search · Blog + Global floating capture button
 
 ---
 
+## Backlog — Self-Contained Future Phases
+
+Small, independently-shippable features noticed during other work. Each is its own phase/branch.
+
+| Feature | Why | Notes |
+|---|---|---|
+| **Trip cover photo (banner image)** | The trip detail banner currently renders only a deterministic placeholder gradient (`getTripGradient(trip.name)` in `TripDetailScreen.tsx`). The `trips.cover_photo_url` column already exists (`database.types.ts`) but nothing reads or writes it. | **Render:** when `trip.cover_photo_url` is set, show `<Image source={{ uri }} style={StyleSheet.absoluteFill}>` behind the existing dark scrim; fall back to the gradient when null. **Set:** decide the source — (a) auto-use the first photo from the trip's notes (zero new UI), (b) tap banner → `expo-image-picker` → upload to the existing Supabase `photos` bucket → save URL to `cover_photo_url`, or (c) pick from photos already on that trip's notes. Reuse `photoService.uploadPhoto` from Phase 5. No migration needed. |
+
+---
+
 ## What's Next
 
 **Phase 1 is complete.** All 12 tasks done; `npx tsc --noEmit` passes clean. Branch: `phase-1/auth-nav`.
