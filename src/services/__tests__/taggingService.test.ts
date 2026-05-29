@@ -6,11 +6,14 @@ const mockSelectEq = jest.fn();
 const mockUpdateEq = jest.fn();
 const mockSelect = jest.fn(() => ({ eq: mockSelectEq }));
 const mockUpdate = jest.fn(() => ({ eq: mockUpdateEq }));
-const mockFrom = jest.fn(() => ({ select: mockSelect, update: mockUpdate }));
+const mockFrom = jest.fn((_table: string) => ({ select: mockSelect, update: mockUpdate }));
 
+// `mock*` consts are referenced lazily (inside closures) so they are initialized
+// by the time the mocked module is actually used — the hoisted jest.mock factory
+// runs before these declarations execute.
 jest.mock('../../lib/supabase', () => ({
   supabase: {
-    functions: { invoke: (...args: unknown[]) => mockInvoke(...args) },
+    functions: { invoke: (...args: unknown[]) => (mockInvoke as jest.Mock)(...args) },
     from: (table: string) => mockFrom(table),
   },
 }));
