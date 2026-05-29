@@ -43,3 +43,8 @@ export function countWithoutLocation(items: FeedItem[]): number {
     (item) => item.kind === 'note' && (item.note.lat == null || item.note.lng == null),
   ).length;
 }
+
+export function filterPins(pins: MapPin[], category: Category | null): MapPin[] {
+  if (category == null) return pins;
+  return pins.filter((p) => p.category === category);
+}

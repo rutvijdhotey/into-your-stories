@@ -1,4 +1,4 @@
-import { pinColor, toPins, countWithoutLocation } from '../mapHelpers';
+import { pinColor, toPins, countWithoutLocation, filterPins, type MapPin } from '../mapHelpers';
 import { CategoryColors } from '../../theme';
 import type { Note } from '../noteHelpers';
 import type { FeedItem } from '../../hooks/useNotes';
@@ -16,6 +16,10 @@ const noteItem = (overrides: Partial<Note> = {}): FeedItem => ({ kind: 'note', n
 const pendingItem = (): FeedItem => ({
   kind: 'pending',
   pending: { offline_id: 'p1', trip_id: 't1', captured_at: '2026-05-22T12:00:00Z' } as never,
+});
+
+const pin = (id: string, category: MapPin['category']): MapPin => ({
+  id, lat: 1, lng: 2, category, place_name: null, content: '', note: note({ id, category }),
 });
 
 describe('pinColor', () => {
@@ -48,5 +52,15 @@ describe('countWithoutLocation', () => {
   it('counts note-items missing lat or lng and ignores pending', () => {
     const items = [ noteItem({ lat: 1, lng: 2 }), noteItem({ lat: null }), noteItem({ lng: null }), pendingItem() ];
     expect(countWithoutLocation(items)).toBe(2);
+  });
+});
+
+describe('filterPins', () => {
+  const pins = [pin('a', 'food'), pin('b', 'stay'), pin('c', 'food')];
+  it('returns all pins when category is null (the All state)', () => {
+    expect(filterPins(pins, null)).toHaveLength(3);
+  });
+  it('returns only pins matching the given category', () => {
+    expect(filterPins(pins, 'food').map((p) => p.id)).toEqual(['a', 'c']);
   });
 });
