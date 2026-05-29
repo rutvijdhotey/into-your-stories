@@ -36,3 +36,17 @@ export function formatBlogDate(iso: string): string {
   const d = new Date(iso);
   return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
+
+export function collectPlaces(notes: Note[]): Place[] {
+  const seen = new Set<string>();
+  const places: Place[] = [];
+  for (const note of notes) {
+    if (!note.place_name) continue;
+    const name = note.place_name.trim();
+    const key = name.toLowerCase();
+    if (key.length === 0 || seen.has(key)) continue;
+    seen.add(key);
+    places.push({ place_name: name, category: note.category, city: note.city });
+  }
+  return places;
+}
