@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-28  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 5 (Photo Import) complete ✅ — merged to `main` 2026-05-28. 94 tests passing. Next: Phase 6 (AI Smart Tagging).
+**Status:** Phase 7 (AI Smart Tagging) complete ✅ — merged + pushed to `main` 2026-05-28. 125 tests passing. Next: Phase 8 (Map view).
 
 ---
 
@@ -283,6 +283,51 @@ These got fixed inline; flagging here so future phases keep the muscle memory:
 5. Always build the dev build with `npm run ios` or `npm run ios -- --device` — never `npx expo start` (Expo Go won't have native modules).
 6. Supabase project `dcejrbyujfcxartywpis` — if auto-paused, restore via dashboard before starting. MCP prefix: `mcp__7fbbe81e-73f2-44e8-81b3-e04e19180276__*`.
 7. `detect-intent` edge function is live; ANTHROPIC_API_KEY secret is set. Model: `claude-haiku-4-5-20251001`.
+
+## Phase 7 — AI Smart Tagging (COMPLETE ✅)
+
+**Branch:** `phase-7/ai-smart-tagging` → merged + pushed to `main` 2026-05-28
+**Spec:** `docs/superpowers/specs/2026-05-28-phase-7-ai-smart-tagging-design.md`
+**Plan:** `docs/superpowers/plans/2026-05-28-phase-7-ai-smart-tagging.md`
+**Tests:** 125 passed (111 baseline + 14 new: 9 `taggingHelpers`, 5 `taggingService`)
+
+> Note: numbered "Phase 7" but it implements the **AI Smart Tagging** capability the older docs called "Phase 6". The stale `plan-06-ai-smart-tagging.md` (assumed a vision pipeline / `places` table / `tagging_status='done'`) was superseded by the spec above.
+
+### Architecture
+
+Client-orchestrated, stateless edge function — mirrors `detect-intent`. Every note already saves with `tagging_status='pending'`; nothing drained it before. Now `drainTagging()` queries pending notes, calls the `tag-note` function (Claude Haiku → `{category, place_name, city}` JSON), merges without overriding user/GPS values, writes the row back under the user's RLS auth, and flips status to `complete`. The `useNotes` Realtime `UPDATE` subscription (already present) swaps the `NoteCard` shimmer for the real badge — no new subscription.
+
+### What shipped
+
+| Task | What | Status |
+|---|---|---|
+| 1 | `taggingHelpers` (pure, TDD) — `validateCategory`, `normalizeSuggestion`, `mergeTags` | ✅ |
+| 2 | `tag-note` edge function — Claude `claude-haiku-4-5-20251001` classifier, fence-strip + JSON parse, non-200 on failure; **deployed** to `dcejrbyujfcxartywpis` | ✅ |
+| 3 | `taggingService` — `tagNote(note)` + `drainTagging()` (supabase mocked, TDD) | ✅ |
+| 4 | `noteService` — `trySync` returns `boolean`; `createNote` kicks a tag pass on successful online sync | ✅ |
+| 5 | `MainStack` — `drainTagging()` after `drainQueue()` at all 3 lifecycle triggers (mount / reconnect / foreground) | ✅ |
+| 6 | `NoteCard` — renders `📍 place_name` under content when set | ✅ |
+| 7 | Full verification — suite + tsc green | ✅ |
+
+### Merge rules (`mergeTags`)
+
+- **category:** keep the user's pick if set; else use AI's (validated to the 6-enum, junk → `general`)
+- **city:** keep the GPS-resolved city if set; else use AI's (may be null)
+- **place_name:** always take AI's value (no manual source to protect)
+- **failure:** non-200 → note stays `pending`, retried next drain — never silently mislabels during an outage
+
+### Fixes found during testing
+
+- **AI categorization was dead on arrival:** the capture sheet pre-selected `category='activity'`, so every note arrived non-null → `mergeTags` always kept it and discarded the AI's category, and the shimmer never showed (`pending && !category`). Fixed: capture sheet defaults (and post-save reset) to `null`; user picks still win. `CategoryBadge`/`CategoryPicker` already handle null.
+- **Keyboard couldn't be dismissed:** the multiline note input made Return insert newlines with no dismiss gesture and no scroll wrapper. Wrapped the sheet body in `TouchableWithoutFeedback` → tap any empty area calls `Keyboard.dismiss`; interactive controls keep their own touches.
+
+### Gotchas
+
+- **Jest mock hoisting:** `jest.mock` is hoisted above `const mock* = jest.fn()`, so the factory must reference mocks **lazily through closures** (`invoke: (...a) => (mockInvoke as jest.Mock)(...a)`), not directly — a direct `invoke: mockInvoke` reads the const before init → "is not a function". Cast at the call site to keep `mockResolvedValue` loosely typed (avoids the `never` problem an explicit impl causes).
+- **Refinement vs spec:** fence-stripping/`JSON.parse` lives in the edge function (where the raw text is, like `detect-intent`); the client helper is `normalizeSuggestion(data)` validating the already-structured response.
+- **Offline note "delay":** notes saved offline reappear after reconnect via the queue-drain + Realtime round-trip — a short delay, working as designed (not a data-loss bug).
+
+---
 
 ## Phase 5 — Photo Import (COMPLETE ✅)
 
