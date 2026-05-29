@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-28  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 7 (AI Smart Tagging) complete ✅ — merged + pushed to `main` 2026-05-28. 125 tests passing. Next: Phase 8 (Map view).
+**Status:** Phase 8 (Trip Map tab) complete ✅ — merged to `main` 2026-05-28. 135 tests passing. Next: Phase 9 (Blog generation).
 
 ---
 
@@ -283,6 +283,47 @@ These got fixed inline; flagging here so future phases keep the muscle memory:
 5. Always build the dev build with `npm run ios` or `npm run ios -- --device` — never `npx expo start` (Expo Go won't have native modules).
 6. Supabase project `dcejrbyujfcxartywpis` — if auto-paused, restore via dashboard before starting. MCP prefix: `mcp__7fbbe81e-73f2-44e8-81b3-e04e19180276__*`.
 7. `detect-intent` edge function is live; ANTHROPIC_API_KEY secret is set. Model: `claude-haiku-4-5-20251001`.
+
+## Phase 8 — Trip Map Tab (COMPLETE ✅)
+
+**Branch:** `phase-8/trip-map` → merged to `main` 2026-05-28
+**Spec:** `docs/superpowers/specs/2026-05-28-phase-8-trip-map-design.md`
+**Plan:** `docs/superpowers/plans/2026-05-28-phase-8-trip-map.md`
+**Tests:** 135 passed (125 baseline + 10 new `mapHelpers`)
+
+> Supersedes the stale `plan-07-maps-places.md` (assumed a `places` table from a vision pipeline that was never built + a Personal Destinations screen). The real data source is `notes` rows carrying `lat`/`lng`/`category`/`place_name` (written by Phase 7 smart tagging). Personal Destinations remains deferred to its own later phase.
+
+### Architecture — three thin layers
+
+Pure helpers (`src/services/mapHelpers.ts`) hold all map logic that doesn't need a rendered map, so region/filter/projection are unit-tested without native maps. `TripMapScreen` is a thin view that reads notes via the existing `useNotes(tripId)` hook (so the map updates live on Realtime UPDATE), derives pins, and renders Apple Maps. Wiring is a one-line `tripId` pass-through in `TripDetailScreen`. No new tables.
+
+### What shipped
+
+| Task | What | Status |
+|---|---|---|
+| 1–4 | `mapHelpers` (pure, TDD, 10 tests) — `pinColor`, `toPins`, `countWithoutLocation`, `filterPins`, `regionForPins` (bounding box + 1.4× padding + 0.01 min-delta clamp) | ✅ |
+| 5 | `react-native-maps@1.20.1` installed — Apple Maps via `PROVIDER_DEFAULT`, no API key / no config plugin | ✅ |
+| 6 | `TripMapScreen` rewrite — dark `MapView`, category-colored `Marker`s, `Callout` (place name + badge + ≤80-char snippet) → `NoteEditSheet`, `CategoryPicker` filter (null = All), no-location count banner, empty state, loading/error mirroring `TripFeedScreen` | ✅ |
+| 7 | `TripDetailScreen` passes `tripId` to the Map tab (mounted only when active) | ✅ |
+| 8 | Full verification — suite + tsc green, on-device QA passed | ✅ |
+
+### Key decisions
+
+- **Pin color:** `CategoryColors[category].text` (the vivid foreground per the badges); null/unknown → `general`. `Marker.pinColor` takes one color string.
+- **Callout text is dark** (`#111111`/`#333333`) — Apple Maps renders callouts in a light bubble, so the app's white-on-dark theme tokens would be invisible there.
+- **`region` derived from `filtered`** (not all pins), so filtering reframes the map; when a filter has no matches, the empty state shows.
+
+### Improvements folded in during review
+
+- **`hasLocation` type-predicate** extracted in `mapHelpers` — DRY'd the `lat/lng` null-check shared by `toPins` and `countWithoutLocation` and narrows the type for the projection.
+- **Category-aware empty state** — filtering to a category with zero pins now shows `"No {Category} places on the map."` instead of the misleading "capture notes with locations" copy (which is reserved for trips that genuinely have no located notes). Empty-state padding keeps the no-location banner from overlapping the text.
+
+### Gotchas
+
+- **`??` / `||` cannot be mixed without parentheses** (TS5076). The callout title fallback is `place_name ?? (categoryLabel(category) || 'Note')` — the parens are required and also make the precedence explicit.
+- **Pure helpers import `FeedItem`/`Note`/`Category` as `import type`** so Jest never loads `supabase` or the native `react-native-maps` module while unit-testing the helpers. No test imports `TripMapScreen`, so the suite never touches native maps.
+
+---
 
 ## Phase 7 — AI Smart Tagging (COMPLETE ✅)
 
