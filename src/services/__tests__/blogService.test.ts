@@ -86,6 +86,11 @@ describe('getBlogPost', () => {
     expect(mockSelectEq).toHaveBeenCalledWith('id', 'post-1');
     expect(row).toEqual({ id: 'post-1' });
   });
+
+  it('throws when the query errors', async () => {
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: new Error('not found') });
+    await expect(getBlogPost('post-1')).rejects.toThrow('not found');
+  });
 });
 
 describe('publishPost', () => {
@@ -95,11 +100,15 @@ describe('publishPost', () => {
     await publishPost('post-1');
 
     expect(mockUpdate).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const patch = (mockUpdate.mock.calls as any)[0][0] as { status: string; published_at: unknown };
+    const patch = (mockUpdate.mock.calls as unknown[][])[0]?.[0] as { status: string; published_at: unknown };
     expect(patch.status).toBe('published');
     expect(typeof patch.published_at).toBe('string');
     expect(mockUpdateEq).toHaveBeenCalledWith('id', 'post-1');
+  });
+
+  it('throws when the update errors', async () => {
+    mockUpdateEq.mockResolvedValueOnce({ error: new Error('conflict') });
+    await expect(publishPost('post-1')).rejects.toThrow('conflict');
   });
 });
 
@@ -111,6 +120,11 @@ describe('unpublish', () => {
 
     expect(mockUpdate).toHaveBeenCalledWith({ status: 'draft', published_at: null });
     expect(mockUpdateEq).toHaveBeenCalledWith('id', 'post-1');
+  });
+
+  it('throws when the update errors', async () => {
+    mockUpdateEq.mockResolvedValueOnce({ error: new Error('conflict') });
+    await expect(unpublish('post-1')).rejects.toThrow('conflict');
   });
 });
 
