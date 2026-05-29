@@ -1,4 +1,4 @@
-import { statusLabel, formatBlogDate, collectPlaces, validateBlogResult } from '../blogHelpers';
+import { statusLabel, formatBlogDate, collectPlaces, validateBlogResult, markdownToHtml } from '../blogHelpers';
 import type { Note } from '../noteHelpers';
 
 describe('statusLabel', () => {
@@ -99,5 +99,38 @@ describe('validateBlogResult', () => {
   it('returns null for non-object input', () => {
     expect(validateBlogResult(null)).toBeNull();
     expect(validateBlogResult('nope')).toBeNull();
+  });
+});
+
+describe('markdownToHtml', () => {
+  it('wraps output in a full HTML document', () => {
+    const html = markdownToHtml('Hello');
+    expect(html).toContain('<!DOCTYPE html>');
+    expect(html).toContain('<body>');
+    expect(html).toContain('</html>');
+  });
+
+  it('converts #/##/### into h1/h2/h3', () => {
+    const html = markdownToHtml('# Title\n\n## Section\n\n### Sub');
+    expect(html).toContain('<h1>Title</h1>');
+    expect(html).toContain('<h2>Section</h2>');
+    expect(html).toContain('<h3>Sub</h3>');
+  });
+
+  it('wraps plain lines in a paragraph', () => {
+    expect(markdownToHtml('Just some prose.')).toContain('<p>Just some prose.</p>');
+  });
+
+  it('converts a standalone image line to an <img> (URL untouched)', () => {
+    const html = markdownToHtml('![A photo](https://x/p.jpg?token=a&b=1)');
+    expect(html).toContain('<img alt="A photo" src="https://x/p.jpg?token=a&b=1" />');
+  });
+
+  it('converts **bold** to <strong>', () => {
+    expect(markdownToHtml('This is **important** stuff.')).toContain('<strong>important</strong>');
+  });
+
+  it('escapes HTML-significant characters in prose', () => {
+    expect(markdownToHtml('2 < 3 & 4 > 1')).toContain('2 &lt; 3 &amp; 4 &gt; 1');
   });
 });
