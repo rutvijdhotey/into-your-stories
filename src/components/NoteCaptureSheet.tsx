@@ -7,6 +7,8 @@ import {
   Pressable,
   StyleSheet,
   KeyboardAvoidingView,
+  Keyboard,
+  TouchableWithoutFeedback,
   Platform,
   Alert,
   Animated,
@@ -291,6 +293,8 @@ export default function NoteCaptureSheet({
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={styles.flex}>
         <View style={styles.handleRow}>
           <View style={styles.handle} />
         </View>
@@ -405,6 +409,8 @@ export default function NoteCaptureSheet({
             <Text style={styles.saveLabel}>{saving ? 'Saving…' : 'Save'}</Text>
           </Pressable>
         </View>
+        </View>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </Modal>
   );
