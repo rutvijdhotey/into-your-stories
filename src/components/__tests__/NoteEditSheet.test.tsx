@@ -31,7 +31,7 @@ const mockPick = jest.fn();
 const mockPickerRemove = jest.fn();
 const mockClear = jest.fn();
 jest.mock('../../hooks/usePhotoPicker', () => ({
-  MAX_PHOTOS_PER_NOTE: 4,
+  MAX_PHOTOS_PER_NOTE: 5,
   usePhotoPicker: () => ({
     photos: mockPickerPhotos,
     pick: mockPick,
@@ -172,24 +172,28 @@ describe('NoteEditSheet — save flow', () => {
   });
 });
 
-describe('NoteEditSheet — photo cap (4 per note)', () => {
+describe('NoteEditSheet — photo cap (5 per note)', () => {
   it('opens the picker with only the remaining slots', () => {
-    // baseNote has 2 existing photos; cap is 4 -> 2 slots remain.
+    // baseNote has 2 existing photos; cap is 5 -> 3 slots remain.
     const { getByLabelText } = renderSheet();
     fireEvent.press(getByLabelText('Add photos'));
-    expect(mockPick).toHaveBeenCalledWith(2);
+    expect(mockPick).toHaveBeenCalledWith(3);
   });
 
-  it('blocks adding and alerts when the note already has 4 photos', () => {
-    // 2 existing + 2 newly picked = 4 -> at the limit.
-    mockPickerPhotos = [{ uri: 'file:///x.jpg' }, { uri: 'file:///y.jpg' }];
+  it('blocks adding and alerts when the note already has 5 photos', () => {
+    // 2 existing + 3 newly picked = 5 -> at the limit.
+    mockPickerPhotos = [
+      { uri: 'file:///x.jpg' },
+      { uri: 'file:///y.jpg' },
+      { uri: 'file:///z.jpg' },
+    ];
     const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
     const { getByLabelText } = renderSheet();
     fireEvent.press(getByLabelText('Add photos'));
 
     expect(mockPick).not.toHaveBeenCalled();
-    expect(alertSpy).toHaveBeenCalledWith('Photo limit reached', expect.stringContaining('4'));
+    expect(alertSpy).toHaveBeenCalledWith('Photo limit reached', expect.stringContaining('5'));
     alertSpy.mockRestore();
   });
 });

@@ -4,7 +4,7 @@ import { Alert } from 'react-native';
 import { extractExifLocation } from '../services/photoHelpers';
 
 /** Maximum number of photos allowed on a single note (across existing + new). */
-export const MAX_PHOTOS_PER_NOTE = 4;
+export const MAX_PHOTOS_PER_NOTE = 5;
 
 export type PickedPhoto = {
   uri: string;
