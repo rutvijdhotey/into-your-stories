@@ -35,6 +35,7 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
   const [existingUrls, setExistingUrls] = useState<string[]>(note.photo_urls);
   const [removedUrls, setRemovedUrls] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const photoPicker = usePhotoPicker();
 
   // Reset local state each time the sheet opens for a (potentially different) note
@@ -63,10 +64,10 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
       return;
     }
 
+    const newUrls: string[] = [];
     setSaving(true);
     try {
       // 1. Upload new photos
-      const newUrls: string[] = [];
       const tempId = Crypto.randomUUID();
       for (let i = 0; i < photoPicker.photos.length; i++) {
         const url = await uploadPhoto(note.user_id, tempId, i, photoPicker.photos[i].uri);
@@ -89,6 +90,7 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
       photoPicker.clear();
       onClose();
     } catch (e) {
+      if (newUrls.length > 0) void deletePhotos(newUrls);
       Alert.alert('Could not save note', (e as Error).message);
     } finally {
       setSaving(false);
@@ -105,6 +107,8 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            if (deleting) return;
+            setDeleting(true);
             try {
               // Best-effort delete all photos from Storage
               const allUrls = [...existingUrls, ...removedUrls, ...note.photo_urls];
@@ -114,6 +118,8 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
               onDeleted();
             } catch (e) {
               Alert.alert('Could not delete note', (e as Error).message);
+            } finally {
+              setDeleting(false);
             }
           },
         },
@@ -209,6 +215,7 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
             disabled={!canSave}
             style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
             accessibilityRole="button"
+            accessibilityLabel="Save note"
           >
             {saving ? (
               <ActivityIndicator color={Colors.background} size="small" />
@@ -218,7 +225,7 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
           </Pressable>
         </View>
 
-        <Pressable onPress={handleDelete} style={styles.deleteButton} accessibilityRole="button">
+        <Pressable onPress={handleDelete} disabled={deleting} style={styles.deleteButton} accessibilityRole="button" accessibilityLabel="Delete note">
           <Text style={styles.deleteLabel}>Delete Note</Text>
         </Pressable>
       </KeyboardAvoidingView>
