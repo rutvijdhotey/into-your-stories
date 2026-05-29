@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,13 @@ export default function BlogPostScreen({ route, navigation }: Props) {
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+
+  // Mirror the latest post into a ref so deferred callbacks (e.g. the Export
+  // Alert's button handlers) read fresh state rather than a stale closure.
+  const postRef = useRef<BlogPost | null>(null);
+  useEffect(() => {
+    postRef.current = post;
+  }, [post]);
 
   const load = useCallback(async () => {
     try {
@@ -109,11 +116,12 @@ export default function BlogPostScreen({ route, navigation }: Props) {
   };
 
   const handleExport = () => {
-    if (!post?.content_markdown) return;
+    const current = postRef.current;
+    if (!current?.content_markdown) return;
     Alert.alert('Export', 'Choose a format', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Markdown', onPress: () => exportMarkdown(post) },
-      { text: 'HTML', onPress: () => exportHtml(post) },
+      { text: 'Markdown', onPress: () => exportMarkdown(current) },
+      { text: 'HTML', onPress: () => exportHtml(current) },
     ]);
   };
 
