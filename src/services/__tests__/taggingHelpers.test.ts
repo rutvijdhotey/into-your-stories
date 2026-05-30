@@ -56,7 +56,7 @@ describe('mergeTags', () => {
     ).toEqual({ category: 'food', place_name: 'Ichiran Ramen', city: 'Tokyo' });
   });
 
-  it('always takes the suggested place_name', () => {
+  it('takes the suggested place_name when none is set', () => {
     expect(
       mergeTags({ category: 'stay', city: 'Kyoto' }, { ...suggestion, place_name: 'Park Hyatt' }),
     ).toMatchObject({ place_name: 'Park Hyatt' });
