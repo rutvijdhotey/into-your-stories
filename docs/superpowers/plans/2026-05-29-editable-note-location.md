@@ -273,38 +273,33 @@ git commit -m "feat: geocodeLocation + reverseCity wrappers"
 ## Task 3: `mergeTags` preserves a manually-set place_name
 
 **Files:**
-- Modify: `src/services/taggingHelpers.ts:30-35` (the `mergeTags` return)
-- Modify: `src/services/__tests__/taggingHelpers.test.ts:22-29`
+- Modify: `src/services/taggingHelpers.ts` (`ExistingTags` type + `mergeTags` return)
+- Modify: `src/services/taggingService.ts:16-17` (the `mergeTags` call site)
+- Modify: `src/services/__tests__/taggingHelpers.test.ts` (add one case)
 
-Today `mergeTags` returns `place_name: ai.place_name ?? existing.place_name` — the AI wins
-whenever it has a value, which would clobber a manual "Paris". Flip it so an existing
-`place_name` is kept (same rule already used for `city`). The AI only fills `place_name`
-when none is set.
+Today `mergeTags(existing, suggestion)` returns `place_name: suggestion.place_name` — the AI
+**always** wins, which would clobber a manual "Paris". `ExistingTags` currently only has
+`category` and `city` (no `place_name` to compare against). Add an optional `place_name` to
+`ExistingTags`, keep it when present, and pass the note's `place_name` at the call site. The
+optional field means the three existing `mergeTags` tests (which pass `{ category, city }`)
+still type-check and still pass — `undefined ?? suggestion.place_name` keeps the AI value
+when the note has no manual place.
 
-- [ ] **Step 1: Update the existing test to the new rule, add a preserve case**
+- [ ] **Step 1: Add a failing test for the preserve case**
 
-Replace the `mergeTags never overrides...` test (currently asserting `place_name: 'Hotel X'`)
-in `src/services/__tests__/taggingHelpers.test.ts` with:
+Append inside the existing `describe('mergeTags', ...)` block in
+`src/services/__tests__/taggingHelpers.test.ts` (do NOT touch the three existing `it(...)`
+cases — they must keep passing):
 
 ```typescript
-test('mergeTags never overrides existing user/GPS values', () => {
-  // AI fills place_name only when the note has none.
-  expect(
-    mergeTags(
-      { category: 'food', place_name: null, city: 'Paris' },
-      { category: 'stay', place_name: 'Hotel X', city: 'London' },
-    ),
-  ).toEqual({ category: 'food', place_name: 'Hotel X', city: 'Paris' });
-});
-
-test('mergeTags preserves a manually-set place_name over the AI suggestion', () => {
-  expect(
-    mergeTags(
-      { category: null, place_name: 'Paris', city: null },
-      { category: 'activity', place_name: 'Googleplex', city: 'Mountain View' },
-    ),
-  ).toEqual({ category: 'activity', place_name: 'Paris', city: 'Mountain View' });
-});
+  it('preserves a manually-set place_name over the suggestion', () => {
+    expect(
+      mergeTags(
+        { category: null, city: null, place_name: 'Paris' },
+        { category: 'activity', place_name: 'Googleplex', city: 'Mountain View' },
+      ),
+    ).toEqual({ category: 'activity', place_name: 'Paris', city: 'Mountain View' });
+  });
 ```
 
 - [ ] **Step 2: Run test to verify the new case fails**
@@ -312,27 +307,54 @@ test('mergeTags preserves a manually-set place_name over the AI suggestion', () 
 Run: `npx jest src/services/__tests__/taggingHelpers.test.ts`
 Expected: FAIL on "preserves a manually-set place_name" — receives `Googleplex`.
 
-- [ ] **Step 3: Update `mergeTags`**
+- [ ] **Step 3: Update `ExistingTags` and `mergeTags`**
 
-In `src/services/taggingHelpers.ts`, change the `place_name` line in the returned object:
+In `src/services/taggingHelpers.ts`, add `place_name` to `ExistingTags`:
 
 ```typescript
-  return {
-    category: existing.category ?? ai.category,
-    city: existing.city ?? ai.city,
-    place_name: existing.place_name ?? ai.place_name,
-  };
+export type ExistingTags = {
+  category: Category | null;
+  city: string | null;
+  place_name?: string | null;
+};
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+and change the `place_name` line in the `mergeTags` return:
 
-Run: `npx jest src/services/__tests__/taggingHelpers.test.ts`
-Expected: PASS (all cases).
+```typescript
+export function mergeTags(existing: ExistingTags, suggestion: TagSuggestion): TagSuggestion {
+  return {
+    category: existing.category ?? suggestion.category,
+    place_name: existing.place_name ?? suggestion.place_name,
+    city: existing.city ?? suggestion.city,
+  };
+}
+```
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Pass the note's place_name at the call site**
+
+In `src/services/taggingService.ts`, the `mergeTags` call currently passes
+`{ category: note.category, city: note.city }`. Add `place_name`:
+
+```typescript
+  const merged = mergeTags(
+    { category: note.category, city: note.city, place_name: note.place_name },
+    normalizeSuggestion(data),
+  );
+```
+
+> Adjust the second argument to match the existing code exactly — only the first object
+> changes (the added `place_name` key).
+
+- [ ] **Step 5: Run tests to verify all pass**
+
+Run: `npx jest src/services/__tests__/taggingHelpers.test.ts && npx tsc --noEmit`
+Expected: all `taggingHelpers` cases PASS; no new type errors in `taggingService.ts`.
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add src/services/taggingHelpers.ts src/services/__tests__/taggingHelpers.test.ts
+git add src/services/taggingHelpers.ts src/services/taggingService.ts src/services/__tests__/taggingHelpers.test.ts
 git commit -m "feat: mergeTags preserves a manually-set place_name"
 ```
 
@@ -370,11 +392,11 @@ And carry it onto the `pending` object in `createNote`:
     place_name: input.place_name ?? null,
 ```
 
-> Note: `PendingNote` is the `StoredNote` type in `src/services/offlineQueue.ts` (fields:
-> `offline_id`, `user_id`, `trip_id`, `content`, `category`, `lat`, `lng`, `city`,
-> `captured_at`). Add `place_name: string | null;` to `StoredNote` so the queue payload
-> round-trips it. In `noteService.ts`'s `drainQueue`, the insert builds its `row` from queue
-> items — add `place_name: item.place_name ?? null` there too.
+> Note: `PendingNote` is exported from `src/services/offlineQueue.ts` (fields: `offline_id`,
+> `user_id`, `trip_id`, `content`, `category`, `lat`, `lng`, `city`, `captured_at`). Add
+> `place_name: string | null;` to `PendingNote` so the queue payload round-trips it. In
+> `noteService.ts`'s `drainQueue`, the insert builds its `row` from queue items — add
+> `place_name: item.place_name ?? null` there too.
 
 - [ ] **Step 2: Extend `UpdateNoteInput` and `updateNote`**
 
