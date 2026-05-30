@@ -30,8 +30,11 @@ import { uploadPhoto, deletePhotos } from '../services/photoService';
 import { detectIntent } from '../services/voiceService';
 import { validateContent, type Category } from '../services/noteHelpers';
 import CategoryPicker from './CategoryPicker';
+import LocationField from './LocationField';
 import TripSelector from './TripSelector';
 import { Colors, Spacing, BorderRadius } from '../theme';
+import { geocodeLocation, reverseCity } from '../services/locationService';
+import { resolveLocationEdit } from '../services/locationHelpers';
 
 type Props = {
   visible: boolean;
@@ -65,6 +68,8 @@ export default function NoteCaptureSheet({
   const [saving, setSaving] = useState(false);
   const [intentLoading, setIntentLoading] = useState(false);
   const [exifCity, setExifCity] = useState<string | null>(null);
+  const [location, setLocation] = useState('');
+  const [locationEdited, setLocationEdited] = useState(false);
 
   // Pulsing ring animation for recording state
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -147,6 +152,8 @@ export default function NoteCaptureSheet({
     setCategory(null);
     setIntentLoading(false);
     setExifCity(null);
+    setLocation('');
+    setLocationEdited(false);
     photoPicker.clear();
     voice.reset();
     void fetchLocation();
@@ -157,6 +164,12 @@ export default function NoteCaptureSheet({
   // and photoPicker.clear are excluded — their identities change each render and
   // including them would re-fire the reset on every keystroke.
   }, [visible, fetchLocation]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const displayCity = exifCity ?? (locating ? null : fix?.city ?? null);
+
+  useEffect(() => {
+    if (!locationEdited) setLocation(displayCity ?? '');
+  }, [displayCity, locationEdited]);
 
   const photos = photoPicker.photos;
   const remainingPhotoSlots = MAX_PHOTOS_PER_NOTE - photos.length;
@@ -227,20 +240,33 @@ export default function NoteCaptureSheet({
         }
       }
 
-      // Determine final location: EXIF overrides live GPS
+      // Determine auto location: EXIF overrides live GPS
       const latest = await fetchLocation();
-      const noteLat = exifLocation ? exifLocation.lat : (latest?.lat ?? fix?.lat ?? null);
-      const noteLng = exifLocation ? exifLocation.lng : (latest?.lng ?? fix?.lng ?? null);
-      const noteCity = exifLocation ? exifCity : (latest?.city ?? fix?.city ?? null);
+      const autoLat = exifLocation ? exifLocation.lat : (latest?.lat ?? fix?.lat ?? null);
+      const autoLng = exifLocation ? exifLocation.lng : (latest?.lng ?? fix?.lng ?? null);
+      const autoCity = exifLocation ? exifCity : (latest?.city ?? fix?.city ?? null);
+
+      // Apply any manual location edit on top of the auto result
+      const geocoded = locationEdited ? await geocodeLocation(location) : null;
+      const revCity =
+        locationEdited && geocoded ? await reverseCity(geocoded.lat, geocoded.lng) : null;
+      const locPatch = resolveLocationEdit({
+        text: location,
+        wasEdited: locationEdited,
+        auto: { lat: autoLat, lng: autoLng, city: autoCity, place_name: null },
+        geocoded,
+        reverseCity: revCity,
+      });
 
       await createNote({
         userId,
         tripId: selectedTripId,
         content: validation.value,
         category,
-        lat: noteLat,
-        lng: noteLng,
-        city: noteCity,
+        lat: locPatch.lat,
+        lng: locPatch.lng,
+        city: locPatch.city,
+        place_name: locPatch.place_name,
         photo_urls: uploadedUrls,
         offline_id: offlineId,
       });
@@ -254,6 +280,11 @@ export default function NoteCaptureSheet({
     }
   };
 
+  const handleLocationChange = (text: string) => {
+    setLocation(text);
+    setLocationEdited(true);
+  };
+
   const handleMicPress = async () => {
     if (intentLoading) return;
     if (voice.status === 'recording') {
@@ -262,13 +293,6 @@ export default function NoteCaptureSheet({
       await voice.start();
     }
   };
-
-  const displayCity = exifCity ?? (locating ? null : fix?.city ?? null);
-  const locationLabel = locating && !exifCity
-    ? '📍 Locating…'
-    : displayCity
-    ? `📍 ${displayCity}`
-    : '📍 No location';
 
   const isRecording = voice.status === 'recording';
   const micLabel =
@@ -397,8 +421,12 @@ export default function NoteCaptureSheet({
         )}
 
         <View style={styles.actionRow}>
-          <View style={styles.locationPill}>
-            <Text style={styles.locationPillText}>{locationLabel}</Text>
+          <View style={styles.locationFieldWrap}>
+            <LocationField
+              value={location}
+              onChangeText={handleLocationChange}
+              loading={locating && !exifCity && !locationEdited}
+            />
           </View>
           <Pressable
             onPress={handleSave}
@@ -511,16 +539,7 @@ const styles = StyleSheet.create({
   },
   addPhotosEmoji: { fontSize: 18 },
   addPhotosLabel: { fontSize: 14, color: Colors.textSecondary },
-  locationPill: {
-    flex: 1,
-    marginHorizontal: Spacing.sm,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: BorderRadius.pill,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-  },
-  locationPillText: { fontSize: 12, color: Colors.textSecondary },
+  locationFieldWrap: { flex: 1, marginHorizontal: Spacing.sm },
   saveButton: {
     backgroundColor: Colors.accent,
     paddingHorizontal: Spacing.md,

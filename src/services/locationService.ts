@@ -34,3 +34,28 @@ export async function reverseGeocodeCity(lat: number, lng: number): Promise<stri
     return null;
   }
 }
+
+/** Forward-geocode free text to coordinates. Returns null on empty/no-result/error. */
+export async function geocodeLocation(
+  text: string,
+): Promise<{ lat: number; lng: number } | null> {
+  const query = text.trim();
+  if (query.length === 0) return null;
+  try {
+    const [hit] = await Location.geocodeAsync(query);
+    if (!hit) return null;
+    return { lat: hit.latitude, lng: hit.longitude };
+  } catch {
+    return null;
+  }
+}
+
+/** Reverse-geocode coordinates to a city/district name. Returns null on no-result/error. */
+export async function reverseCity(lat: number, lng: number): Promise<string | null> {
+  try {
+    const [geo] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+    return geo?.city ?? geo?.district ?? null;
+  } catch {
+    return null;
+  }
+}

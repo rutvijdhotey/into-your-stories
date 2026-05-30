@@ -18,6 +18,13 @@ jest.mock('expo-crypto', () => ({
   randomUUID: () => 'temp-id',
 }));
 
+// locationService is mocked so the geocode round-trip is deterministic; the real
+// resolveLocationEdit helper runs, so these tests exercise the actual save wiring.
+jest.mock('../../services/locationService', () => ({
+  geocodeLocation: jest.fn(),
+  reverseCity: jest.fn(),
+}));
+
 // CategoryPicker is exercised manually; render nothing here to isolate the sheet.
 jest.mock('../CategoryPicker', () => ({
   __esModule: true,
@@ -42,12 +49,15 @@ jest.mock('../../hooks/usePhotoPicker', () => ({
 
 import { uploadPhoto, deletePhotos } from '../../services/photoService';
 import { updateNote, deleteNote } from '../../services/noteService';
+import { geocodeLocation, reverseCity } from '../../services/locationService';
 import NoteEditSheet from '../NoteEditSheet';
 
 const mockUploadPhoto = uploadPhoto as jest.MockedFunction<typeof uploadPhoto>;
 const mockDeletePhotos = deletePhotos as jest.MockedFunction<typeof deletePhotos>;
 const mockUpdateNote = updateNote as jest.MockedFunction<typeof updateNote>;
 const mockDeleteNote = deleteNote as jest.MockedFunction<typeof deleteNote>;
+const mockGeocode = geocodeLocation as jest.MockedFunction<typeof geocodeLocation>;
+const mockReverseCity = reverseCity as jest.MockedFunction<typeof reverseCity>;
 
 const URL_0 = 'https://x/storage/v1/object/public/photos/user-1/note-1/0.jpg';
 const URL_1 = 'https://x/storage/v1/object/public/photos/user-1/note-1/1.jpg';
@@ -76,6 +86,8 @@ beforeEach(() => {
   mockDeletePhotos.mockResolvedValue(undefined);
   mockUpdateNote.mockResolvedValue(undefined);
   mockDeleteNote.mockResolvedValue(undefined);
+  mockGeocode.mockResolvedValue(null);
+  mockReverseCity.mockResolvedValue(null);
 });
 
 describe('NoteEditSheet — canSave gating', () => {
@@ -169,6 +181,91 @@ describe('NoteEditSheet — save flow', () => {
     // Best-effort cleanup of the orphaned upload.
     expect(mockDeletePhotos).toHaveBeenCalledWith([UPLOADED]);
     alertSpy.mockRestore();
+  });
+});
+
+describe('NoteEditSheet — editable location', () => {
+  const locatedNote = {
+    id: 'note-1',
+    user_id: 'user-1',
+    content: 'Original text',
+    category: 'food',
+    photo_urls: [URL_0, URL_1],
+    lat: 37.4,
+    lng: -122.08,
+    city: 'Mountain View',
+    place_name: 'Googleplex',
+  } as unknown as Note;
+
+  function renderLocated() {
+    return render(
+      <NoteEditSheet note={locatedNote} visible={true} onClose={jest.fn()} onDeleted={jest.fn()} />,
+    );
+  }
+
+  it('pre-fills the field with place_name and preserves location when untouched', async () => {
+    const { getByLabelText } = renderLocated();
+    // Field shows the existing place_name.
+    expect(getByLabelText('Note location').props.value).toBe('Googleplex');
+
+    fireEvent.press(getByLabelText('Save note'));
+    await waitFor(() => expect(mockUpdateNote).toHaveBeenCalled());
+
+    // Not edited -> no geocoding, original location persisted unchanged.
+    expect(mockGeocode).not.toHaveBeenCalled();
+    expect(mockUpdateNote).toHaveBeenCalledWith(
+      'note-1',
+      expect.objectContaining({
+        lat: 37.4,
+        lng: -122.08,
+        city: 'Mountain View',
+        place_name: 'Googleplex',
+      }),
+    );
+  });
+
+  it('geocodes an edited location and writes coords + typed place + reverse city', async () => {
+    mockGeocode.mockResolvedValueOnce({ lat: 48.85, lng: 2.35 });
+    mockReverseCity.mockResolvedValueOnce('Paris');
+
+    const { getByLabelText } = renderLocated();
+    fireEvent.changeText(getByLabelText('Note location'), 'Paris');
+    fireEvent.press(getByLabelText('Save note'));
+
+    await waitFor(() => expect(mockUpdateNote).toHaveBeenCalled());
+
+    expect(mockGeocode).toHaveBeenCalledWith('Paris');
+    expect(mockReverseCity).toHaveBeenCalledWith(48.85, 2.35);
+    expect(mockUpdateNote).toHaveBeenCalledWith(
+      'note-1',
+      expect.objectContaining({
+        lat: 48.85,
+        lng: 2.35,
+        city: 'Paris',
+        place_name: 'Paris',
+      }),
+    );
+  });
+
+  it('drops the pin when geocoding an edited location fails, keeping the typed label', async () => {
+    mockGeocode.mockResolvedValueOnce(null); // offline / no result
+
+    const { getByLabelText } = renderLocated();
+    fireEvent.changeText(getByLabelText('Note location'), 'Paris');
+    fireEvent.press(getByLabelText('Save note'));
+
+    await waitFor(() => expect(mockUpdateNote).toHaveBeenCalled());
+
+    expect(mockReverseCity).not.toHaveBeenCalled();
+    expect(mockUpdateNote).toHaveBeenCalledWith(
+      'note-1',
+      expect.objectContaining({
+        lat: null,
+        lng: null,
+        city: null,
+        place_name: 'Paris',
+      }),
+    );
   });
 });
 

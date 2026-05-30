@@ -19,6 +19,9 @@ import { updateNote, deleteNote } from '../services/noteService';
 import { validateContent, type Category, type Note } from '../services/noteHelpers';
 import { usePhotoPicker, MAX_PHOTOS_PER_NOTE } from '../hooks/usePhotoPicker';
 import CategoryPicker from './CategoryPicker';
+import LocationField from './LocationField';
+import { geocodeLocation, reverseCity } from '../services/locationService';
+import { resolveLocationEdit } from '../services/locationHelpers';
 import { Colors, Spacing, BorderRadius } from '../theme';
 
 type Props = {
@@ -31,6 +34,8 @@ type Props = {
 export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Props) {
   const [content, setContent] = useState(note.content);
   const [category, setCategory] = useState<Category | null>(note.category);
+  const [location, setLocation] = useState(note.place_name ?? note.city ?? '');
+  const [locationEdited, setLocationEdited] = useState(false);
   // existingUrls: photos already on the note; removedUrls: staged for deletion on Save
   const [existingUrls, setExistingUrls] = useState<string[]>(note.photo_urls);
   const [removedUrls, setRemovedUrls] = useState<string[]>([]);
@@ -42,9 +47,16 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
   const handleShow = () => {
     setContent(note.content);
     setCategory(note.category);
+    setLocation(note.place_name ?? note.city ?? '');
+    setLocationEdited(false);
     setExistingUrls(note.photo_urls);
     setRemovedUrls([]);
     photoPicker.clear();
+  };
+
+  const handleLocationChange = (text: string) => {
+    setLocation(text);
+    setLocationEdited(true);
   };
 
   const handleRemoveExisting = (url: string) => {
@@ -92,10 +104,25 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
 
       // 3. Update note record
       const finalUrls = [...existingUrls, ...newUrls];
+      const geocoded = locationEdited ? await geocodeLocation(location) : null;
+      const revCity =
+        locationEdited && geocoded ? await reverseCity(geocoded.lat, geocoded.lng) : null;
+      const locPatch = resolveLocationEdit({
+        text: location,
+        wasEdited: locationEdited,
+        auto: { lat: note.lat, lng: note.lng, city: note.city, place_name: note.place_name },
+        geocoded,
+        reverseCity: revCity,
+      });
+
       await updateNote(note.id, {
         content: validation.value,
         category,
         photo_urls: finalUrls,
+        lat: locPatch.lat,
+        lng: locPatch.lng,
+        city: locPatch.city,
+        place_name: locPatch.place_name,
       });
 
       photoPicker.clear();
@@ -172,6 +199,10 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
         />
 
         <CategoryPicker value={category} onChange={setCategory} />
+
+        <View style={{ marginHorizontal: Spacing.md, marginBottom: Spacing.sm }}>
+          <LocationField value={location} onChangeText={handleLocationChange} />
+        </View>
 
         {/* Existing photos with delete badges */}
         {(existingUrls.length > 0 || photoPicker.photos.length > 0) && (

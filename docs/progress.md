@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-29  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 9 (Blog generation) complete ✅ — merged to `main` and pushed to `origin` 2026-05-29, on-device QA passed. 165 tests passing. Next: backlog (see below).
+**Status:** Backlog item QA #2 (editable note location) complete ✅ on `backlog/editable-note-location` (pending merge). 180 tests passing, tsc clean. Phase 9 (Blog generation) merged + pushed 2026-05-29. Next backlog item: remove dead `PhotoGrid` component.
 
 ---
 
@@ -157,8 +157,45 @@ Small, independently-shippable features noticed during other work. Each is its o
 | **Trip cover photo (banner image)** | The trip detail banner currently renders only a deterministic placeholder gradient (`getTripGradient(trip.name)` in `TripDetailScreen.tsx`). The `trips.cover_photo_url` column already exists (`database.types.ts`) but nothing reads or writes it. | **Render:** when `trip.cover_photo_url` is set, show `<Image source={{ uri }} style={StyleSheet.absoluteFill}>` behind the existing dark scrim; fall back to the gradient when null. **Set:** decide the source — (a) auto-use the first photo from the trip's notes (zero new UI), (b) tap banner → `expo-image-picker` → upload to the existing Supabase `photos` bucket → save URL to `cover_photo_url`, or (c) pick from photos already on that trip's notes. Reuse `photoService.uploadPhoto` from Phase 5. No migration needed. |
 | **Remove dead `PhotoGrid` component** | `src/components/PhotoGrid.tsx` was superseded by `PhotoStrip` in Phase 5 (the unbounded feed-header grid was replaced by the 3-cap strip + gallery). Nothing imports it anymore. | Confirm no remaining imports (`grep -r PhotoGrid src`), then delete `src/components/PhotoGrid.tsx`. Trivial cleanup, no behavior change. |
 | **Personalize blog voice from the user's own writing style** | Phase 9's `generate-blog` edge function uses a generic "clear, warm, first-person travel-writing voice"; style onboarding was explicitly out of scope. The user's actual travel voice is documented (first-person, warm/sincere, "perhaps… perhaps…" repetition, subject-named-last sentences — see their site https://intoyourstories.wixsite.com/home). | Feed a style profile into the `SYSTEM_PROMPT` of `supabase/functions/generate-blog/index.ts` so drafts sound like the author. Source options: (a) seed from the user's published posts (the spec's `style_profiles` idea), or (b) a short hand-written style guide. Likely its own spec → plan cycle alongside the broader "style onboarding" feature the Phase 9 spec defers. No migration strictly required for a single default profile. |
-| **Editable location on note capture** (QA #2, 2026-05-29) | Capture auto-fills location from GPS/EXIF (`useLocation`, `extractExifLocation`) but the user cannot correct or set it — auto-filled values should be editable/updatable. | In `NoteCaptureSheet`, surface the resolved `city`/`place_name` (and lat/lng) as editable fields pre-populated from the auto-capture, persisting overrides on save. Keep auto-fill as the default. Small, self-contained capture-flow change; touches `NoteCaptureSheet.tsx` + `createNote` input. No migration (columns exist on `notes`). |
+| ~~**Editable location on note capture** (QA #2, 2026-05-29)~~ ✅ **DONE 2026-05-30** | Capture auto-filled location from GPS/EXIF but the user could not correct it (e.g. an edited photo with wrong EXIF dropped the note in the wrong city + wrong map pin). | Shipped on `backlog/editable-note-location`. See "Editable Note Location (COMPLETE ✅)" section below. |
 | **Editable + croppable blog & cover image** (QA #4, 2026-05-29) | Phase 9 ships the draft as **fully read-only** by explicit design decision; the spec defers the photo-override screen and conversational editing. Users want light edits — tweak the draft text and crop/replace the cover. | Its own spec → plan cycle. Likely: (a) an editable markdown/title editor writing back to `blog_posts.content_markdown`/`title`; (b) cover crop/replace via `expo-image-picker` (`allowsEditing`) or `expo-image-manipulator`, choosing from the trip's existing photos or a new upload, saving to `cover_photo_url`. Reverses the read-only stance, so treat as a deliberate scope expansion, not a patch. |
+| **Offline photo note capture** (deferred 2026-05-29) | `NoteCaptureSheet` blocks saving any note that has photos while offline (`photosBlockSave = photos.length > 0 && !isOnline`, `NoteCaptureSheet.tsx:163`) because photos upload synchronously before the note row is created. Text/voice notes queue offline fine; photo notes don't. Deferred because the upcoming trip will have cellular coverage. | Persist the picked image `file://` URIs in the offline queue payload alongside the note, and on `drainQueue`/reconnect upload each via `photoService.uploadPhoto`, then create the note with the resulting `photo_urls`; remove the `photosBlockSave` guard once the queue handles photos. Touches `offlineQueue`, `noteService.createNote`/`drainQueue`, `NoteCaptureSheet`. **Care:** iOS may evict picker temp URIs before drain — copy picked images into app document storage (`expo-file-system`) on capture so they survive until upload. |
+
+---
+
+## Editable Note Location (COMPLETE ✅)
+
+**Branch:** `backlog/editable-note-location` (from `main`)
+**Spec:** `docs/superpowers/specs/2026-05-29-editable-note-location-design.md`
+**Plan:** `docs/superpowers/plans/2026-05-29-editable-note-location.md`
+**Tests:** 180 passed (177 baseline at branch point + 3 new wiring tests; plus new helper/service unit tests folded in along the way). `npx tsc --noEmit` clean.
+
+> First backlog item (QA #2). The user could not fix a note's location when GPS/EXIF was wrong — e.g. an *edited* photo carrying Mountain View EXIF on a Paris trip showed "Mountain View" and dropped its pin in California, with no way to correct it (and `NoteEditSheet` had no location field at all).
+
+### What shipped
+
+| Task | What | Status |
+|---|---|---|
+| 1 | `resolveLocationEdit` pure helper (`locationHelpers.ts`) — owns all save-time branching (not-edited passthrough / edited-success / geocode-fail drop-pin / cleared→null), 5 TDD tests | ✅ |
+| 2 | `geocodeLocation` + `reverseCity` wrappers on `locationService.ts` (mocked `expo-location`, 6 tests) | ✅ |
+| 3 | `mergeTags` preserves a manually-set `place_name` (optional `place_name` on `ExistingTags`; call site passes `note.place_name`) so AI re-tagging can't clobber a manual correction | ✅ |
+| 4 | `place_name` plumbing through `CreateNoteInput`/`PendingNote`/`trySync`/`drainQueue`; `UpdateNoteInput`+`updateNote` now patch `lat`/`lng`/`city`/`place_name` | ✅ |
+| 5 | Shared `LocationField` component (editable pill, "Locating…" affordance) | ✅ |
+| 6 | Wired into `NoteEditSheet` — pre-fills `place_name ?? city`, resolves on save (+3 integration tests) | ✅ |
+| 7 | Wired into `NoteCaptureSheet` — replaced the read-only pill; auto-fill syncs until the user types; resolves on save; EXIF-over-GPS auto path unchanged when untouched | ✅ |
+| 8 | Full verification (tsc + 180 tests green) + final whole-branch code review | ✅ |
+
+### Behavior
+
+Type a location → on save the app forward-geocodes it (coords), reverse-geocodes those coords (clean city), and sets `place_name` to the typed text, so label + map pin + destination grouping all stay consistent. Geocode fail/offline → keep the typed label, drop the bad pin (null coords/city). Untouched → identical to the previous auto GPS/EXIF behavior. Works in both capture and edit-an-existing-note.
+
+### Consciously deferred (from code review)
+
+- Three slightly different "reverse-geocode to city" helpers now coexist (`reverseGeocodeCity` city→subregion→region, `reverseCity` city→district, plus the inline EXIF reverse in `NoteCaptureSheet`). The spec suggested consolidating; left as-is to avoid touching the EXIF path. Low-priority cleanup.
+
+### On-device QA (Task 8 manual checklist — pending hardware run)
+
+Automated suite + tsc are green. The manual device checklist (capture untouched, edited-photo correction → Paris pin, offline typed label, edit-saved-note correction, clear field, AI-retag preserves manual place) from the plan should be run on a dev build before/after merge.
 
 ---
 
@@ -337,7 +374,7 @@ On-device QA passed (generate → live `generating → draft`, inline photos + P
 
 ### Deferred from QA → backlog (see Backlog section)
 
-- **#2** editable location on note capture · **#4** editable + croppable blog/cover (reverses the read-only decision; its own spec) · personalize blog voice from the user's writing style.
+- ~~**#2** editable location on note capture~~ ✅ done 2026-05-30 · **#4** editable + croppable blog/cover (reverses the read-only decision; its own spec) · personalize blog voice from the user's writing style.
 
 ---
 

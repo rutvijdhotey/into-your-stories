@@ -17,6 +17,7 @@ export type CreateNoteInput = {
   lat: number | null;
   lng: number | null;
   city: string | null;
+  place_name?: string | null;
   photo_urls?: string[];
   offline_id?: string;
 };
@@ -31,6 +32,7 @@ export async function createNote(input: CreateNoteInput): Promise<PendingNote> {
     lat: input.lat,
     lng: input.lng,
     city: input.city,
+    place_name: input.place_name ?? null,
     captured_at: new Date().toISOString(),
   };
 
@@ -50,6 +52,7 @@ async function trySync(pending: PendingNote, photoUrls: string[] = []): Promise<
     lat: pending.lat,
     lng: pending.lng,
     city: pending.city,
+    place_name: pending.place_name ?? null,
     offline_id: pending.offline_id,
     captured_at: pending.captured_at,
     photo_urls: photoUrls,
@@ -89,6 +92,7 @@ export async function drainQueue(): Promise<number> {
       lat: item.lat,
       lng: item.lng,
       city: item.city,
+      place_name: item.place_name ?? null,
       offline_id: item.offline_id,
       captured_at: item.captured_at,
       photo_urls: [],
@@ -108,6 +112,10 @@ export type UpdateNoteInput = {
   content: string;
   category: Category | null;
   photo_urls: string[];
+  lat: number | null;
+  lng: number | null;
+  city: string | null;
+  place_name: string | null;
 };
 
 export async function updateNote(id: string, patch: UpdateNoteInput): Promise<void> {
@@ -117,6 +125,10 @@ export async function updateNote(id: string, patch: UpdateNoteInput): Promise<vo
       content: patch.content,
       category: patch.category,
       photo_urls: patch.photo_urls,
+      lat: patch.lat,
+      lng: patch.lng,
+      city: patch.city,
+      place_name: patch.place_name,
       tagging_status: 'pending',
     })
     .eq('id', id);

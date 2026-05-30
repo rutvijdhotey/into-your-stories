@@ -56,9 +56,18 @@ describe('mergeTags', () => {
     ).toEqual({ category: 'food', place_name: 'Ichiran Ramen', city: 'Tokyo' });
   });
 
-  it('always takes the suggested place_name', () => {
+  it('takes the suggested place_name when none is set', () => {
     expect(
       mergeTags({ category: 'stay', city: 'Kyoto' }, { ...suggestion, place_name: 'Park Hyatt' }),
     ).toMatchObject({ place_name: 'Park Hyatt' });
+  });
+
+  it('preserves a manually-set place_name over the suggestion', () => {
+    expect(
+      mergeTags(
+        { category: null, city: null, place_name: 'Paris' },
+        { category: 'activity', place_name: 'Googleplex', city: 'Mountain View' },
+      ),
+    ).toEqual({ category: 'activity', place_name: 'Paris', city: 'Mountain View' });
   });
 });

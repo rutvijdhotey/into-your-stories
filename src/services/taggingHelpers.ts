@@ -9,6 +9,7 @@ export type TagSuggestion = {
 export type ExistingTags = {
   category: Category | null;
   city: string | null;
+  place_name?: string | null;
 };
 
 export function validateCategory(value: unknown): Category {
@@ -38,7 +39,7 @@ export function normalizeSuggestion(data: unknown): TagSuggestion {
 export function mergeTags(existing: ExistingTags, suggestion: TagSuggestion): TagSuggestion {
   return {
     category: existing.category ?? suggestion.category,
-    place_name: suggestion.place_name,
+    place_name: existing.place_name ?? suggestion.place_name,
     city: existing.city ?? suggestion.city,
   };
 }
