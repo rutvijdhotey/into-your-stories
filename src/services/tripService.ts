@@ -66,3 +66,11 @@ export async function deleteTrip(id: string): Promise<void> {
   const { error } = await supabase.from('trips').delete().eq('id', id);
   if (error) throw error;
 }
+
+export async function updateCoverPhoto(tripId: string, url: string | null): Promise<void> {
+  const { error } = await supabase
+    .from('trips')
+    .update({ cover_photo_url: url })
+    .eq('id', tripId);
+  if (error) throw error;
+}
