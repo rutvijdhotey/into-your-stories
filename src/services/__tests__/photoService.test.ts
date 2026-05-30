@@ -20,7 +20,7 @@ const mockArrayBuffer = new ArrayBuffer(16);
 const mockFetchResponse = { arrayBuffer: jest.fn().mockResolvedValue(mockArrayBuffer) };
 global.fetch = jest.fn().mockResolvedValue(mockFetchResponse) as jest.Mock;
 
-import { uploadPhoto, deletePhotos } from '../photoService';
+import { uploadPhoto, deletePhotos, uploadCoverPhoto } from '../photoService';
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -51,6 +51,31 @@ describe('uploadPhoto', () => {
 
     await expect(uploadPhoto('user1', 'note1', 0, 'file:///photo.jpg')).rejects.toThrow('Storage error');
     expect(mockGetPublicUrl).not.toHaveBeenCalled();
+  });
+});
+
+describe('uploadCoverPhoto', () => {
+  it('uploads to the trip-covers path and returns a cache-busted URL', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(1234);
+    mockUpload.mockResolvedValueOnce({ data: { path: 'user1/trip-covers/trip1.jpg' }, error: null });
+    mockGetPublicUrl.mockReturnValueOnce({
+      data: { publicUrl: 'https://example.com/photos/user1/trip-covers/trip1.jpg' },
+    });
+
+    const url = await uploadCoverPhoto('user1', 'trip1', 'file:///cover.jpg');
+
+    expect(mockUpload).toHaveBeenCalledWith(
+      'user1/trip-covers/trip1.jpg',
+      mockArrayBuffer,
+      { contentType: 'image/jpeg', upsert: true },
+    );
+    expect(url).toBe('https://example.com/photos/user1/trip-covers/trip1.jpg?v=1234');
+    (Date.now as jest.Mock).mockRestore();
+  });
+
+  it('throws when upload returns an error', async () => {
+    mockUpload.mockResolvedValueOnce({ data: null, error: new Error('Storage error') });
+    await expect(uploadCoverPhoto('user1', 'trip1', 'file:///cover.jpg')).rejects.toThrow('Storage error');
   });
 });
 
