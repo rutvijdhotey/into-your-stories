@@ -792,8 +792,6 @@ Mark the backlog row "Editable location on note capture (QA #2)" as done; add a 
 git add docs/progress.md
 git commit -m "docs: editable note location complete"
 ```
-```
-```
 
 ---
 
