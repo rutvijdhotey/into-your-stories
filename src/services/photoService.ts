@@ -40,7 +40,8 @@ export async function uploadCoverPhoto(
 export async function deletePhotos(urls: string[]): Promise<void> {
   const paths = urls
     .map((url) => {
-      const match = url.match(/\/photos\/(.+)$/);
+      const clean = url.split('?')[0];
+      const match = clean.match(/\/photos\/(.+)$/);
       return match ? match[1] : null;
     })
     .filter((p): p is string => p !== null);

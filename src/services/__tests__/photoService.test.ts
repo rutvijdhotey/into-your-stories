@@ -109,4 +109,14 @@ describe('deletePhotos', () => {
       deletePhotos(['https://example.supabase.co/storage/v1/object/public/photos/user1/note1/0.jpg']),
     ).resolves.toBeUndefined();
   });
+
+  it('strips a query suffix before resolving the storage path', async () => {
+    mockRemove.mockResolvedValueOnce({ data: [], error: null });
+
+    await deletePhotos([
+      'https://example.supabase.co/storage/v1/object/public/photos/user1/trip-covers/trip1.jpg?v=1234',
+    ]);
+
+    expect(mockRemove).toHaveBeenCalledWith(['user1/trip-covers/trip1.jpg']);
+  });
 });
