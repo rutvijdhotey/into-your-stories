@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      blog_posts: {
+        Row: {
+          content_markdown: string | null
+          cover_photo_url: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          published_at: string | null
+          selected_photo_urls: string[]
+          status: string
+          title: string | null
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content_markdown?: string | null
+          cover_photo_url?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          published_at?: string | null
+          selected_photo_urls?: string[]
+          status?: string
+          title?: string | null
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content_markdown?: string | null
+          cover_photo_url?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          published_at?: string | null
+          selected_photo_urls?: string[]
+          status?: string
+          title?: string | null
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_posts_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           captured_at: string

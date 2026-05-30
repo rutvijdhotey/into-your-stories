@@ -1,8 +1,8 @@
 # Into Your Stories — Project Progress
 
-**Last updated:** 2026-05-28  
+**Last updated:** 2026-05-29  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 8 (Trip Map tab) complete ✅ — merged to `main` 2026-05-28. 135 tests passing. Next: Phase 9 (Blog generation).
+**Status:** Phase 9 (Blog generation) code complete ✅ — on branch `phase-9/blog-generation`, on-device QA pending. 165 tests passing. Phase 8 (Trip Map tab) merged to `main` 2026-05-28.
 
 ---
 
@@ -156,6 +156,9 @@ Small, independently-shippable features noticed during other work. Each is its o
 |---|---|---|
 | **Trip cover photo (banner image)** | The trip detail banner currently renders only a deterministic placeholder gradient (`getTripGradient(trip.name)` in `TripDetailScreen.tsx`). The `trips.cover_photo_url` column already exists (`database.types.ts`) but nothing reads or writes it. | **Render:** when `trip.cover_photo_url` is set, show `<Image source={{ uri }} style={StyleSheet.absoluteFill}>` behind the existing dark scrim; fall back to the gradient when null. **Set:** decide the source — (a) auto-use the first photo from the trip's notes (zero new UI), (b) tap banner → `expo-image-picker` → upload to the existing Supabase `photos` bucket → save URL to `cover_photo_url`, or (c) pick from photos already on that trip's notes. Reuse `photoService.uploadPhoto` from Phase 5. No migration needed. |
 | **Remove dead `PhotoGrid` component** | `src/components/PhotoGrid.tsx` was superseded by `PhotoStrip` in Phase 5 (the unbounded feed-header grid was replaced by the 3-cap strip + gallery). Nothing imports it anymore. | Confirm no remaining imports (`grep -r PhotoGrid src`), then delete `src/components/PhotoGrid.tsx`. Trivial cleanup, no behavior change. |
+| **Personalize blog voice from the user's own writing style** | Phase 9's `generate-blog` edge function uses a generic "clear, warm, first-person travel-writing voice"; style onboarding was explicitly out of scope. The user's actual travel voice is documented (first-person, warm/sincere, "perhaps… perhaps…" repetition, subject-named-last sentences — see their site https://intoyourstories.wixsite.com/home). | Feed a style profile into the `SYSTEM_PROMPT` of `supabase/functions/generate-blog/index.ts` so drafts sound like the author. Source options: (a) seed from the user's published posts (the spec's `style_profiles` idea), or (b) a short hand-written style guide. Likely its own spec → plan cycle alongside the broader "style onboarding" feature the Phase 9 spec defers. No migration strictly required for a single default profile. |
+| **Editable location on note capture** (QA #2, 2026-05-29) | Capture auto-fills location from GPS/EXIF (`useLocation`, `extractExifLocation`) but the user cannot correct or set it — auto-filled values should be editable/updatable. | In `NoteCaptureSheet`, surface the resolved `city`/`place_name` (and lat/lng) as editable fields pre-populated from the auto-capture, persisting overrides on save. Keep auto-fill as the default. Small, self-contained capture-flow change; touches `NoteCaptureSheet.tsx` + `createNote` input. No migration (columns exist on `notes`). |
+| **Editable + croppable blog & cover image** (QA #4, 2026-05-29) | Phase 9 ships the draft as **fully read-only** by explicit design decision; the spec defers the photo-override screen and conversational editing. Users want light edits — tweak the draft text and crop/replace the cover. | Its own spec → plan cycle. Likely: (a) an editable markdown/title editor writing back to `blog_posts.content_markdown`/`title`; (b) cover crop/replace via `expo-image-picker` (`allowsEditing`) or `expo-image-manipulator`, choosing from the trip's existing photos or a new upload, saving to `cover_photo_url`. Reverses the read-only stance, so treat as a deliberate scope expansion, not a patch. |
 
 ---
 
@@ -284,6 +287,51 @@ These got fixed inline; flagging here so future phases keep the muscle memory:
 5. Always build the dev build with `npm run ios` or `npm run ios -- --device` — never `npx expo start` (Expo Go won't have native modules).
 6. Supabase project `dcejrbyujfcxartywpis` — if auto-paused, restore via dashboard before starting. MCP prefix: `mcp__7fbbe81e-73f2-44e8-81b3-e04e19180276__*`.
 7. `detect-intent` edge function is live; ANTHROPIC_API_KEY secret is set. Model: `claude-haiku-4-5-20251001`.
+
+## Phase 9 — Blog Generation (CODE COMPLETE ✅ — on-device QA pending)
+
+**Branch:** `phase-9/blog-generation` (not yet merged)
+**Spec:** `docs/superpowers/specs/2026-05-28-phase-9-blog-generation-design.md`
+**Plan:** `docs/superpowers/plans/2026-05-29-phase-9-blog-generation.md`
+**Tests:** 165 passed (135 baseline + 30 new across `blogHelpers` + `blogService`)
+**Supabase:** project `dcejrbyujfcxartywpis` — migration `008_blog_posts` applied; `generate-blog` edge function deployed (v2, JWT-verified).
+
+> Turns a **completed** trip into a polished, read-only blog draft: Generate → Review → Export. "Publish" is a local status marker only (no public web URL — that waits for the web-layer phase). Re-scopes the stale `plan-09-blog-generation.md`, which assumed tables/pipelines that were never built.
+
+### Architecture — three thin layers
+
+Pure helpers (`src/services/blogHelpers.ts`, `import type` only) hold all logic that needs no Supabase/native modules — `collectPlaces`, `validateBlogResult`, `markdownToHtml`, formatters — so they're unit-tested in isolation. `blogService.ts` is a thin Supabase wrapper (generate/list/get/publish/unpublish/discard). The `generate-blog` edge function (Deno, **service role**) inserts a `generating` row, returns its id immediately, and finishes the ~60s Claude generation via `EdgeRuntime.waitUntil`; Realtime flips the card `generating → draft` with no push infra.
+
+### What shipped
+
+| Task | What | Status |
+|---|---|---|
+| 1 | Migration `008_blog_posts` — owner-scoped RLS, partial unique index (one active post per trip), `set_updated_at` trigger, Realtime; matching `database.types.ts` entry | ✅ |
+| 2–5 | `blogHelpers` (pure, TDD) — `collectPlaces`, `validateBlogResult`, `markdownToHtml` (escapes alt-text), `statusLabel`, `formatBlogDate` | ✅ |
+| 6 | `blogService` (Supabase mocked, error paths) — `generateBlog`, `listBlogPosts`, `getBlogPost`, `publishPost`, `unpublish`, `discardDraft` | ✅ |
+| 7 | `generate-blog` edge function — `claude-sonnet-4-6`, JWT-derived identity + trip-ownership check, 90s abort timeout, no-notes guard, fence-strip+parse, draft/error lifecycle | ✅ |
+| 8 | Deps (`react-native-markdown-display`, `expo-sharing`, `expo-file-system`) + `BlogPost` route on `MainStack` | ✅ |
+| 9 | `useBlogPosts` Realtime hook (per-instance channel suffix) | ✅ |
+| 10–11 | `BlogPostCard` + `BlogPostScreen` (status-driven, read-only, publish/unpublish/discard/export) | ✅ |
+| 12 | `BlogScreen` rewrite — Drafts/Published lists + completed-trip picker | ✅ |
+| 13 | `TripDetailScreen` — Generate Blog button (completed trips) → generate + navigate | ✅ |
+| 14 | Full verification — suite + tsc green; edge fn deployed; **on-device QA pending** | ✅ |
+
+### Security fix folded in during review
+
+- **Cross-tenant authorization:** the edge function uses the service-role client (bypasses RLS), so it now verifies the requested `trip_id` belongs to the JWT-authenticated user before reading notes or writing a post (returns 403 otherwise). Identity is derived from the verified JWT, never a client-supplied `user_id` (which was dropped from the `generateBlog` client call). Without this, any authenticated user could generate a blog from another user's private trip.
+
+### Gotchas
+
+- **Edge functions use the modern `expo-file-system` API** in `BlogPostScreen` HTML export: `new File(Paths.cache, name)` + `file.create({overwrite:true})` + `file.write(html)` + `Sharing.shareAsync(file.uri, ...)` (synchronous writes, wrapped in try/catch).
+- **`tsconfig` excludes `supabase/`** — the Deno edge function (URL imports, `EdgeRuntime` global) never enters the project `tsc --noEmit`.
+- **One active post per trip** is enforced by a partial unique index (`where status <> 'published'`); the edge function deletes the prior non-published row before inserting the fresh `generating` row.
+
+### Remaining before merge
+
+- **On-device QA** (per Task 14 checklist): end a trip → Generate Blog → live `generating → draft`, inline photos + Places section, Publish/Unpublish, Export (Markdown + HTML share sheet), Discard, and regenerate-replaces-draft.
+
+---
 
 ## Phase 8 — Trip Map Tab (COMPLETE ✅)
 

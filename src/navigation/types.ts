@@ -15,6 +15,7 @@ export type TabParamList = {
 export type MainStackParamList = {
   Tabs: undefined;
   TripDetail: { tripId: string };
+  BlogPost: { postId: string };
 };
 
 export type RootStackParamList = {

@@ -7,6 +7,7 @@ import type { MainStackParamList } from './types';
 import { Colors } from '../theme';
 import TabNavigator from './TabNavigator';
 import TripDetailScreen from '../screens/trip/TripDetailScreen';
+import BlogPostScreen from '../screens/blog/BlogPostScreen';
 import FloatingCaptureButton from '../components/FloatingCaptureButton';
 import NoteCaptureSheet from '../components/NoteCaptureSheet';
 import { useOnReconnect } from '../hooks/useConnectivity';
@@ -60,6 +61,11 @@ function MainStackInner() {
           name="TripDetail"
           component={TripDetailScreen}
           options={{ title: '', headerBackTitle: 'Home' }}
+        />
+        <Stack.Screen
+          name="BlogPost"
+          component={BlogPostScreen}
+          options={{ title: '', headerBackTitle: 'Back' }}
         />
       </Stack.Navigator>
       <FloatingCaptureButton
