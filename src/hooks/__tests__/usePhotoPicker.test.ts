@@ -1,8 +1,6 @@
 import { renderHook, act } from '@testing-library/react-native';
-import { Alert } from 'react-native';
 
 jest.mock('expo-image-picker', () => ({
-  requestMediaLibraryPermissionsAsync: jest.fn(),
   launchImageLibraryAsync: jest.fn(),
   MediaTypeOptions: { Images: 'Images' },
 }));
@@ -22,8 +20,6 @@ const mockExtractExif = extractExifLocation as jest.MockedFunction<typeof extrac
 const mockEnsurePermission = ensureMediaLibraryPermission as jest.MockedFunction<
   typeof ensureMediaLibraryPermission
 >;
-
-const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
 beforeEach(() => {
   jest.clearAllMocks();
