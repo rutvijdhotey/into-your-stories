@@ -13,13 +13,13 @@ type UseCoverPhotoResult = {
   busy: boolean;
 };
 
-export function useCoverPhoto(trip: Trip): UseCoverPhotoResult {
+export function useCoverPhoto(trip: Trip | null): UseCoverPhotoResult {
   const { session } = useAuth();
   const [busy, setBusy] = useState(false);
 
   const setCover = async () => {
     const userId = session?.user.id;
-    if (!userId) return;
+    if (!userId || !trip) return;
 
     const granted = await ensureMediaLibraryPermission();
     if (!granted) return;
@@ -47,6 +47,7 @@ export function useCoverPhoto(trip: Trip): UseCoverPhotoResult {
   };
 
   const removeCover = async () => {
+    if (!trip) return;
     setBusy(true);
     try {
       const previous = trip.cover_photo_url;

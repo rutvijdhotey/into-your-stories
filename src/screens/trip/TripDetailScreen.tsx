@@ -27,6 +27,7 @@ export default function TripDetailScreen({ route, navigation }: Props) {
   const [ending, setEnding] = useState(false);
   const { session } = useAuth();
   const [generatingBlog, setGeneratingBlog] = useState(false);
+  const { setCover, removeCover, busy: coverBusy } = useCoverPhoto(trip);
 
   if (loading) {
     return (
@@ -48,8 +49,6 @@ export default function TripDetailScreen({ route, navigation }: Props) {
   const destinations =
     trip.destinations.length > 0 ? trip.destinations.join(', ') : 'No destination yet';
   const gradient = getTripGradient(trip.name);
-
-  const { setCover, removeCover, busy: coverBusy } = useCoverPhoto(trip);
 
   const handleEditCover = () => {
     const options = trip.cover_photo_url
@@ -135,6 +134,8 @@ export default function TripDetailScreen({ route, navigation }: Props) {
           onPress={handleEditCover}
           disabled={coverBusy}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Edit cover photo"
         >
           <Ionicons name="camera" size={18} color="#FFFFFF" />
         </Pressable>
