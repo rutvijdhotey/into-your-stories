@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-29  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Backlog item QA #2 (editable note location) complete ✅ on `backlog/editable-note-location` (pending merge). 180 tests passing, tsc clean. Phase 9 (Blog generation) merged + pushed 2026-05-29. Next backlog item: remove dead `PhotoGrid` component.
+**Status:** Two backlog items merged to `main` 2026-05-30 — QA #2 editable note location (PR #8) + dead `PhotoGrid` removal (PR #9). 180 tests passing, tsc clean. Phase 9 (Blog generation) merged + pushed 2026-05-29. **Next backlog item: Trip cover photo (banner image)** — needs a brief brainstorm first (open question: how the cover is chosen — auto first-photo / tap-to-upload / pick from existing trip photos).
 
 ---
 
@@ -165,7 +165,7 @@ Small, independently-shippable features noticed during other work. Each is its o
 
 ## Editable Note Location (COMPLETE ✅)
 
-**Branch:** `backlog/editable-note-location` (from `main`)
+**Branch:** `backlog/editable-note-location` → merged to `main` (PR #8, merge `aa84425`) 2026-05-30; branch deleted. On-device QA passed.
 **Spec:** `docs/superpowers/specs/2026-05-29-editable-note-location-design.md`
 **Plan:** `docs/superpowers/plans/2026-05-29-editable-note-location.md`
 **Tests:** 180 passed (177 baseline at branch point + 3 new wiring tests; plus new helper/service unit tests folded in along the way). `npx tsc --noEmit` clean.
@@ -193,9 +193,9 @@ Type a location → on save the app forward-geocodes it (coords), reverse-geocod
 
 - Three slightly different "reverse-geocode to city" helpers now coexist (`reverseGeocodeCity` city→subregion→region, `reverseCity` city→district, plus the inline EXIF reverse in `NoteCaptureSheet`). The spec suggested consolidating; left as-is to avoid touching the EXIF path. Low-priority cleanup.
 
-### On-device QA (Task 8 manual checklist — pending hardware run)
+### On-device QA — PASSED ✅ (2026-05-30)
 
-Automated suite + tsc are green. The manual device checklist (capture untouched, edited-photo correction → Paris pin, offline typed label, edit-saved-note correction, clear field, AI-retag preserves manual place) from the plan should be run on a dev build before/after merge.
+Automated suite + tsc green; manual device checklist passed (capture untouched, edited-photo correction → Paris pin, offline typed label, edit-saved-note correction, clear field, AI-retag preserves manual place). Merged after QA.
 
 ---
 
