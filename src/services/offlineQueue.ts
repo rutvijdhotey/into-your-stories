@@ -12,6 +12,7 @@ export type PendingNote = {
   lat: number | null;
   lng: number | null;
   city: string | null;
+  place_name: string | null;
   captured_at: string;
 };
 

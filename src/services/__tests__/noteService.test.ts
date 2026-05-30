@@ -22,6 +22,10 @@ describe('updateNote', () => {
     content: 'Updated text',
     category: 'food',
     photo_urls: ['https://x/photos/u/n/0.jpg'],
+    lat: null,
+    lng: null,
+    city: null,
+    place_name: null,
   };
 
   it('updates the note and resets tagging_status to pending', async () => {
@@ -34,6 +38,10 @@ describe('updateNote', () => {
       content: 'Updated text',
       category: 'food',
       photo_urls: ['https://x/photos/u/n/0.jpg'],
+      lat: null,
+      lng: null,
+      city: null,
+      place_name: null,
       tagging_status: 'pending',
     });
     expect(mockEq).toHaveBeenCalledWith('id', 'note-1');
