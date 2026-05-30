@@ -55,6 +55,8 @@ describe('uploadPhoto', () => {
 });
 
 describe('uploadCoverPhoto', () => {
+  afterEach(() => jest.restoreAllMocks());
+
   it('uploads to the trip-covers path and returns a cache-busted URL', async () => {
     jest.spyOn(Date, 'now').mockReturnValue(1234);
     mockUpload.mockResolvedValueOnce({ data: { path: 'user1/trip-covers/trip1.jpg' }, error: null });
@@ -69,13 +71,14 @@ describe('uploadCoverPhoto', () => {
       mockArrayBuffer,
       { contentType: 'image/jpeg', upsert: true },
     );
+    expect(mockGetPublicUrl).toHaveBeenCalledWith('user1/trip-covers/trip1.jpg');
     expect(url).toBe('https://example.com/photos/user1/trip-covers/trip1.jpg?v=1234');
-    (Date.now as jest.Mock).mockRestore();
   });
 
   it('throws when upload returns an error', async () => {
     mockUpload.mockResolvedValueOnce({ data: null, error: new Error('Storage error') });
     await expect(uploadCoverPhoto('user1', 'trip1', 'file:///cover.jpg')).rejects.toThrow('Storage error');
+    expect(mockGetPublicUrl).not.toHaveBeenCalled();
   });
 });
 
