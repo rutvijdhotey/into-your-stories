@@ -15,9 +15,6 @@ jest.mock('../../services/photoHelpers', () => ({
 import * as ImagePicker from 'expo-image-picker';
 import { extractExifLocation, ensureMediaLibraryPermission } from '../../services/photoHelpers';
 
-const mockRequestPermissions = ImagePicker.requestMediaLibraryPermissionsAsync as jest.MockedFunction<
-  typeof ImagePicker.requestMediaLibraryPermissionsAsync
->;
 const mockLaunchLibrary = ImagePicker.launchImageLibraryAsync as jest.MockedFunction<
   typeof ImagePicker.launchImageLibraryAsync
 >;
@@ -30,7 +27,6 @@ const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockRequestPermissions.mockResolvedValue({ status: 'granted', granted: true, expires: 'never', canAskAgain: true } as never);
   mockExtractExif.mockReturnValue(null);
   mockEnsurePermission.mockResolvedValue(true);
 });
@@ -132,7 +128,7 @@ describe('usePhotoPicker', () => {
   it('does not open the picker when no slots remain', async () => {
     const { result } = renderHook(() => usePhotoPicker());
     await act(async () => { await result.current.pick(0); });
-    expect(mockRequestPermissions).not.toHaveBeenCalled();
+    expect(mockEnsurePermission).not.toHaveBeenCalled();
     expect(mockLaunchLibrary).not.toHaveBeenCalled();
     expect(result.current.photos).toEqual([]);
   });
