@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-29  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Phase 9 (Blog generation) code complete ✅ — on branch `phase-9/blog-generation`, on-device QA pending. 165 tests passing. Phase 8 (Trip Map tab) merged to `main` 2026-05-28.
+**Status:** Phase 9 (Blog generation) complete ✅ — merged to `main` and pushed to `origin` 2026-05-29, on-device QA passed. 165 tests passing. Next: backlog (see below).
 
 ---
 
@@ -288,13 +288,13 @@ These got fixed inline; flagging here so future phases keep the muscle memory:
 6. Supabase project `dcejrbyujfcxartywpis` — if auto-paused, restore via dashboard before starting. MCP prefix: `mcp__7fbbe81e-73f2-44e8-81b3-e04e19180276__*`.
 7. `detect-intent` edge function is live; ANTHROPIC_API_KEY secret is set. Model: `claude-haiku-4-5-20251001`.
 
-## Phase 9 — Blog Generation (CODE COMPLETE ✅ — on-device QA pending)
+## Phase 9 — Blog Generation (COMPLETE ✅)
 
-**Branch:** `phase-9/blog-generation` (not yet merged)
+**Branch:** `phase-9/blog-generation` → merged to `main` (no-ff `23ebb92`) + pushed to `origin` 2026-05-29; branch deleted
 **Spec:** `docs/superpowers/specs/2026-05-28-phase-9-blog-generation-design.md`
 **Plan:** `docs/superpowers/plans/2026-05-29-phase-9-blog-generation.md`
 **Tests:** 165 passed (135 baseline + 30 new across `blogHelpers` + `blogService`)
-**Supabase:** project `dcejrbyujfcxartywpis` — migration `008_blog_posts` applied; `generate-blog` edge function deployed (v2, JWT-verified).
+**Supabase:** project `dcejrbyujfcxartywpis` — migrations `008_blog_posts` + `009_realtime_replica_identity` applied; `generate-blog` edge function deployed (v2, JWT + trip-ownership authorized).
 
 > Turns a **completed** trip into a polished, read-only blog draft: Generate → Review → Export. "Publish" is a local status marker only (no public web URL — that waits for the web-layer phase). Re-scopes the stale `plan-09-blog-generation.md`, which assumed tables/pipelines that were never built.
 
@@ -315,7 +315,7 @@ Pure helpers (`src/services/blogHelpers.ts`, `import type` only) hold all logic 
 | 10–11 | `BlogPostCard` + `BlogPostScreen` (status-driven, read-only, publish/unpublish/discard/export) | ✅ |
 | 12 | `BlogScreen` rewrite — Drafts/Published lists + completed-trip picker | ✅ |
 | 13 | `TripDetailScreen` — Generate Blog button (completed trips) → generate + navigate | ✅ |
-| 14 | Full verification — suite + tsc green; edge fn deployed; **on-device QA pending** | ✅ |
+| 14 | Full verification — suite + tsc green; edge fn deployed; on-device QA passed | ✅ |
 
 ### Security fix folded in during review
 
@@ -327,9 +327,17 @@ Pure helpers (`src/services/blogHelpers.ts`, `import type` only) hold all logic 
 - **`tsconfig` excludes `supabase/`** — the Deno edge function (URL imports, `EdgeRuntime` global) never enters the project `tsc --noEmit`.
 - **One active post per trip** is enforced by a partial unique index (`where status <> 'published'`); the edge function deletes the prior non-published row before inserting the fresh `generating` row.
 
-### Remaining before merge
+### QA fixes folded in (on-device, 2026-05-29)
 
-- **On-device QA** (per Task 14 checklist): end a trip → Generate Blog → live `generating → draft`, inline photos + Places section, Publish/Unpublish, Export (Markdown + HTML share sheet), Discard, and regenerate-replaces-draft.
+- **Realtime DELETE propagation (`009_realtime_replica_identity`):** default replica identity puts only the PK in a DELETE payload, so subscriptions filtered on `user_id` (`useTrips`, `useBlogPosts`) never received deletes — a deleted trip lingered in the note-capture picker and a discarded draft lingered in the Blog tab. Set `REPLICA IDENTITY FULL` on `blog_posts`/`trips`/`notes` so the full old row ships and filtered DELETE events arrive.
+- **Markdown image renderer:** a custom `image` rule in `BlogPostScreen` replaces the library's default `FitImage` (which spread `key` into JSX — a React 19 warning) and sizes inline photos to their natural aspect ratio.
+- **Gradient primary CTAs:** new `GradientButton` (subtle `#C8703A → #A85A2A`) for Publish + Generate Blog (×2); secondary/destructive buttons stay flat outlines.
+
+On-device QA passed (generate → live `generating → draft`, inline photos + Places, Publish/Unpublish, Export Markdown + HTML, Discard, regenerate-replaces-draft). Merged + pushed.
+
+### Deferred from QA → backlog (see Backlog section)
+
+- **#2** editable location on note capture · **#4** editable + croppable blog/cover (reverses the read-only decision; its own spec) · personalize blog voice from the user's writing style.
 
 ---
 
