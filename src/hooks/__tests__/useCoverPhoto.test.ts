@@ -78,6 +78,28 @@ describe('useCoverPhoto.setCover', () => {
     expect(mockUpdate).not.toHaveBeenCalled();
     expect(result.current.busy).toBe(false);
   });
+
+  it('is busy while the upload is in flight', async () => {
+    let resolveUpload!: (url: string) => void;
+    mockLaunch.mockResolvedValueOnce({ canceled: false, assets: [{ uri: 'file:///c.jpg' }] } as never);
+    mockUpload.mockReturnValueOnce(new Promise<string>((res) => { resolveUpload = res; }));
+
+    const { result } = renderHook(() => useCoverPhoto(trip));
+    let pending!: Promise<void>;
+    await act(async () => {
+      pending = result.current.setCover();
+      // Let setCover advance past the (resolved) picker to setBusy(true).
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current.busy).toBe(true);
+
+    await act(async () => {
+      resolveUpload('https://x/photos/user1/trip-covers/trip1.jpg?v=9');
+      await pending;
+    });
+    expect(result.current.busy).toBe(false);
+  });
 });
 
 describe('useCoverPhoto.removeCover', () => {
@@ -87,5 +109,14 @@ describe('useCoverPhoto.removeCover', () => {
     await act(async () => { await result.current.removeCover(); });
     expect(mockUpdate).toHaveBeenCalledWith('trip1', null);
     expect(mockDelete).toHaveBeenCalledWith(['https://x/photos/u/trip-covers/trip1.jpg?v=1']);
+  });
+
+  it('alerts and resets busy when the DB write fails', async () => {
+    mockUpdate.mockRejectedValueOnce(new Error('db down'));
+    const { result } = renderHook(() => useCoverPhoto(tripWithCover));
+    await act(async () => { await result.current.removeCover(); });
+    expect(alertSpy).toHaveBeenCalledWith('Could not update cover', 'db down');
+    expect(mockDelete).not.toHaveBeenCalled();
+    expect(result.current.busy).toBe(false);
   });
 });

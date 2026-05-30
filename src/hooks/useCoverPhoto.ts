@@ -32,6 +32,9 @@ export function useCoverPhoto(trip: Trip): UseCoverPhotoResult {
     });
     if (result.canceled) return;
 
+    // busy is set only after the picker returns; the permission prompt and picker
+    // sheet are OS-modal, and Task 6 disables the trigger while busy is true — so
+    // a second invocation can't slip through the upload/save window.
     setBusy(true);
     try {
       const url = await uploadCoverPhoto(userId, trip.id, result.assets[0].uri);
