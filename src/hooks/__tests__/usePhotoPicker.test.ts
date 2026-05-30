@@ -9,10 +9,11 @@ jest.mock('expo-image-picker', () => ({
 
 jest.mock('../../services/photoHelpers', () => ({
   extractExifLocation: jest.fn(),
+  ensureMediaLibraryPermission: jest.fn(),
 }));
 
 import * as ImagePicker from 'expo-image-picker';
-import { extractExifLocation } from '../../services/photoHelpers';
+import { extractExifLocation, ensureMediaLibraryPermission } from '../../services/photoHelpers';
 
 const mockRequestPermissions = ImagePicker.requestMediaLibraryPermissionsAsync as jest.MockedFunction<
   typeof ImagePicker.requestMediaLibraryPermissionsAsync
@@ -21,6 +22,9 @@ const mockLaunchLibrary = ImagePicker.launchImageLibraryAsync as jest.MockedFunc
   typeof ImagePicker.launchImageLibraryAsync
 >;
 const mockExtractExif = extractExifLocation as jest.MockedFunction<typeof extractExifLocation>;
+const mockEnsurePermission = ensureMediaLibraryPermission as jest.MockedFunction<
+  typeof ensureMediaLibraryPermission
+>;
 
 const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
@@ -28,6 +32,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockRequestPermissions.mockResolvedValue({ status: 'granted', granted: true, expires: 'never', canAskAgain: true } as never);
   mockExtractExif.mockReturnValue(null);
+  mockEnsurePermission.mockResolvedValue(true);
 });
 
 import { usePhotoPicker } from '../usePhotoPicker';
@@ -38,19 +43,10 @@ describe('usePhotoPicker', () => {
     expect(result.current.photos).toEqual([]);
   });
 
-  it('shows an alert and adds no photos when permission is denied', async () => {
-    mockRequestPermissions.mockResolvedValueOnce({
-      status: 'denied',
-      granted: false,
-      expires: 'never',
-      canAskAgain: false,
-    } as never);
+  it('adds no photos when permission is denied', async () => {
+    mockEnsurePermission.mockResolvedValueOnce(false);
     const { result } = renderHook(() => usePhotoPicker());
     await act(async () => { await result.current.pick(); });
-    expect(alertSpy).toHaveBeenCalledWith(
-      'Photo access required',
-      expect.any(String),
-    );
     expect(result.current.photos).toEqual([]);
     expect(mockLaunchLibrary).not.toHaveBeenCalled();
   });

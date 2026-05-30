@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import { Alert } from 'react-native';
-import { extractExifLocation } from '../services/photoHelpers';
+import { ensureMediaLibraryPermission, extractExifLocation } from '../services/photoHelpers';
 
 /** Maximum number of photos allowed on a single note (across existing + new). */
 export const MAX_PHOTOS_PER_NOTE = 5;
@@ -27,11 +26,8 @@ export function usePhotoPicker(): UsePhotoPickerResult {
   const pick = async (remaining: number = MAX_PHOTOS_PER_NOTE) => {
     if (remaining <= 0) return;
 
-    const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!granted) {
-      Alert.alert('Photo access required', 'Go to Settings to allow photo access.');
-      return;
-    }
+    const granted = await ensureMediaLibraryPermission();
+    if (!granted) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsMultipleSelection: true,
