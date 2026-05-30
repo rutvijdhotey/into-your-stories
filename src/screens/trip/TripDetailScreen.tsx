@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Alert, ActivityIndicator, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../navigation/types';
 import { Colors, Spacing, getTripGradient } from '../../theme';
@@ -13,6 +14,7 @@ import TripFeedScreen from './TripFeedScreen';
 import TripMapScreen from './TripMapScreen';
 import { useAuth } from '../../contexts/AuthContext';
 import { generateBlog } from '../../services/blogService';
+import { useCoverPhoto } from '../../hooks/useCoverPhoto';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'TripDetail'>;
 
@@ -46,6 +48,22 @@ export default function TripDetailScreen({ route, navigation }: Props) {
   const destinations =
     trip.destinations.length > 0 ? trip.destinations.join(', ') : 'No destination yet';
   const gradient = getTripGradient(trip.name);
+
+  const { setCover, removeCover, busy: coverBusy } = useCoverPhoto(trip);
+
+  const handleEditCover = () => {
+    const options = trip.cover_photo_url
+      ? [
+          { text: 'Choose photo', onPress: () => void setCover() },
+          { text: 'Remove cover', style: 'destructive' as const, onPress: () => void removeCover() },
+          { text: 'Cancel', style: 'cancel' as const },
+        ]
+      : [
+          { text: 'Choose photo', onPress: () => void setCover() },
+          { text: 'Cancel', style: 'cancel' as const },
+        ];
+    Alert.alert('Cover photo', undefined, options);
+  };
 
   const handleEndTrip = () => {
     Alert.alert(
@@ -92,18 +110,39 @@ export default function TripDetailScreen({ route, navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <LinearGradient
-          colors={gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
+        {trip.cover_photo_url ? (
+          <Image
+            source={{ uri: trip.cover_photo_url }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+          />
+        ) : (
+          <LinearGradient
+            colors={gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        )}
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.7)']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.headerScrim}
         />
+        <Pressable
+          style={styles.coverEditButton}
+          onPress={handleEditCover}
+          disabled={coverBusy}
+          hitSlop={8}
+        >
+          <Ionicons name="camera" size={18} color="#FFFFFF" />
+        </Pressable>
+        {coverBusy && (
+          <View style={styles.coverBusyOverlay}>
+            <ActivityIndicator color="#FFFFFF" />
+          </View>
+        )}
         <View style={styles.headerContent}>
           <Text style={styles.name}>{trip.name}</Text>
           <Text style={styles.destinations}>{destinations}</Text>
@@ -165,6 +204,23 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '70%',
+  },
+  coverEditButton: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coverBusyOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
   },
   headerContent: {
     position: 'absolute',
