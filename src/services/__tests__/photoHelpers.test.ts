@@ -1,4 +1,16 @@
-import { parseDMS, extractExifLocation, validatePhotoCount } from '../photoHelpers';
+import { Alert } from 'react-native';
+
+jest.mock('expo-image-picker', () => ({
+  requestMediaLibraryPermissionsAsync: jest.fn(),
+}));
+
+import * as ImagePicker from 'expo-image-picker';
+import { parseDMS, extractExifLocation, validatePhotoCount, ensureMediaLibraryPermission } from '../photoHelpers';
+
+const mockRequest = ImagePicker.requestMediaLibraryPermissionsAsync as jest.MockedFunction<
+  typeof ImagePicker.requestMediaLibraryPermissionsAsync
+>;
+const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
 describe('parseDMS', () => {
   it('converts north latitude to positive decimal degrees', () => {
@@ -103,5 +115,21 @@ describe('validatePhotoCount', () => {
   });
   it('returns false for counts above 5', () => {
     expect(validatePhotoCount(10)).toBe(false);
+  });
+});
+
+describe('ensureMediaLibraryPermission', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns true when permission is granted', async () => {
+    mockRequest.mockResolvedValueOnce({ granted: true } as never);
+    await expect(ensureMediaLibraryPermission()).resolves.toBe(true);
+    expect(alertSpy).not.toHaveBeenCalled();
+  });
+
+  it('returns false and alerts when permission is denied', async () => {
+    mockRequest.mockResolvedValueOnce({ granted: false } as never);
+    await expect(ensureMediaLibraryPermission()).resolves.toBe(false);
+    expect(alertSpy).toHaveBeenCalledWith('Photo access required', expect.any(String));
   });
 });

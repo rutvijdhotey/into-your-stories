@@ -20,7 +20,7 @@ const mockArrayBuffer = new ArrayBuffer(16);
 const mockFetchResponse = { arrayBuffer: jest.fn().mockResolvedValue(mockArrayBuffer) };
 global.fetch = jest.fn().mockResolvedValue(mockFetchResponse) as jest.Mock;
 
-import { uploadPhoto, deletePhotos } from '../photoService';
+import { uploadPhoto, deletePhotos, uploadCoverPhoto } from '../photoService';
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -54,6 +54,34 @@ describe('uploadPhoto', () => {
   });
 });
 
+describe('uploadCoverPhoto', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('uploads to the trip-covers path and returns a cache-busted URL', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(1234);
+    mockUpload.mockResolvedValueOnce({ data: { path: 'user1/trip-covers/trip1.jpg' }, error: null });
+    mockGetPublicUrl.mockReturnValueOnce({
+      data: { publicUrl: 'https://example.com/photos/user1/trip-covers/trip1.jpg' },
+    });
+
+    const url = await uploadCoverPhoto('user1', 'trip1', 'file:///cover.jpg');
+
+    expect(mockUpload).toHaveBeenCalledWith(
+      'user1/trip-covers/trip1.jpg',
+      mockArrayBuffer,
+      { contentType: 'image/jpeg', upsert: true },
+    );
+    expect(mockGetPublicUrl).toHaveBeenCalledWith('user1/trip-covers/trip1.jpg');
+    expect(url).toBe('https://example.com/photos/user1/trip-covers/trip1.jpg?v=1234');
+  });
+
+  it('throws when upload returns an error', async () => {
+    mockUpload.mockResolvedValueOnce({ data: null, error: new Error('Storage error') });
+    await expect(uploadCoverPhoto('user1', 'trip1', 'file:///cover.jpg')).rejects.toThrow('Storage error');
+    expect(mockGetPublicUrl).not.toHaveBeenCalled();
+  });
+});
+
 describe('deletePhotos', () => {
   it('removes extracted paths from storage', async () => {
     mockRemove.mockResolvedValueOnce({ data: [], error: null });
@@ -80,5 +108,15 @@ describe('deletePhotos', () => {
     await expect(
       deletePhotos(['https://example.supabase.co/storage/v1/object/public/photos/user1/note1/0.jpg']),
     ).resolves.toBeUndefined();
+  });
+
+  it('strips a query suffix before resolving the storage path', async () => {
+    mockRemove.mockResolvedValueOnce({ data: [], error: null });
+
+    await deletePhotos([
+      'https://example.supabase.co/storage/v1/object/public/photos/user1/trip-covers/trip1.jpg?v=1234',
+    ]);
+
+    expect(mockRemove).toHaveBeenCalledWith(['user1/trip-covers/trip1.jpg']);
   });
 });

@@ -1,3 +1,6 @@
+import * as ImagePicker from 'expo-image-picker';
+import { Alert } from 'react-native';
+
 export function parseDMS(dms: number[], ref: 'N' | 'S' | 'E' | 'W'): number {
   const decimal = dms[0] + dms[1] / 60 + dms[2] / 3600;
   return ref === 'S' || ref === 'W' ? -decimal : decimal;
@@ -35,4 +38,17 @@ export function extractExifLocation(
 
 export function validatePhotoCount(count: number): boolean {
   return count <= 5;
+}
+
+/**
+ * Requests media-library permission. On denial, shows an Alert pointing the
+ * user to Settings and returns false. Shared by usePhotoPicker and useCoverPhoto.
+ */
+export async function ensureMediaLibraryPermission(): Promise<boolean> {
+  const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!granted) {
+    Alert.alert('Photo access required', 'Go to Settings to allow photo access.');
+    return false;
+  }
+  return true;
 }

@@ -6,7 +6,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Shadows, BorderRadius, getTripGradient } from '../theme';
 import TripStatusBadge from './TripStatusBadge';
@@ -63,12 +63,20 @@ export default function TripCard({ trip, onPress, onLongPress }: Props) {
           onLongPress={onLongPress}
           delayLongPress={400}
         >
-          <LinearGradient
-            colors={gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
+          {trip.cover_photo_url ? (
+            <Image
+              source={{ uri: trip.cover_photo_url }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          ) : (
+            <LinearGradient
+              colors={gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.6)']}
             start={{ x: 0, y: 0 }}
