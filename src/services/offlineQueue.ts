@@ -14,6 +14,7 @@ export type PendingNote = {
   city: string | null;
   place_name: string | null;
   captured_at: string;
+  photo_uris: string[];
 };
 
 type Listener = (items: PendingNote[]) => void;

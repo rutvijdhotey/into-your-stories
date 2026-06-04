@@ -13,9 +13,9 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
-import * as Crypto from 'expo-crypto';
-import { uploadPhoto, deletePhotos } from '../services/photoService';
-import { updateNote, deleteNote } from '../services/noteService';
+import { deletePhotos } from '../services/photoService';
+import { updateNote, deleteNote, drainAll } from '../services/noteService';
+import { enqueuePhotos } from '../services/photoUploadQueue';
 import { validateContent, type Category, type Note } from '../services/noteHelpers';
 import { usePhotoPicker, MAX_PHOTOS_PER_NOTE } from '../hooks/usePhotoPicker';
 import CategoryPicker from './CategoryPicker';
@@ -87,23 +87,22 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
       return;
     }
 
-    const newUrls: string[] = [];
     setSaving(true);
     try {
-      // 1. Upload new photos
-      const tempId = Crypto.randomUUID();
-      for (let i = 0; i < photoPicker.photos.length; i++) {
-        const url = await uploadPhoto(note.user_id, tempId, i, photoPicker.photos[i].uri);
-        newUrls.push(url);
-      }
-
-      // 2. Delete removed photos from Storage
+      // 1. Delete removed photos from Storage (synchronous, not a bottleneck)
       if (removedUrls.length > 0) {
         await deletePhotos(removedUrls);
       }
 
-      // 3. Update note record
-      const finalUrls = [...existingUrls, ...newUrls];
+      // 2. Enqueue new photos for background upload
+      if (photoPicker.photos.length > 0) {
+        await enqueuePhotos(
+          photoPicker.photos.map((p) => p.uri),
+          { user_id: note.user_id, note_db_id: note.id },
+        );
+      }
+
+      // 3. Update note record with existing URLs only; new ones patched in by drain
       const geocoded = locationEdited ? await geocodeLocation(location) : null;
       const revCity =
         locationEdited && geocoded ? await reverseCity(geocoded.lat, geocoded.lng) : null;
@@ -118,17 +117,17 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
       await updateNote(note.id, {
         content: validation.value,
         category,
-        photo_urls: finalUrls,
+        photo_urls: existingUrls,
         lat: locPatch.lat,
         lng: locPatch.lng,
         city: locPatch.city,
         place_name: locPatch.place_name,
       });
 
+      void drainAll();
       photoPicker.clear();
       onClose();
     } catch (e) {
-      if (newUrls.length > 0) void deletePhotos(newUrls);
       Alert.alert('Could not save note', (e as Error).message);
     } finally {
       setSaving(false);

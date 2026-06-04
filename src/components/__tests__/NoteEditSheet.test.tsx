@@ -12,10 +12,11 @@ jest.mock('../../services/photoService', () => ({
 jest.mock('../../services/noteService', () => ({
   updateNote: jest.fn(),
   deleteNote: jest.fn(),
+  drainAll: jest.fn().mockResolvedValue(0),
 }));
 
-jest.mock('expo-crypto', () => ({
-  randomUUID: () => 'temp-id',
+jest.mock('../../services/photoUploadQueue', () => ({
+  enqueuePhotos: jest.fn().mockResolvedValue(undefined),
 }));
 
 // locationService is mocked so the geocode round-trip is deterministic; the real
@@ -49,6 +50,7 @@ jest.mock('../../hooks/usePhotoPicker', () => ({
 
 import { uploadPhoto, deletePhotos } from '../../services/photoService';
 import { updateNote, deleteNote } from '../../services/noteService';
+import { enqueuePhotos } from '../../services/photoUploadQueue';
 import { geocodeLocation, reverseCity } from '../../services/locationService';
 import NoteEditSheet from '../NoteEditSheet';
 
@@ -56,6 +58,7 @@ const mockUploadPhoto = uploadPhoto as jest.MockedFunction<typeof uploadPhoto>;
 const mockDeletePhotos = deletePhotos as jest.MockedFunction<typeof deletePhotos>;
 const mockUpdateNote = updateNote as jest.MockedFunction<typeof updateNote>;
 const mockDeleteNote = deleteNote as jest.MockedFunction<typeof deleteNote>;
+const mockEnqueuePhotos = enqueuePhotos as jest.MockedFunction<typeof enqueuePhotos>;
 const mockGeocode = geocodeLocation as jest.MockedFunction<typeof geocodeLocation>;
 const mockReverseCity = reverseCity as jest.MockedFunction<typeof reverseCity>;
 
@@ -86,6 +89,7 @@ beforeEach(() => {
   mockDeletePhotos.mockResolvedValue(undefined);
   mockUpdateNote.mockResolvedValue(undefined);
   mockDeleteNote.mockResolvedValue(undefined);
+  mockEnqueuePhotos.mockResolvedValue(undefined);
   mockGeocode.mockResolvedValue(null);
   mockReverseCity.mockResolvedValue(null);
 });
@@ -133,26 +137,26 @@ describe('NoteEditSheet — save flow', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('uploads new photos before updating, appending them to existing urls', async () => {
+  it('enqueues new photos for background upload and updates with existing urls only', async () => {
     mockPickerPhotos = [{ uri: 'file:///new.jpg' }];
-    const UPLOADED = 'https://x/storage/v1/object/public/photos/user-1/temp-id/0.jpg';
-    mockUploadPhoto.mockResolvedValueOnce(UPLOADED);
 
     const { getByLabelText } = renderSheet();
     fireEvent.press(getByLabelText('Save note'));
 
     await waitFor(() => expect(mockUpdateNote).toHaveBeenCalled());
 
-    expect(mockUploadPhoto).toHaveBeenCalledWith('user-1', 'temp-id', 0, 'file:///new.jpg');
+    // Photos are enqueued, not uploaded synchronously.
+    expect(mockUploadPhoto).not.toHaveBeenCalled();
+    expect(mockEnqueuePhotos).toHaveBeenCalledWith(
+      ['file:///new.jpg'],
+      { user_id: 'user-1', note_db_id: 'note-1' },
+    );
+    // updateNote is called with only the existing (kept) URLs.
     expect(mockUpdateNote).toHaveBeenCalledWith('note-1', {
       content: 'Original text',
       category: 'food',
-      photo_urls: [URL_0, URL_1, UPLOADED],
+      photo_urls: [URL_0, URL_1],
     });
-    // Ordering: upload happens before the note record is updated.
-    expect(mockUploadPhoto.mock.invocationCallOrder[0]).toBeLessThan(
-      mockUpdateNote.mock.invocationCallOrder[0],
-    );
   });
 
   it('saves the trimmed, edited content', async () => {
@@ -167,10 +171,8 @@ describe('NoteEditSheet — save flow', () => {
     );
   });
 
-  it('cleans up freshly-uploaded photos if the note update fails', async () => {
+  it('shows an error alert if the note update fails', async () => {
     mockPickerPhotos = [{ uri: 'file:///new.jpg' }];
-    const UPLOADED = 'https://x/storage/v1/object/public/photos/user-1/temp-id/0.jpg';
-    mockUploadPhoto.mockResolvedValueOnce(UPLOADED);
     mockUpdateNote.mockRejectedValueOnce(new Error('boom'));
     const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
@@ -178,8 +180,8 @@ describe('NoteEditSheet — save flow', () => {
     fireEvent.press(getByLabelText('Save note'));
 
     await waitFor(() => expect(alertSpy).toHaveBeenCalled());
-    // Best-effort cleanup of the orphaned upload.
-    expect(mockDeletePhotos).toHaveBeenCalledWith([UPLOADED]);
+    // Photos were enqueued (not uploaded synchronously), so nothing to clean up.
+    expect(mockDeletePhotos).not.toHaveBeenCalled();
     alertSpy.mockRestore();
   });
 });

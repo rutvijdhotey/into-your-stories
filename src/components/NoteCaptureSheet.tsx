@@ -16,7 +16,6 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import * as Crypto from 'expo-crypto';
 import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,9 +23,7 @@ import { useTrips } from '../hooks/useTrips';
 import { useLocation } from '../hooks/useLocation';
 import { useVoiceRecording } from '../hooks/useVoiceRecording';
 import { usePhotoPicker, MAX_PHOTOS_PER_NOTE } from '../hooks/usePhotoPicker';
-import { useConnectivity } from '../hooks/useConnectivity';
 import { createNote } from '../services/noteService';
-import { uploadPhoto, deletePhotos } from '../services/photoService';
 import { detectIntent } from '../services/voiceService';
 import { validateContent, type Category } from '../services/noteHelpers';
 import CategoryPicker from './CategoryPicker';
@@ -58,7 +55,6 @@ export default function NoteCaptureSheet({
   const { fix, loading: locating, fetch: fetchLocation } = useLocation();
   const voice = useVoiceRecording();
   const photoPicker = usePhotoPicker();
-  const { isOnline } = useConnectivity();
 
   const activeTrips = useMemo(() => trips.filter((t) => t.status === 'active'), [trips]);
 
@@ -173,7 +169,6 @@ export default function NoteCaptureSheet({
 
   const photos = photoPicker.photos;
   const remainingPhotoSlots = MAX_PHOTOS_PER_NOTE - photos.length;
-  const photosBlockSave = photos.length > 0 && !isOnline;
 
   const handleAddPhotos = () => {
     if (remainingPhotoSlots <= 0) {
@@ -186,8 +181,7 @@ export default function NoteCaptureSheet({
     !saving &&
     !intentLoading &&
     selectedTripId !== null &&
-    validateContent(content).ok &&
-    !photosBlockSave;
+    validateContent(content).ok;
 
   const handleSave = async () => {
     if (!userId || !selectedTripId) return;
@@ -201,45 +195,6 @@ export default function NoteCaptureSheet({
     }
     setSaving(true);
     try {
-      const offlineId = Crypto.randomUUID();
-
-      // Upload photos sequentially
-      let uploadedUrls: string[] = [];
-      if (photos.length > 0) {
-        let allUploaded = true;
-        let uploadError: string | null = null;
-        for (let i = 0; i < photos.length; i++) {
-          try {
-            const url = await uploadPhoto(userId, offlineId, i, photos[i].uri);
-            uploadedUrls.push(url);
-          } catch (uploadErr) {
-            console.error('[PhotoUpload] failed:', uploadErr);
-            uploadError = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
-            allUploaded = false;
-            break;
-          }
-        }
-
-        if (!allUploaded) {
-          let saveWithout = false;
-          await new Promise<void>((resolve) => {
-            Alert.alert(
-              'Upload failed',
-              uploadError ?? 'Some photos could not be uploaded.',
-              [
-                { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
-                { text: 'Save without photos', onPress: () => { saveWithout = true; resolve(); } },
-              ],
-            );
-          });
-          if (!saveWithout) {
-            void deletePhotos(uploadedUrls); // best-effort cleanup of partially-uploaded files
-            return;
-          }
-          uploadedUrls = [];
-        }
-      }
-
       // Determine auto location: EXIF overrides live GPS
       const latest = await fetchLocation();
       const autoLat = exifLocation ? exifLocation.lat : (latest?.lat ?? fix?.lat ?? null);
@@ -267,8 +222,7 @@ export default function NoteCaptureSheet({
         lng: locPatch.lng,
         city: locPatch.city,
         place_name: locPatch.place_name,
-        photo_urls: uploadedUrls,
-        offline_id: offlineId,
+        photo_uris: photos.map((p) => p.uri),
       });
 
       photoPicker.clear();
@@ -418,10 +372,6 @@ export default function NoteCaptureSheet({
           </ScrollView>
         )}
 
-        {photosBlockSave && (
-          <Text style={styles.offlineWarning}>Connect to save with photos</Text>
-        )}
-
         <View style={styles.actionRow}>
           <View style={styles.locationFieldWrap}>
             <LocationField
@@ -511,13 +461,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   removeButtonText: { color: '#fff', fontSize: 14, lineHeight: 16, fontWeight: '700' },
-  offlineWarning: {
-    fontSize: 12,
-    color: Colors.error,
-    textAlign: 'center',
-    marginHorizontal: Spacing.md,
-    marginBottom: Spacing.xs,
-  },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',

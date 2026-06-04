@@ -11,8 +11,7 @@ import BlogPostScreen from '../screens/blog/BlogPostScreen';
 import FloatingCaptureButton from '../components/FloatingCaptureButton';
 import NoteCaptureSheet from '../components/NoteCaptureSheet';
 import { useOnReconnect } from '../hooks/useConnectivity';
-import { drainQueue } from '../services/noteService';
-import { drainTagging } from '../services/taggingService';
+import { drainAll } from '../services/noteService';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
@@ -22,18 +21,18 @@ function MainStackInner() {
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
 
   useEffect(() => {
-    void drainQueue().then(() => drainTagging());
+    void drainAll();
   }, []);
 
   useOnReconnect(
     useCallback(() => {
-      void drainQueue().then(() => drainTagging());
+      void drainAll();
     }, []),
   );
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void drainQueue().then(() => drainTagging());
+      if (state === 'active') void drainAll();
     });
     return () => sub.remove();
   }, []);

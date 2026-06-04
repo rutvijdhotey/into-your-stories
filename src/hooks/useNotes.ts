@@ -2,10 +2,17 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { listNotes } from '../services/noteService';
 import { peekAll, subscribe, type PendingNote } from '../services/offlineQueue';
+import {
+  peekAllPhotos,
+  subscribe as subscribePhotos,
+  type PendingPhotoUpload,
+} from '../services/photoUploadQueue';
 import type { Note } from '../services/noteHelpers';
 
+export type PhotoStatus = 'uploading' | 'failed' | null;
+
 export type FeedItem =
-  | { kind: 'note'; note: Note }
+  | { kind: 'note'; note: Note; photoStatus: PhotoStatus }
   | { kind: 'pending'; pending: PendingNote };
 
 type State = {
@@ -15,9 +22,21 @@ type State = {
   refresh: () => Promise<void>;
 };
 
+function derivePhotoStatus(uploads: PendingPhotoUpload[], noteId: string, isOfflineId: boolean): PhotoStatus {
+  const group = isOfflineId
+    ? uploads.filter((p) => p.offline_note_id === noteId)
+    : uploads.filter((p) => p.note_db_id === noteId);
+
+  if (group.length === 0) return null;
+  if (group.some((p) => p.status === 'pending')) return 'uploading';
+  if (group.some((p) => p.status === 'failed')) return 'failed';
+  return null;
+}
+
 export function useNotes(tripId: string | undefined): State {
   const [notes, setNotes] = useState<Note[]>([]);
   const [pending, setPending] = useState<PendingNote[]>([]);
+  const [photoUploads, setPhotoUploads] = useState<PendingPhotoUpload[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -93,20 +112,45 @@ export function useNotes(tripId: string | undefined): State {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    void peekAllPhotos().then((items) => {
+      if (!cancelled) setPhotoUploads(items);
+    });
+
+    const unsubscribe = subscribePhotos((items) => {
+      setPhotoUploads(items);
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
+
   const filteredPending = tripId ? pending.filter((p) => p.trip_id === tripId) : [];
 
-  const items: FeedItem[] = mergeFeed(notes, filteredPending);
+  const items: FeedItem[] = mergeFeed(notes, filteredPending, photoUploads);
 
   return { items, loading, error, refresh };
 }
 
-function mergeFeed(notes: Note[], pending: PendingNote[]): FeedItem[] {
+function mergeFeed(
+  notes: Note[],
+  pending: PendingNote[],
+  photoUploads: PendingPhotoUpload[],
+): FeedItem[] {
   const noteIds = new Set(notes.map((n) => n.offline_id));
   const stillPending = pending.filter((p) => !noteIds.has(p.offline_id));
 
   const merged: FeedItem[] = [
-    ...notes.map((note) => ({ kind: 'note' as const, note })),
-    ...stillPending.map((pending) => ({ kind: 'pending' as const, pending })),
+    ...notes.map((note) => ({
+      kind: 'note' as const,
+      note,
+      photoStatus: derivePhotoStatus(photoUploads, note.offline_id ?? note.id, Boolean(note.offline_id)),
+    })),
+    ...stillPending.map((p) => ({ kind: 'pending' as const, pending: p })),
   ];
 
   merged.sort((a, b) => {

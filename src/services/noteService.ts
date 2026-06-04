@@ -7,6 +7,8 @@ import {
   removeByOfflineId,
   type PendingNote,
 } from './offlineQueue';
+import { enqueuePhotos } from './photoUploadQueue';
+import { drainPhotoUploads } from './photoUploadService';
 import { drainTagging } from './taggingService';
 
 export type CreateNoteInput = {
@@ -18,7 +20,7 @@ export type CreateNoteInput = {
   lng: number | null;
   city: string | null;
   place_name?: string | null;
-  photo_urls?: string[];
+  photo_uris?: string[];
   offline_id?: string;
 };
 
@@ -34,40 +36,20 @@ export async function createNote(input: CreateNoteInput): Promise<PendingNote> {
     city: input.city,
     place_name: input.place_name ?? null,
     captured_at: new Date().toISOString(),
+    photo_uris: input.photo_uris ?? [],
   };
 
   await enqueue(pending);
-  void trySync(pending, input.photo_urls ?? []).then((synced) => {
-    if (synced) void drainTagging();
-  });
+  if ((input.photo_uris ?? []).length > 0) {
+    await enqueuePhotos(input.photo_uris!, {
+      user_id: input.userId,
+      offline_note_id: pending.offline_id,
+    });
+  }
+  void drainAll();
   return pending;
 }
 
-async function trySync(pending: PendingNote, photoUrls: string[] = []): Promise<boolean> {
-  const row: NoteInsert = {
-    user_id: pending.user_id,
-    trip_id: pending.trip_id,
-    content: pending.content,
-    category: pending.category ?? null,
-    lat: pending.lat,
-    lng: pending.lng,
-    city: pending.city,
-    place_name: pending.place_name ?? null,
-    offline_id: pending.offline_id,
-    captured_at: pending.captured_at,
-    photo_urls: photoUrls,
-  };
-
-  const { error } = await supabase
-    .from('notes')
-    .upsert(row, { onConflict: 'offline_id', ignoreDuplicates: true });
-
-  if (!error) {
-    await removeByOfflineId(pending.offline_id);
-    return true;
-  }
-  return false;
-}
 
 export async function listNotes(tripId: string): Promise<Note[]> {
   const { data, error } = await supabase
@@ -105,6 +87,13 @@ export async function drainQueue(): Promise<number> {
       synced += 1;
     }
   }
+  return synced;
+}
+
+export async function drainAll(): Promise<number> {
+  const synced = await drainQueue();
+  await drainPhotoUploads();
+  if (synced > 0) await drainTagging();
   return synced;
 }
 

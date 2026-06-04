@@ -12,7 +12,7 @@ const note = (overrides: Partial<Note> = {}): Note => ({
   ...overrides,
 });
 
-const noteItem = (overrides: Partial<Note> = {}): FeedItem => ({ kind: 'note', note: note(overrides) });
+const noteItem = (overrides: Partial<Note> = {}): FeedItem => ({ kind: 'note', note: note(overrides), photoStatus: null });
 const pendingItem = (): FeedItem => ({
   kind: 'pending',
   pending: { offline_id: 'p1', trip_id: 't1', captured_at: '2026-05-22T12:00:00Z' } as never,
