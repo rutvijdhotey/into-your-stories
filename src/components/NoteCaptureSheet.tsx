@@ -123,13 +123,13 @@ export default function NoteCaptureSheet({
           onClose();
           onSearchIntent(result.text);
         } else {
-          setContent(result.text);
+          setContent(prev => prev ? prev + ' ' + result.text : result.text);
         }
       })
       .catch(() => {
         if (!cancelled) {
           voice.reset();
-          setContent(transcript);
+          setContent(prev => prev ? prev + ' ' + transcript : transcript);
         }
       })
       .finally(() => {
@@ -376,6 +376,8 @@ export default function NoteCaptureSheet({
           placeholderTextColor={Colors.textSecondary}
           multiline
           autoFocus={false}
+          autoCorrect
+          autoCapitalize="sentences"
           style={styles.input}
         />
 
