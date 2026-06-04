@@ -195,6 +195,8 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
           placeholderTextColor={Colors.textSecondary}
           multiline
           autoFocus={false}
+          autoCorrect
+          autoCapitalize="sentences"
           style={styles.input}
         />
 
