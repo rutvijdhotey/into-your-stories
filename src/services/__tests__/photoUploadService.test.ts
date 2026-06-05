@@ -5,7 +5,7 @@ const mockSelectEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }));
 const mockUpdateEq = jest.fn();
 const mockSelect = jest.fn(() => ({ eq: mockSelectEq }));
 const mockUpdate = jest.fn(() => ({ eq: mockUpdateEq }));
-const mockFrom = jest.fn(() => ({ select: mockSelect, update: mockUpdate }));
+const mockFrom = jest.fn((_table: string) => ({ select: mockSelect, update: mockUpdate }));
 
 jest.mock('../../lib/supabase', () => ({
   supabase: { from: (table: string) => mockFrom(table) },
