@@ -15,6 +15,12 @@ jest.mock('../../lib/supabase', () => ({
   },
 }));
 
+// expo-image-manipulator: pass the URI through unchanged so tests stay simple
+jest.mock('expo-image-manipulator', () => ({
+  manipulateAsync: jest.fn(async (uri: string) => ({ uri })),
+  SaveFormat: { JPEG: 'jpeg' },
+}));
+
 // Mock global fetch for URI → ArrayBuffer conversion
 const mockArrayBuffer = new ArrayBuffer(16);
 const mockFetchResponse = { arrayBuffer: jest.fn().mockResolvedValue(mockArrayBuffer) };
