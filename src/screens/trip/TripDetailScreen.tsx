@@ -239,13 +239,12 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   endButton: {
-    borderColor: Colors.error,
-    borderWidth: 1,
+    backgroundColor: Colors.error,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: 8,
   },
-  endButtonLabel: { fontSize: 14, color: Colors.error, fontWeight: '600' },
+  endButtonLabel: { fontSize: 14, color: '#fff', fontWeight: '600' },
   generateButton: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,

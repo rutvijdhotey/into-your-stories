@@ -13,24 +13,6 @@ import {
 } from 'react-native';
 
 const MAX_VISIBLE = 3;
-// 72pt × 3 screen-scale → 216px; use 200px for a clean number
-const THUMB_PX = 200;
-
-/**
- * Converts a Supabase Storage public URL to the image-render endpoint so the
- * server returns a pre-scaled JPEG instead of the full-res original.
- * Falls back to the original URL for anything that isn't a Supabase /object/ URL
- * (e.g. local file:// URIs on pending cards, or non-Supabase hosts).
- */
-function toThumbnailUrl(url: string, px: number): string {
-  const rendered = url.replace(
-    '/storage/v1/object/public/',
-    '/storage/v1/render/image/public/',
-  );
-  if (rendered === url) return url; // not a Supabase object URL — leave as-is
-  const base = rendered.split('?')[0]; // strip any existing ?v= or other params
-  return `${base}?width=${px}&height=${px}&resize=cover&quality=75`;
-}
 
 type Props = {
   urls: string[];
@@ -62,7 +44,7 @@ export default function PhotoStrip({ urls }: Props) {
               onPress={isOverflowTile ? () => setGalleryOpen(true) : undefined}
               style={styles.thumbContainer}
             >
-              <Image source={{ uri: toThumbnailUrl(url, THUMB_PX) }} style={styles.thumb} resizeMode="cover" />
+              <Image source={{ uri: url }} style={styles.thumb} resizeMode="cover" />
               {isOverflowTile && (
                 <View style={styles.overlay}>
                   <Text style={styles.overflowLabel}>+{overflowCount}</Text>
