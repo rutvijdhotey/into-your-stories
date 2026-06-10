@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Alert, ActivityIndicator, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,7 +13,7 @@ import GradientButton from '../../components/GradientButton';
 import TripFeedScreen from './TripFeedScreen';
 import TripMapScreen from './TripMapScreen';
 import { useAuth } from '../../contexts/AuthContext';
-import { generateBlog } from '../../services/blogService';
+import { generateBlog, getBlogPostByTrip } from '../../services/blogService';
 import { useCoverPhoto } from '../../hooks/useCoverPhoto';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'TripDetail'>;
@@ -27,7 +27,16 @@ export default function TripDetailScreen({ route, navigation }: Props) {
   const [ending, setEnding] = useState(false);
   const { session } = useAuth();
   const [generatingBlog, setGeneratingBlog] = useState(false);
+  const [existingPostId, setExistingPostId] = useState<string | null | undefined>(undefined);
   const { setCover, removeCover, busy: coverBusy } = useCoverPhoto(trip);
+
+  useEffect(() => {
+    if (trip?.status === 'active') return;
+    if (!trip) return;
+    getBlogPostByTrip(trip.id)
+      .then((post) => setExistingPostId(post?.id ?? null))
+      .catch(() => setExistingPostId(null));
+  }, [trip]);
 
   if (loading) {
     return (
@@ -95,6 +104,7 @@ export default function TripDetailScreen({ route, navigation }: Props) {
     try {
       const postId = await generateBlog(trip.id);
       if (postId) {
+        setExistingPostId(postId);
         navigation.navigate('BlogPost', { postId });
       } else {
         Alert.alert('Could not start generation', 'Please try again.');
@@ -154,7 +164,14 @@ export default function TripDetailScreen({ route, navigation }: Props) {
               <Pressable style={styles.endButton} onPress={handleEndTrip} disabled={ending}>
                 <Text style={styles.endButtonLabel}>{ending ? 'Ending...' : 'End Trip'}</Text>
               </Pressable>
-            ) : (
+            ) : existingPostId ? (
+              <GradientButton
+                label="View Blog"
+                onPress={() => navigation.navigate('BlogPost', { postId: existingPostId })}
+                contentStyle={styles.generateButton}
+                textStyle={styles.generateButtonLabel}
+              />
+            ) : existingPostId === null ? (
               <GradientButton
                 label={generatingBlog ? 'Starting…' : 'Generate Blog'}
                 onPress={handleGenerateBlog}
@@ -162,7 +179,7 @@ export default function TripDetailScreen({ route, navigation }: Props) {
                 contentStyle={styles.generateButton}
                 textStyle={styles.generateButtonLabel}
               />
-            )}
+            ) : null}
           </View>
         </View>
       </View>

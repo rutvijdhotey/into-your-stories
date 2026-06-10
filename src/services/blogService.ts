@@ -27,6 +27,19 @@ export async function listBlogPosts(userId: string): Promise<BlogPost[]> {
   return (data ?? []) as BlogPost[];
 }
 
+export async function getBlogPostByTrip(tripId: string): Promise<BlogPost | null> {
+  const { data, error } = await supabase
+    .from('blog_posts')
+    .select('*')
+    .eq('trip_id', tripId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as BlogPost | null;
+}
+
 export async function getBlogPost(id: string): Promise<BlogPost | null> {
   const { data, error } = await supabase
     .from('blog_posts')
