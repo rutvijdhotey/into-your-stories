@@ -154,8 +154,14 @@ function mergeFeed(
   ];
 
   merged.sort((a, b) => {
-    const ta = a.kind === 'note' ? a.note.captured_at : a.pending.captured_at;
-    const tb = b.kind === 'note' ? b.note.captured_at : b.pending.captured_at;
+    const ta =
+      a.kind === 'note'
+        ? (a.note.occurred_at ?? a.note.captured_at)
+        : (a.pending.occurred_at ?? a.pending.captured_at);
+    const tb =
+      b.kind === 'note'
+        ? (b.note.occurred_at ?? b.note.captured_at)
+        : (b.pending.occurred_at ?? b.pending.captured_at);
     return tb.localeCompare(ta);
   });
 
