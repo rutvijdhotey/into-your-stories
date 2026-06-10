@@ -90,6 +90,15 @@ export default function NoteCaptureSheet({
     [photoPicker.photos],
   );
 
+  // Earliest EXIF capture date among picked photos (used as the note's occurred_at)
+  const earliestExifDate = useMemo(() => {
+    const dates = photoPicker.photos
+      .map((p) => p.exifDate)
+      .filter((d): d is string => d !== null);
+    if (dates.length === 0) return null;
+    return dates.reduce((min, d) => (d < min ? d : min));
+  }, [photoPicker.photos]);
+
   useEffect(() => {
     if (!exifLocation) { setExifCity(null); return; }
     let cancelled = false;
@@ -223,6 +232,7 @@ export default function NoteCaptureSheet({
         city: locPatch.city,
         place_name: locPatch.place_name,
         photo_uris: photos.map((p) => p.uri),
+        occurred_at: earliestExifDate,
       });
 
       photoPicker.clear();
