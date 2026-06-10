@@ -52,3 +52,15 @@ export async function ensureMediaLibraryPermission(): Promise<boolean> {
   }
   return true;
 }
+
+export function extractExifDate(exif: Record<string, unknown>): string | null {
+  const raw = exif['DateTimeOriginal'];
+  if (typeof raw !== 'string') return null;
+  // EXIF format: "YYYY:MM:DD HH:MM:SS"
+  const match = raw.match(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+  if (!match) return null;
+  const [, year, month, day, hour, min, sec] = match;
+  const d = new Date(`${year}-${month}-${day}T${hour}:${min}:${sec}Z`);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString();
+}

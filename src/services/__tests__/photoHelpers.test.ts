@@ -5,7 +5,7 @@ jest.mock('expo-image-picker', () => ({
 }));
 
 import * as ImagePicker from 'expo-image-picker';
-import { parseDMS, extractExifLocation, validatePhotoCount, ensureMediaLibraryPermission } from '../photoHelpers';
+import { parseDMS, extractExifLocation, validatePhotoCount, ensureMediaLibraryPermission, extractExifDate } from '../photoHelpers';
 
 const mockRequest = ImagePicker.requestMediaLibraryPermissionsAsync as jest.MockedFunction<
   typeof ImagePicker.requestMediaLibraryPermissionsAsync
@@ -131,5 +131,29 @@ describe('ensureMediaLibraryPermission', () => {
     mockRequest.mockResolvedValueOnce({ granted: false } as never);
     await expect(ensureMediaLibraryPermission()).resolves.toBe(false);
     expect(alertSpy).toHaveBeenCalledWith('Photo access required', expect.any(String));
+  });
+});
+
+describe('extractExifDate', () => {
+  it('parses a valid EXIF DateTimeOriginal string to ISO 8601', () => {
+    const exif = { DateTimeOriginal: '2024:08:15 14:32:00' };
+    const result = extractExifDate(exif);
+    expect(result).toBe('2024-08-15T14:32:00.000Z');
+  });
+
+  it('returns null when DateTimeOriginal is absent', () => {
+    expect(extractExifDate({})).toBeNull();
+  });
+
+  it('returns null when DateTimeOriginal is not a string', () => {
+    expect(extractExifDate({ DateTimeOriginal: 1234567890 })).toBeNull();
+  });
+
+  it('returns null when the string does not match EXIF format', () => {
+    expect(extractExifDate({ DateTimeOriginal: '2024-08-15T14:32:00' })).toBeNull();
+  });
+
+  it('returns null when the date is invalid (month 13)', () => {
+    expect(extractExifDate({ DateTimeOriginal: '2024:13:01 00:00:00' })).toBeNull();
   });
 });
