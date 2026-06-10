@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import { ensureMediaLibraryPermission, extractExifLocation } from '../services/photoHelpers';
+import { ensureMediaLibraryPermission, extractExifLocation, extractExifDate } from '../services/photoHelpers';
 
 /** Maximum number of photos allowed on a single note (across existing + new). */
 export const MAX_PHOTOS_PER_NOTE = 5;
@@ -10,6 +10,7 @@ export type PickedPhoto = {
   width: number;
   height: number;
   exifLocation: { lat: number; lng: number } | null;
+  exifDate: string | null;
 };
 
 type UsePhotoPickerResult = {
@@ -45,6 +46,9 @@ export function usePhotoPicker(): UsePhotoPickerResult {
       height: asset.height,
       exifLocation: asset.exif
         ? extractExifLocation(asset.exif as Record<string, unknown>)
+        : null,
+      exifDate: asset.exif
+        ? extractExifDate(asset.exif as Record<string, unknown>)
         : null,
     }));
 

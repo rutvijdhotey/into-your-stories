@@ -7,16 +7,18 @@ jest.mock('expo-image-picker', () => ({
 
 jest.mock('../../services/photoHelpers', () => ({
   extractExifLocation: jest.fn(),
+  extractExifDate: jest.fn(),
   ensureMediaLibraryPermission: jest.fn(),
 }));
 
 import * as ImagePicker from 'expo-image-picker';
-import { extractExifLocation, ensureMediaLibraryPermission } from '../../services/photoHelpers';
+import { extractExifLocation, extractExifDate, ensureMediaLibraryPermission } from '../../services/photoHelpers';
 
 const mockLaunchLibrary = ImagePicker.launchImageLibraryAsync as jest.MockedFunction<
   typeof ImagePicker.launchImageLibraryAsync
 >;
 const mockExtractExif = extractExifLocation as jest.MockedFunction<typeof extractExifLocation>;
+const mockExtractExifDate = extractExifDate as jest.MockedFunction<typeof extractExifDate>;
 const mockEnsurePermission = ensureMediaLibraryPermission as jest.MockedFunction<
   typeof ensureMediaLibraryPermission
 >;
@@ -24,6 +26,7 @@ const mockEnsurePermission = ensureMediaLibraryPermission as jest.MockedFunction
 beforeEach(() => {
   jest.clearAllMocks();
   mockExtractExif.mockReturnValue(null);
+  mockExtractExifDate.mockReturnValue(null);
   mockEnsurePermission.mockResolvedValue(true);
 });
 
@@ -142,6 +145,33 @@ describe('usePhotoPicker', () => {
     act(() => { result.current.remove(0); });
     expect(result.current.photos).toHaveLength(1);
     expect(result.current.photos[0].uri).toBe('file:///b.jpg');
+  });
+
+  it('extracts EXIF date from assets that have DateTimeOriginal', async () => {
+    const fakeExif = { DateTimeOriginal: '2024:08:15 14:32:00' };
+    mockLaunchLibrary.mockResolvedValueOnce({
+      canceled: false,
+      assets: [{ uri: 'file:///a.jpg', width: 100, height: 100, exif: fakeExif }],
+    } as never);
+    mockExtractExifDate.mockReturnValueOnce('2024-08-15T14:32:00.000Z');
+
+    const { result } = renderHook(() => usePhotoPicker());
+    await act(async () => { await result.current.pick(); });
+
+    expect(mockExtractExifDate).toHaveBeenCalledWith(fakeExif);
+    expect(result.current.photos[0].exifDate).toBe('2024-08-15T14:32:00.000Z');
+  });
+
+  it('sets exifDate to null when asset has no DateTimeOriginal', async () => {
+    mockLaunchLibrary.mockResolvedValueOnce({
+      canceled: false,
+      assets: [{ uri: 'file:///a.jpg', width: 100, height: 100, exif: null }],
+    } as never);
+
+    const { result } = renderHook(() => usePhotoPicker());
+    await act(async () => { await result.current.pick(); });
+
+    expect(result.current.photos[0].exifDate).toBeNull();
   });
 
   it('clear() empties the photos array', async () => {
