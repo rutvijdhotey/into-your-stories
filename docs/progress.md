@@ -1,8 +1,10 @@
 # Into Your Stories — Project Progress
 
-**Last updated:** 2026-06-05  
+**Last updated:** 2026-06-09  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** Background photo upload + offline photo capture **merged to `main` 2026-06-05** — 214 tests passing, tsc clean. Prior: Voice dictation append + autocorrect merged 2026-06-04. **Next backlog item:** Move notes between trips (Priority 3).
+**Status:** "View Blog" button **merged to `main` 2026-06-09** (commit `fdcf2c8`) — 214 tests passing. Prior: Background photo upload + offline photo capture merged 2026-06-05. **Next backlog item:** Move notes between trips (Priority 3).
+
+**View Blog button after generation (DONE ✅ — merged to `main` 2026-06-09):** Once a blog post exists for a completed/ended trip, `TripDetailScreen` no longer offers "Generate Blog" again — it shows a "View Blog" button that navigates straight to the existing post. New `getBlogPostByTrip(tripId)` in `blogService.ts` queries `blog_posts` by `trip_id` (most recent, ordered by `created_at`). `TripDetailScreen` fetches this on mount for non-active trips and tracks `existingPostId: string | null | undefined` (undefined = loading, null = none, string = post id); `handleGenerateBlog` also sets it after a fresh generation. No DB migration.
 
 **Background photo upload + offline photo capture (DONE ✅ — merged to `main` 2026-06-05):** Notes now save instantly with no upload blocking. `photoUploadQueue.ts` (AsyncStorage-backed, same shape as `offlineQueue`) holds `PendingPhotoUpload` items. `photoUploadService.drainPhotoUploads()` uploads each item, patches `notes.photo_urls` via Supabase after all items for a note are resolved, and increments `attempts` on failure (max 5 → `status: 'failed'`). `noteService.drainAll()` sequences `drainQueue → drainPhotoUploads → drainTagging` so note rows always exist before photo drain runs. `PendingNote` gains `photo_uris: string[]` so pending cards show real local images. `useNotes` subscribes to both queues and derives `photoStatus` per note (`'uploading' | 'failed' | null`). `NoteCard` shows a shimmer strip while uploading, `⚠ N photo failed` on failure. `NoteEditSheet` enqueues new photos and closes immediately after `updateNote`. `NoteCaptureSheet` drops the upload loop, photo-offline guard, and `photosBlockSave` state (~40 lines removed). `MainStack` wires the AppState foreground drain. 17 new tests (214 total). No DB migration.
 
