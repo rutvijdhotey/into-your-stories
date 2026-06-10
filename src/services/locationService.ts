@@ -4,6 +4,7 @@ export type LocationFix = {
   lat: number;
   lng: number;
   city: string | null;
+  placeName: string | null;
 };
 
 export async function getCurrentLocation(): Promise<LocationFix | null> {
@@ -17,21 +18,31 @@ export async function getCurrentLocation(): Promise<LocationFix | null> {
 
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
-    const city = await reverseGeocodeCity(lat, lng);
-    return { lat, lng, city };
+    const { city, placeName } = await reverseGeocodePlace(lat, lng);
+    return { lat, lng, city, placeName };
   } catch {
     return null;
   }
 }
 
-export async function reverseGeocodeCity(lat: number, lng: number): Promise<string | null> {
+/**
+ * Reverse-geocode coordinates to a city and a more specific place name.
+ * `placeName` is always at least as specific as `city` (often a POI/street),
+ * falling back through name -> street -> city -> subregion -> region.
+ */
+export async function reverseGeocodePlace(
+  lat: number,
+  lng: number,
+): Promise<{ city: string | null; placeName: string | null }> {
   try {
     const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-    if (!results.length) return null;
+    if (!results.length) return { city: null, placeName: null };
     const r = results[0];
-    return r.city ?? r.subregion ?? r.region ?? null;
+    const city = r.city ?? r.subregion ?? r.region ?? null;
+    const placeName = r.name ?? r.street ?? city ?? r.subregion ?? r.region ?? null;
+    return { city, placeName };
   } catch {
-    return null;
+    return { city: null, placeName: null };
   }
 }
 
