@@ -16,7 +16,6 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { useTrips } from '../hooks/useTrips';
@@ -30,7 +29,7 @@ import CategoryPicker from './CategoryPicker';
 import LocationField from './LocationField';
 import TripSelector from './TripSelector';
 import { Colors, Spacing, BorderRadius } from '../theme';
-import { geocodeLocation, reverseCity } from '../services/locationService';
+import { geocodeLocation, reverseCity, reverseGeocodePlace } from '../services/locationService';
 import { resolveLocationEdit } from '../services/locationHelpers';
 
 type Props = {
@@ -63,7 +62,7 @@ export default function NoteCaptureSheet({
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [intentLoading, setIntentLoading] = useState(false);
-  const [exifCity, setExifCity] = useState<string | null>(null);
+  const [exifPlace, setExifPlace] = useState<{ city: string | null; placeName: string | null } | null>(null);
   const [location, setLocation] = useState('');
   const [locationEdited, setLocationEdited] = useState(false);
 
@@ -100,11 +99,11 @@ export default function NoteCaptureSheet({
   }, [photoPicker.photos]);
 
   useEffect(() => {
-    if (!exifLocation) { setExifCity(null); return; }
+    if (!exifLocation) { setExifPlace(null); return; }
     let cancelled = false;
-    Location.reverseGeocodeAsync({ latitude: exifLocation.lat, longitude: exifLocation.lng })
-      .then(([geo]) => {
-        if (!cancelled) setExifCity(geo?.city ?? geo?.district ?? null);
+    reverseGeocodePlace(exifLocation.lat, exifLocation.lng)
+      .then((result) => {
+        if (!cancelled) setExifPlace(result);
       })
       .catch(() => {});
     return () => { cancelled = true; };
@@ -156,7 +155,7 @@ export default function NoteCaptureSheet({
     setContent('');
     setCategory(null);
     setIntentLoading(false);
-    setExifCity(null);
+    setExifPlace(null);
     setLocation('');
     setLocationEdited(false);
     photoPicker.clear();
@@ -170,7 +169,7 @@ export default function NoteCaptureSheet({
   // including them would re-fire the reset on every keystroke.
   }, [visible, fetchLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const displayCity = exifCity ?? (locating ? null : fix?.city ?? null);
+  const displayCity = exifPlace?.city ?? (locating ? null : fix?.city ?? null);
 
   useEffect(() => {
     if (!locationEdited) setLocation(displayCity ?? '');
@@ -208,7 +207,10 @@ export default function NoteCaptureSheet({
       const latest = await fetchLocation();
       const autoLat = exifLocation ? exifLocation.lat : (latest?.lat ?? fix?.lat ?? null);
       const autoLng = exifLocation ? exifLocation.lng : (latest?.lng ?? fix?.lng ?? null);
-      const autoCity = exifLocation ? exifCity : (latest?.city ?? fix?.city ?? null);
+      const autoCity = exifLocation ? (exifPlace?.city ?? null) : (latest?.city ?? fix?.city ?? null);
+      const autoPlaceName = exifLocation
+        ? (exifPlace?.placeName ?? null)
+        : (latest?.placeName ?? fix?.placeName ?? null);
 
       // Apply any manual location edit on top of the auto result
       const geocoded = locationEdited ? await geocodeLocation(location) : null;
@@ -217,7 +219,7 @@ export default function NoteCaptureSheet({
       const locPatch = resolveLocationEdit({
         text: location,
         wasEdited: locationEdited,
-        auto: { lat: autoLat, lng: autoLng, city: autoCity, place_name: null },
+        auto: { lat: autoLat, lng: autoLng, city: autoCity, place_name: autoPlaceName },
         geocoded,
         reverseCity: revCity,
       });
@@ -387,7 +389,7 @@ export default function NoteCaptureSheet({
             <LocationField
               value={location}
               onChangeText={handleLocationChange}
-              loading={locating && !exifCity && !locationEdited}
+              loading={locating && !exifPlace?.city && !locationEdited}
             />
           </View>
           <Pressable
