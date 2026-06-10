@@ -12,10 +12,14 @@ import FloatingCaptureButton from '../components/FloatingCaptureButton';
 import NoteCaptureSheet from '../components/NoteCaptureSheet';
 import { useOnReconnect } from '../hooks/useConnectivity';
 import { drainAll } from '../services/noteService';
+import { useAuth } from '../contexts/AuthContext';
+import { backfillPlaceNames } from '../services/placeBackfillService';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
 function MainStackInner() {
+  const { session } = useAuth();
+  const userId = session?.user.id;
   const [captureOpen, setCaptureOpen] = useState(false);
   const [captureAutoRecord, setCaptureAutoRecord] = useState(false);
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
@@ -23,6 +27,11 @@ function MainStackInner() {
   useEffect(() => {
     void drainAll();
   }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+    void backfillPlaceNames(userId);
+  }, [userId]);
 
   useOnReconnect(
     useCallback(() => {
