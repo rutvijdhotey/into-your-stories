@@ -61,7 +61,13 @@ export async function geocodeLocation(
   }
 }
 
-/** Reverse-geocode coordinates to a city/district name. Returns null on no-result/error. */
+/**
+ * Reverse-geocode coordinates to a city/district name only (no place name).
+ * Used for the manual-location-edit path, which only needs a city to display
+ * alongside the user's typed text. For auto-resolved GPS/EXIF fixes, prefer
+ * `reverseGeocodePlace`, which also resolves a more specific `placeName`.
+ * Returns null on no-result/error.
+ */
 export async function reverseCity(lat: number, lng: number): Promise<string | null> {
   try {
     const [geo] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
