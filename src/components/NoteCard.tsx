@@ -43,7 +43,7 @@ function ServerNoteCard({
           <ShimmerBadge />
         ) : null}
         <Text style={styles.meta}>
-          {[note.city, formatRelativeTime(note.captured_at)].filter(Boolean).join(' · ')}
+          {formatRelativeTime(note.captured_at)}
         </Text>
       </View>
       <Text style={styles.content} numberOfLines={3}>{note.content}</Text>
@@ -66,9 +66,7 @@ function PendingNoteCard({ pending }: { pending: PendingNote }) {
     <View style={styles.card}>
       <View style={styles.headerRow}>
         <CategoryBadge category={pending.category} />
-        <Text style={[styles.meta, styles.syncing]}>
-          {[pending.city, '⏳ Syncing'].filter(Boolean).join(' · ')}
-        </Text>
+        <Text style={[styles.meta, styles.syncing]}>⏳ Syncing</Text>
       </View>
       <Text style={styles.content} numberOfLines={3}>{pending.content}</Text>
       {pending.photo_uris.length > 0 && (
