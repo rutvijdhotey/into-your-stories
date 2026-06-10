@@ -34,7 +34,7 @@ export default function TripDetailScreen({ route, navigation }: Props) {
     if (trip?.status === 'active') return;
     if (!trip) return;
     getBlogPostByTrip(trip.id)
-      .then((post) => setExistingPostId(post?.id ?? null))
+      .then((post) => setExistingPostId(post && post.status !== 'error' ? post.id : null))
       .catch(() => setExistingPostId(null));
   }, [trip]);
 

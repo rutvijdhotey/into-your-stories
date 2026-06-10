@@ -18,8 +18,10 @@ Write the post as Markdown with this structure:
 - An evocative opening paragraph that sets the scene.
 - The narrative body, organized by city (and roughly by day where the timestamps make that natural),
   weaving the notes into flowing prose — not a bullet list.
-- Inline photos: when a note has photo URLs, place them with Markdown image syntax on their own line,
-  e.g. ![short caption](THE_EXACT_URL). Use ONLY URLs that appear in the provided notes, copied exactly.
+- Inline photos: choose only a handful of the strongest, most representative photos overall (not
+  one per note, even if every note has a photo) and place them with Markdown image syntax on their
+  own line, e.g. ![short caption](THE_EXACT_URL). Use ONLY URLs that appear in the provided notes,
+  copied exactly.
 - A "## Places" section near the end that groups the named places by their category
   (Food, Stay, Activity, Shopping, To-Visit), as a short list under each heading that appears.
 - A brief closing paragraph.
@@ -93,7 +95,7 @@ async function generate(admin: any, postId: string, tripId: string) {
     if (noteRows.length === 0) throw new Error('no_notes');
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90_000);
+    const timeoutId = setTimeout(() => controller.abort(), 140_000);
     let response: Response;
     try {
       response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -106,7 +108,7 @@ async function generate(admin: any, postId: string, tripId: string) {
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 8192,
+          max_tokens: 16000,
           system: SYSTEM_PROMPT,
           messages: [{ role: 'user', content: buildUserPrompt(trip, noteRows) }],
         }),
