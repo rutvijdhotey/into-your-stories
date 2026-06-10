@@ -14,6 +14,7 @@ export type PendingNote = {
   city: string | null;
   place_name: string | null;
   captured_at: string;
+  occurred_at: string | null;
   photo_uris: string[];
 };
 

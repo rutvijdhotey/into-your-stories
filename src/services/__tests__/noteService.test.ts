@@ -1,9 +1,14 @@
 // Supabase query-builder mock: from('notes').update({...}).eq('id', id) and
 // from('notes').delete().eq('id', id) both resolve to { error }.
 const mockEq = jest.fn();
+const mockUpsert = jest.fn();
 const mockUpdate = jest.fn(() => ({ eq: mockEq }));
 const mockDelete = jest.fn(() => ({ eq: mockEq }));
-const mockFrom = jest.fn((_table: string) => ({ update: mockUpdate, delete: mockDelete }));
+const mockFrom = jest.fn((_table: string) => ({
+  update: mockUpdate,
+  delete: mockDelete,
+  upsert: mockUpsert,
+}));
 
 // `from` is referenced lazily so the mock-prefixed const is initialized by the
 // time noteService actually calls it (imports are hoisted above these consts).
@@ -11,7 +16,23 @@ jest.mock('../../lib/supabase', () => ({
   supabase: { from: (table: string) => mockFrom(table) },
 }));
 
-import { updateNote, deleteNote, type UpdateNoteInput } from '../noteService';
+jest.mock('../../services/offlineQueue', () => ({
+  peekAll: jest.fn().mockResolvedValue([]),
+  removeByOfflineId: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../../services/photoUploadService', () => ({
+  drainPhotoUploads: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../../services/taggingService', () => ({
+  drainTagging: jest.fn().mockResolvedValue(undefined),
+}));
+
+import { updateNote, deleteNote, drainQueue, type UpdateNoteInput } from '../noteService';
+import { peekAll } from '../../services/offlineQueue';
+
+const mockPeekAll = peekAll as jest.MockedFunction<typeof peekAll>;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -61,6 +82,64 @@ describe('updateNote', () => {
     mockEq.mockResolvedValueOnce({ error: new Error('update failed') });
 
     await expect(updateNote('note-1', patch)).rejects.toThrow('update failed');
+  });
+});
+
+describe('drainQueue', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('writes occurred_at to the upserted row when present in PendingNote', async () => {
+    mockPeekAll.mockResolvedValueOnce([
+      {
+        offline_id: 'off-1',
+        user_id: 'u1',
+        trip_id: 't1',
+        content: 'Test',
+        category: null,
+        lat: null,
+        lng: null,
+        city: null,
+        place_name: null,
+        captured_at: '2026-06-01T10:00:00.000Z',
+        occurred_at: '2024-08-15T14:32:00.000Z',
+        photo_uris: [],
+      },
+    ]);
+    mockUpsert.mockResolvedValueOnce({ error: null });
+
+    await drainQueue();
+
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ occurred_at: '2024-08-15T14:32:00.000Z' }),
+      expect.anything(),
+    );
+  });
+
+  it('writes null for occurred_at when not set in PendingNote', async () => {
+    mockPeekAll.mockResolvedValueOnce([
+      {
+        offline_id: 'off-2',
+        user_id: 'u1',
+        trip_id: 't1',
+        content: 'Test',
+        category: null,
+        lat: null,
+        lng: null,
+        city: null,
+        place_name: null,
+        captured_at: '2026-06-01T10:00:00.000Z',
+        occurred_at: null,
+        photo_uris: [],
+      },
+    ]);
+    mockUpsert.mockResolvedValueOnce({ error: null });
+
+    await drainQueue();
+
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ occurred_at: null }),
+      expect.anything(),
+    );
   });
 });
 

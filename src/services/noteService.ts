@@ -22,6 +22,7 @@ export type CreateNoteInput = {
   place_name?: string | null;
   photo_uris?: string[];
   offline_id?: string;
+  occurred_at?: string | null;
 };
 
 export async function createNote(input: CreateNoteInput): Promise<PendingNote> {
@@ -36,6 +37,7 @@ export async function createNote(input: CreateNoteInput): Promise<PendingNote> {
     city: input.city,
     place_name: input.place_name ?? null,
     captured_at: new Date().toISOString(),
+    occurred_at: input.occurred_at ?? null,
     photo_uris: input.photo_uris ?? [],
   };
 
@@ -77,6 +79,7 @@ export async function drainQueue(): Promise<number> {
       place_name: item.place_name ?? null,
       offline_id: item.offline_id,
       captured_at: item.captured_at,
+      occurred_at: item.occurred_at ?? null,
       photo_urls: [],
     };
     const { error } = await supabase
