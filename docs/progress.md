@@ -1,8 +1,15 @@
 # Into Your Stories — Project Progress
 
-**Last updated:** 2026-06-09  
+**Last updated:** 2026-06-10  
 **GitHub:** https://github.com/rutvijdhotey/into-your-stories  
-**Status:** "View Blog" button **merged to `main` 2026-06-09** (commit `fdcf2c8`) — 214 tests passing. Prior: Background photo upload + offline photo capture merged 2026-06-05. **Next backlog item:** Move notes between trips (Priority 3).
+**Status:** Blog generation reliability fixes **merged to `main` 2026-06-10** (commit `fab6e91`). Prior: "View Blog" button merged 2026-06-09 (commit `fdcf2c8`) — 214 tests passing. Prior: Background photo upload + offline photo capture merged 2026-06-05. **Next backlog item:** Move notes between trips (Priority 3).
+
+**Blog generation reliability fixes (DONE ✅ — merged to `main` 2026-06-10):** Two related bugs found via on-device QA on the "View Blog" feature.
+1. *Stuck on "View Blog" after a failed generation:* if `generate-blog` set a post to `status: 'error'`, `getBlogPostByTrip` still returned that row, so `TripDetailScreen` showed "View Blog" pointing at a dead post — and the user could no longer find "Generate Blog" to retry. Fixed in `TripDetailScreen.tsx`: `existingPostId` is now `null` when the latest post's `status === 'error'`, so "Generate Blog" reappears.
+2. *Generation aborted/truncated on longer trips:* `error_message` showed "The signal has been aborted" (90s `AbortController` timeout hit before Claude finished) and, after raising the timeout, "Unterminated string in JSON at position …" (response truncated at the old `max_tokens: 8192`). Fixed in `supabase/functions/generate-blog/index.ts`: abort timeout raised to 140s, `max_tokens` raised to 16000, deployed as v6.
+3. *Photo curation:* clarified `SYSTEM_PROMPT` so Claude picks only a handful of the strongest photos overall — even if every note has a photo — rather than one per note.
+
+No DB migration. Edge function `generate-blog` redeployed (now v6).
 
 **View Blog button after generation (DONE ✅ — merged to `main` 2026-06-09):** Once a blog post exists for a completed/ended trip, `TripDetailScreen` no longer offers "Generate Blog" again — it shows a "View Blog" button that navigates straight to the existing post. New `getBlogPostByTrip(tripId)` in `blogService.ts` queries `blog_posts` by `trip_id` (most recent, ordered by `created_at`). `TripDetailScreen` fetches this on mount for non-active trips and tracks `existingPostId: string | null | undefined` (undefined = loading, null = none, string = post id); `handleGenerateBlog` also sets it after a fresh generation. No DB migration.
 
@@ -364,7 +371,7 @@ Pure helpers (`src/services/blogHelpers.ts`, `import type` only) hold all logic 
 | 1 | Migration `008_blog_posts` — owner-scoped RLS, partial unique index (one active post per trip), `set_updated_at` trigger, Realtime; matching `database.types.ts` entry | ✅ |
 | 2–5 | `blogHelpers` (pure, TDD) — `collectPlaces`, `validateBlogResult`, `markdownToHtml` (escapes alt-text), `statusLabel`, `formatBlogDate` | ✅ |
 | 6 | `blogService` (Supabase mocked, error paths) — `generateBlog`, `listBlogPosts`, `getBlogPost`, `publishPost`, `unpublish`, `discardDraft` | ✅ |
-| 7 | `generate-blog` edge function — `claude-sonnet-4-6`, JWT-derived identity + trip-ownership check, 90s abort timeout, no-notes guard, fence-strip+parse, draft/error lifecycle | ✅ |
+| 7 | `generate-blog` edge function — `claude-sonnet-4-6`, JWT-derived identity + trip-ownership check, abort timeout (140s as of 2026-06-10, was 90s), no-notes guard, fence-strip+parse, draft/error lifecycle | ✅ |
 | 8 | Deps (`react-native-markdown-display`, `expo-sharing`, `expo-file-system`) + `BlogPost` route on `MainStack` | ✅ |
 | 9 | `useBlogPosts` Realtime hook (per-instance channel suffix) | ✅ |
 | 10–11 | `BlogPostCard` + `BlogPostScreen` (status-driven, read-only, publish/unpublish/discard/export) | ✅ |
