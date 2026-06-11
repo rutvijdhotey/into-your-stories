@@ -14,6 +14,7 @@ import { useOnReconnect } from '../hooks/useConnectivity';
 import { drainAll } from '../services/noteService';
 import { useAuth } from '../contexts/AuthContext';
 import { backfillPlaceNames } from '../services/placeBackfillService';
+import { sweepNoteLocations } from '../services/locationSweepService';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
@@ -30,7 +31,12 @@ function MainStackInner() {
 
   useEffect(() => {
     if (!userId) return;
-    void backfillPlaceNames(userId);
+    // Sweep first: never spend geocodes resolving place names for coordinates
+    // the sweep is about to rewrite.
+    void (async () => {
+      await sweepNoteLocations(userId);
+      await backfillPlaceNames(userId);
+    })();
   }, [userId]);
 
   useOnReconnect(
