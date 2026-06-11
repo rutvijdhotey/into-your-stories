@@ -239,6 +239,7 @@ export default function NoteCaptureSheet({
         lng: locPatch.lng,
         city: locPatch.city,
         place_name: locPatch.place_name,
+        location_source: locPatch.location_source,
         photo_uris: photos.map((p) => p.uri),
         occurred_at: earliestExifDate,
       });

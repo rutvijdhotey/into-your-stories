@@ -47,6 +47,7 @@ describe('updateNote', () => {
     lng: null,
     city: null,
     place_name: null,
+    location_source: null,
   };
 
   it('updates the note and resets tagging_status to pending', async () => {
@@ -63,6 +64,7 @@ describe('updateNote', () => {
       lng: null,
       city: null,
       place_name: null,
+      location_source: null,
       tagging_status: 'pending',
     });
     expect(mockEq).toHaveBeenCalledWith('id', 'note-1');
@@ -100,6 +102,7 @@ describe('drainQueue', () => {
         lng: null,
         city: null,
         place_name: null,
+        location_source: null,
         captured_at: '2026-06-01T10:00:00.000Z',
         occurred_at: '2024-08-15T14:32:00.000Z',
         photo_uris: [],
@@ -127,6 +130,7 @@ describe('drainQueue', () => {
         lng: null,
         city: null,
         place_name: null,
+        location_source: null,
         captured_at: '2026-06-01T10:00:00.000Z',
         occurred_at: null,
         photo_uris: [],

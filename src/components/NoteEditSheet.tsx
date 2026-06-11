@@ -122,6 +122,7 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
         lng: locPatch.lng,
         city: locPatch.city,
         place_name: locPatch.place_name,
+        location_source: locPatch.location_source,
       });
 
       void drainAll();
