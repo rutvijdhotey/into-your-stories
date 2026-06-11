@@ -133,12 +133,16 @@ export default function NoteCaptureSheet({
     return nearestAnchor(point, anchors);
   }, [exifLocation, fix, anchors]);
 
-  const [anchorPlace, setAnchorPlace] = useState<{ city: string | null; placeName: string | null } | null>(null);
+  const [anchorPlace, setAnchorPlace] = useState<{
+    anchor: AnchorPoint;
+    city: string | null;
+    placeName: string | null;
+  } | null>(null);
   useEffect(() => {
     if (!inferredAnchor) { setAnchorPlace(null); return; }
     let cancelled = false;
     reverseGeocodePlace(inferredAnchor.lat, inferredAnchor.lng)
-      .then((result) => { if (!cancelled) setAnchorPlace(result); })
+      .then((result) => { if (!cancelled) setAnchorPlace({ anchor: inferredAnchor, ...result }); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, [inferredAnchor]);
@@ -256,12 +260,17 @@ export default function NoteCaptureSheet({
 
       let autoPatch: LocationPatch;
       if (auto.source === 'inferred') {
-        const place = anchorPlace ?? (await reverseGeocodePlace(auto.anchor.lat, auto.anchor.lng));
+        // Reuse the pill's reverse-geocode only if it was for this same anchor;
+        // the fresh fix fetched above may have shifted us to a different one.
+        const cachedPlace =
+          anchorPlace && anchorPlace.anchor.lat === auto.anchor.lat && anchorPlace.anchor.lng === auto.anchor.lng
+            ? anchorPlace
+            : await reverseGeocodePlace(auto.anchor.lat, auto.anchor.lng);
         autoPatch = {
           lat: auto.anchor.lat,
           lng: auto.anchor.lng,
-          city: place.city,
-          place_name: place.placeName,
+          city: cachedPlace.city,
+          place_name: cachedPlace.placeName,
           location_source: 'inferred',
         };
       } else if (auto.source === null) {
