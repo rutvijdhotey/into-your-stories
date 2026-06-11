@@ -18,6 +18,11 @@ export function clearAnchorCache(): void {
   cache.clear();
 }
 
+/** Drop one trip's cached anchors (e.g. after a manual location edit adds a trusted anchor). */
+export function invalidateTripAnchors(tripId: string): void {
+  cache.delete(tripId);
+}
+
 export async function getTripAnchors(tripId: string): Promise<AnchorPoint[]> {
   const cached = cache.get(tripId);
   if (cached) return cached;

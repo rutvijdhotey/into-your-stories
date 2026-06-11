@@ -33,7 +33,7 @@ import { geocodeLocation, reverseCity, reverseGeocodePlace } from '../services/l
 import { resolveLocationEdit } from '../services/locationHelpers';
 import { isPlausible, nearestAnchor, resolveAutoLocation } from '../services/tripAnchorHelpers';
 import type { AnchorPoint } from '../services/tripAnchorHelpers';
-import { getTripAnchors } from '../services/tripAnchorService';
+import { getTripAnchors, invalidateTripAnchors } from '../services/tripAnchorService';
 import type { LocationPatch } from '../services/locationHelpers';
 
 type Props = {
@@ -310,6 +310,9 @@ export default function NoteCaptureSheet({
         photo_uris: photos.map((p) => p.uri),
         occurred_at: earliestExifDate,
       });
+
+      // A manual location is a new trusted anchor — refresh this trip's cache.
+      if (locPatch.location_source === 'manual') invalidateTripAnchors(selectedTripId);
 
       photoPicker.clear();
       onClose();

@@ -22,6 +22,7 @@ import CategoryPicker from './CategoryPicker';
 import LocationField from './LocationField';
 import { geocodeLocation, reverseCity } from '../services/locationService';
 import { resolveLocationEdit } from '../services/locationHelpers';
+import { invalidateTripAnchors } from '../services/tripAnchorService';
 import { Colors, Spacing, BorderRadius } from '../theme';
 
 type Props = {
@@ -124,6 +125,9 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
         place_name: locPatch.place_name,
         location_source: locPatch.location_source,
       });
+
+      // A manual location is a new trusted anchor — refresh this trip's cache.
+      if (locPatch.location_source === 'manual') invalidateTripAnchors(note.trip_id);
 
       void drainAll();
       photoPicker.clear();

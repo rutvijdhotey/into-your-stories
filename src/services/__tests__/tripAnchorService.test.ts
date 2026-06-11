@@ -25,7 +25,7 @@ jest.mock('../../services/locationService', () => ({
   geocodeLocation: (...a: unknown[]) => mockGeocode(...a),
 }));
 
-import { getTripAnchors, clearAnchorCache } from '../tripAnchorService';
+import { getTripAnchors, clearAnchorCache, invalidateTripAnchors } from '../tripAnchorService';
 
 function mockTrip(destinations: string[] | null) {
   mockTripsSelect.mockReturnValue({
@@ -100,5 +100,17 @@ describe('getTripAnchors', () => {
     mockTrip(['Paris']);
     mockGeocode.mockResolvedValueOnce({ lat: 48.85, lng: 2.35 });
     await expect(getTripAnchors('trip-1')).resolves.toEqual([{ lat: 48.85, lng: 2.35 }]);
+  });
+
+  it('invalidateTripAnchors drops only that trip cache entry', async () => {
+    mockTrip(['Paris']);
+    mockGeocode.mockResolvedValueOnce({ lat: 48.85, lng: 2.35 });
+    await getTripAnchors('trip-1');
+
+    invalidateTripAnchors('trip-1');
+
+    mockTrip(['Paris']);
+    mockGeocode.mockResolvedValueOnce({ lat: 48.86, lng: 2.36 });
+    await expect(getTripAnchors('trip-1')).resolves.toEqual([{ lat: 48.86, lng: 2.36 }]);
   });
 });

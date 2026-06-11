@@ -26,6 +26,10 @@ jest.mock('../../services/locationService', () => ({
   reverseCity: jest.fn(),
 }));
 
+jest.mock('../../services/tripAnchorService', () => ({
+  invalidateTripAnchors: jest.fn(),
+}));
+
 // CategoryPicker is exercised manually; render nothing here to isolate the sheet.
 jest.mock('../CategoryPicker', () => ({
   __esModule: true,
