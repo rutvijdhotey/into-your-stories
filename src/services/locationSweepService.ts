@@ -26,6 +26,12 @@ type SweepCandidate = {
  * launch — idempotent and resumable, like backfillPlaceNames. Run BEFORE the
  * place-name backfill so we never geocode coordinates about to be rewritten.
  *
+ * Known limitation: a rewrite to 'inferred' is one-way — the note leaves the
+ * candidate set and is never re-evaluated, so if the anchor set was incomplete
+ * (e.g. one destination failed to geocode but others succeeded and got cached)
+ * a note could be corrected to the wrong-but-plausible anchor permanently.
+ * Recovery is a manual location edit, which marks the note 'manual'.
+ *
  * Returns the number of notes corrected (upgrades don't count).
  */
 export async function sweepNoteLocations(userId: string): Promise<number> {
@@ -60,6 +66,8 @@ export async function sweepNoteLocations(userId: string): Promise<number> {
 
         if (isPlausible(point, anchors)) {
           if (note.location_source === null) {
+            // Error intentionally ignored: a failed upgrade leaves the note
+            // null-source, so it's simply retried on the next launch.
             await supabase.from('notes').update({ location_source: 'gps' }).eq('id', note.id);
           }
           continue;
