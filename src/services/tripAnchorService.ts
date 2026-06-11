@@ -24,6 +24,8 @@ export async function getTripAnchors(tripId: string): Promise<AnchorPoint[]> {
 
   const anchors: AnchorPoint[] = [];
 
+  // Query/geocode failures degrade gracefully: fewer (or no) anchors, and an
+  // empty result is never cached, so the next call simply retries.
   const { data: trip } = await supabase
     .from('trips')
     .select('destinations')
