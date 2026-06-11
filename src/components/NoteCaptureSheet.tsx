@@ -219,7 +219,13 @@ export default function NoteCaptureSheet({
       const locPatch = resolveLocationEdit({
         text: location,
         wasEdited: locationEdited,
-        auto: { lat: autoLat, lng: autoLng, city: autoCity, place_name: autoPlaceName },
+        auto: {
+          lat: autoLat,
+          lng: autoLng,
+          city: autoCity,
+          place_name: autoPlaceName,
+          location_source: exifLocation ? 'exif' : autoLat !== null ? 'gps' : null,
+        },
         geocoded,
         reverseCity: revCity,
       });

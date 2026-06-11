@@ -5,6 +5,7 @@ export type LocationPatch = {
   lng: number | null;
   city: string | null;
   place_name: string | null;
+  location_source: LocationSource | null;
 };
 
 export type ResolveLocationEditInput = {
@@ -27,7 +28,7 @@ export function resolveLocationEdit(input: ResolveLocationEditInput): LocationPa
 
   const place = text.trim();
   if (place.length === 0) {
-    return { lat: null, lng: null, city: null, place_name: null };
+    return { lat: null, lng: null, city: null, place_name: null, location_source: null };
   }
 
   if (geocoded) {
@@ -36,9 +37,10 @@ export function resolveLocationEdit(input: ResolveLocationEditInput): LocationPa
       lng: geocoded.lng,
       city: reverseCity ?? place,
       place_name: place,
+      location_source: 'manual',
     };
   }
 
   // Geocode failed/offline: keep the label, drop the bad pin.
-  return { lat: null, lng: null, city: null, place_name: place };
+  return { lat: null, lng: null, city: null, place_name: place, location_source: 'manual' };
 }

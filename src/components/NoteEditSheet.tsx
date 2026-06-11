@@ -109,7 +109,7 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
       const locPatch = resolveLocationEdit({
         text: location,
         wasEdited: locationEdited,
-        auto: { lat: note.lat, lng: note.lng, city: note.city, place_name: note.place_name },
+        auto: { lat: note.lat, lng: note.lng, city: note.city, place_name: note.place_name, location_source: note.location_source },
         geocoded,
         reverseCity: revCity,
       });
