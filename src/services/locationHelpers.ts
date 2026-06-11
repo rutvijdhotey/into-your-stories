@@ -1,3 +1,5 @@
+export type LocationSource = 'gps' | 'exif' | 'manual' | 'inferred';
+
 export type LocationPatch = {
   lat: number | null;
   lng: number | null;
