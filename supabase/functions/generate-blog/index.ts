@@ -1,11 +1,61 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { encode as base64Encode } from 'https://deno.land/std@0.168.0/encoding/base64.ts';
+import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+// The photo-selection pass downsizes each candidate to this longest-edge size
+// before sending it to Claude. The model only needs to judge which shot is
+// strongest — not read fine detail — so ~1536px is ample and keeps image-token
+// cost ~3x lower than full resolution. The blog itself always embeds the
+// ORIGINAL full-resolution URLs; this resized copy is judgment input only.
+const VISION_LONGEST_EDGE = 1536;
+const VISION_JPEG_QUALITY = 80;
+
+// Cap how many photos we decode+send in one generation, to bound edge-function
+// memory/time. A blog features only a handful of photos, so this is plenty for
+// an informed choice; any photos beyond the cap are still referenced by URL
+// (text-only) so they remain selectable, just not visually judged.
+const MAX_VISION_PHOTOS = 30;
+
+type ImageBlock = {
+  type: 'image';
+  source: { type: 'base64'; media_type: string; data: string };
+};
+type TextBlock = { type: 'text'; text: string };
+type ContentBlock = TextBlock | ImageBlock;
+
+/**
+ * Downloads a photo and downsizes it to a small JPEG suitable for vision
+ * judgment. Returns a base64 image block, or null if the photo can't be
+ * fetched/decoded (e.g. an unsupported format like HEIC) — callers fall back to
+ * a text-only URL reference so the photo stays selectable.
+ */
+async function fetchResizedImageBlock(url: string): Promise<ImageBlock | null> {
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const bytes = new Uint8Array(await resp.arrayBuffer());
+    const img = await Image.decode(bytes);
+    const longest = Math.max(img.width, img.height);
+    if (longest > VISION_LONGEST_EDGE) {
+      const scale = VISION_LONGEST_EDGE / longest;
+      img.resize(Math.max(1, Math.round(img.width * scale)), Math.max(1, Math.round(img.height * scale)));
+    }
+    const jpeg = await img.encodeJPEG(VISION_JPEG_QUALITY);
+    return {
+      type: 'image',
+      source: { type: 'base64', media_type: 'image/jpeg', data: base64Encode(jpeg) },
+    };
+  } catch (_e) {
+    return null;
+  }
+}
 
 // Supabase injects EdgeRuntime; declare it so the editor doesn't complain.
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
@@ -18,10 +68,14 @@ Write the post as Markdown with this structure:
 - An evocative opening paragraph that sets the scene.
 - The narrative body, organized by city (and roughly by day where the timestamps make that natural),
   weaving the notes into flowing prose — not a bullet list.
-- Inline photos: choose only a handful of the strongest, most representative photos overall (not
-  one per note, even if every note has a photo) and place them with Markdown image syntax on their
-  own line, e.g. ![short caption](THE_EXACT_URL). Use ONLY URLs that appear in the provided notes,
-  copied exactly.
+- Inline photos: the actual photos are provided to you as images, each labeled with its exact URL.
+  LOOK at them and judge them on what you can see — composition, clarity, and how well each one
+  represents its moment. For any note with several photos, prefer its single strongest shot. Across
+  the whole trip, feature only a handful of the best, most representative photos overall (not one
+  per note, even if every note has a photo). Place them with Markdown image syntax on their own
+  line, e.g. ![short caption](THE_EXACT_URL), using ONLY the labeled URLs, copied exactly. A few
+  photos may be referenced by URL without an image shown (unsupported format) — you may still use
+  those, just judge them by their note context.
 - A "## Places" section near the end that groups the named places by their category
   (Food, Stay, Activity, Shopping, To-Visit), as a short list under each heading that appears.
 - A brief closing paragraph.
@@ -31,7 +85,8 @@ Respond with ONLY valid JSON — no markdown fences, no commentary:
 
 - title: a short, evocative title for the trip.
 - content_markdown: the full post described above.
-- cover_photo_url: the single best hero photo URL from the notes, or null if the trip has no photos.
+- cover_photo_url: the single best hero photo URL — the most striking, representative image of the
+  whole trip based on what you see — or null if the trip has no photos.
 - selected_photo_urls: every photo URL you actually used inline (may be empty).`;
 
 type NoteRow = {
@@ -45,35 +100,61 @@ type NoteRow = {
   photo_urls: string[] | null;
 };
 
-function buildUserPrompt(
+function noteMeta(n: NoteRow): string {
+  return [
+    n.created_at,
+    n.city ? `city: ${n.city}` : '',
+    n.place_name ? `place: ${n.place_name}` : '',
+    n.category ? `category: ${n.category}` : '',
+  ]
+    .filter(Boolean)
+    .join(' | ');
+}
+
+/**
+ * Builds the multimodal user message: chronological notes interleaved with each
+ * note's actual photos (downsized, base64) so Claude can see and judge them.
+ * Every photo is labeled with its exact original URL so the model can reference
+ * it in its output. Photos beyond MAX_VISION_PHOTOS, or ones that fail to
+ * decode, are listed by URL only.
+ */
+async function buildUserContent(
   trip: { name: string; destinations: string[] } | null,
   notes: NoteRow[],
-): string {
+): Promise<ContentBlock[]> {
   const allPhotos = notes.flatMap((n) => n.photo_urls ?? []);
-  const lines: string[] = [];
-  lines.push(`Trip name: ${trip?.name ?? 'Untitled trip'}`);
-  if (trip?.destinations?.length) lines.push(`Destinations: ${trip.destinations.join(', ')}`);
-  lines.push('');
-  lines.push('Notes (chronological):');
-  notes.forEach((n, i) => {
-    const meta = [
-      n.created_at,
-      n.city ? `city: ${n.city}` : '',
-      n.place_name ? `place: ${n.place_name}` : '',
-      n.category ? `category: ${n.category}` : '',
-    ]
-      .filter(Boolean)
-      .join(' | ');
-    lines.push(`${i + 1}. [${meta}] ${n.content}`);
-    for (const url of n.photo_urls ?? []) lines.push(`   photo: ${url}`);
-  });
-  lines.push('');
-  lines.push(
-    allPhotos.length
-      ? `Available photo URLs (use only these, copied exactly):\n${allPhotos.join('\n')}`
+  const content: ContentBlock[] = [];
+
+  const header: string[] = [`Trip name: ${trip?.name ?? 'Untitled trip'}`];
+  if (trip?.destinations?.length) header.push(`Destinations: ${trip.destinations.join(', ')}`);
+  header.push('');
+  header.push('Notes (chronological). Photos for each note follow it as labeled images:');
+  content.push({ type: 'text', text: header.join('\n') });
+
+  let imageBudget = MAX_VISION_PHOTOS;
+  let i = 0;
+  for (const n of notes) {
+    i += 1;
+    content.push({ type: 'text', text: `${i}. [${noteMeta(n)}] ${n.content}` });
+    for (const url of n.photo_urls ?? []) {
+      const block = imageBudget > 0 ? await fetchResizedImageBlock(url) : null;
+      if (block) {
+        imageBudget -= 1;
+        content.push({ type: 'text', text: `Photo — url: ${url}` });
+        content.push(block);
+      } else {
+        content.push({ type: 'text', text: `Photo (not shown) — url: ${url}` });
+      }
+    }
+  }
+
+  content.push({
+    type: 'text',
+    text: allPhotos.length
+      ? `Available photo URLs (use ONLY these, copied exactly):\n${allPhotos.join('\n')}`
       : 'This trip has no photos. Use null for cover_photo_url and [] for selected_photo_urls.',
-  );
-  return lines.join('\n');
+  });
+  return content;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -94,6 +175,8 @@ async function generate(admin: any, postId: string, tripId: string) {
     const noteRows: NoteRow[] = notes ?? [];
     if (noteRows.length === 0) throw new Error('no_notes');
 
+    const userContent = await buildUserContent(trip, noteRows);
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 140_000);
     let response: Response;
@@ -107,10 +190,10 @@ async function generate(admin: any, postId: string, tripId: string) {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
+          model: 'claude-opus-4-8',
           max_tokens: 16000,
           system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: buildUserPrompt(trip, noteRows) }],
+          messages: [{ role: 'user', content: userContent }],
         }),
       });
     } finally {
