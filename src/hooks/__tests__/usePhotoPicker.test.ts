@@ -99,7 +99,7 @@ describe('usePhotoPicker', () => {
     await act(async () => { await result.current.pick(); });
     expect(mockLaunchLibrary).toHaveBeenCalledWith({
       allowsMultipleSelection: true,
-      selectionLimit: 5,
+      selectionLimit: 3,
       exif: true,
       quality: 0.7,
       mediaTypes: ['images'],

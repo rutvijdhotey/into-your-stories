@@ -14,6 +14,8 @@ import TripFeedScreen from './TripFeedScreen';
 import TripMapScreen from './TripMapScreen';
 import { useAuth } from '../../contexts/AuthContext';
 import { generateBlog, getBlogPostByTrip } from '../../services/blogService';
+import { listNotes } from '../../services/noteService';
+import { checkBlogReadiness } from '../../services/blogHelpers';
 import { useCoverPhoto } from '../../hooks/useCoverPhoto';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'TripDetail'>;
@@ -102,6 +104,11 @@ export default function TripDetailScreen({ route, navigation }: Props) {
     if (!userId) return;
     setGeneratingBlog(true);
     try {
+      const readiness = checkBlogReadiness(await listNotes(trip.id));
+      if (!readiness.ok) {
+        Alert.alert('Not enough notes yet', readiness.reason);
+        return;
+      }
       const postId = await generateBlog(trip.id);
       if (postId) {
         setExistingPostId(postId);

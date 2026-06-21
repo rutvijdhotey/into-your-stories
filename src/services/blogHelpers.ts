@@ -3,7 +3,7 @@ import type { Category, Note } from './noteHelpers';
 
 type BlogPostRow = Database['public']['Tables']['blog_posts']['Row'];
 
-export type BlogStatus = 'generating' | 'draft' | 'published' | 'error';
+export type BlogStatus = 'generating' | 'draft' | 'published' | 'error' | 'insufficient';
 
 // Narrow the DB row's `status: string` to the literal union the CHECK enforces.
 export type BlogPost = Omit<BlogPostRow, 'status'> & { status: BlogStatus };
@@ -27,7 +27,36 @@ export function statusLabel(status: BlogStatus): string {
       return 'Published';
     case 'error':
       return 'Failed';
+    case 'insufficient':
+      return 'Not enough notes';
   }
+}
+
+// A blog needs enough raw material to be worth writing. These gate generation
+// client-side (free, instant) before we spend an API call. The floor is
+// intentionally lenient — the edge function's own judgment is the real quality
+// check and may still come back 'insufficient'.
+export const MIN_NOTES_FOR_BLOG = 3;
+export const MIN_NOTE_TEXT_CHARS = 80;
+
+export type BlogReadiness = { ok: true } | { ok: false; reason: string };
+
+/** Decides whether a trip has enough note material to attempt a blog. */
+export function checkBlogReadiness(notes: { content: string }[]): BlogReadiness {
+  if (notes.length < MIN_NOTES_FOR_BLOG) {
+    return {
+      ok: false,
+      reason: `Add at least ${MIN_NOTES_FOR_BLOG} notes before generating a blog — you have ${notes.length}.`,
+    };
+  }
+  const totalChars = notes.reduce((sum, n) => sum + n.content.trim().length, 0);
+  if (totalChars < MIN_NOTE_TEXT_CHARS) {
+    return {
+      ok: false,
+      reason: 'Your notes are a little thin — add a bit more detail before generating a blog.',
+    };
+  }
+  return { ok: true };
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

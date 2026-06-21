@@ -1,4 +1,12 @@
-import { statusLabel, formatBlogDate, collectPlaces, validateBlogResult, markdownToHtml } from '../blogHelpers';
+import {
+  statusLabel,
+  formatBlogDate,
+  collectPlaces,
+  validateBlogResult,
+  markdownToHtml,
+  checkBlogReadiness,
+  MIN_NOTES_FOR_BLOG,
+} from '../blogHelpers';
 import type { Note } from '../noteHelpers';
 
 describe('statusLabel', () => {
@@ -7,6 +15,36 @@ describe('statusLabel', () => {
     expect(statusLabel('draft')).toBe('Ready to review');
     expect(statusLabel('published')).toBe('Published');
     expect(statusLabel('error')).toBe('Failed');
+    expect(statusLabel('insufficient')).toBe('Not enough notes');
+  });
+});
+
+describe('checkBlogReadiness', () => {
+  const note = (content: string) => ({ content });
+
+  it('blocks when there are fewer than the minimum notes', () => {
+    const result = checkBlogReadiness([note('A decent length note about the harbor at dawn.')]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toContain(String(MIN_NOTES_FOR_BLOG));
+  });
+
+  it('blocks when notes meet the count but are trivially short', () => {
+    const result = checkBlogReadiness([note('a'), note('b'), note('c')]);
+    expect(result.ok).toBe(false);
+  });
+
+  it('passes when there are enough notes with real substance', () => {
+    const result = checkBlogReadiness([
+      note('Wandered the old town and found a tiny bakery tucked off the square.'),
+      note('Lunch by the canal — grilled fish and a glass of crisp white wine.'),
+      note('Climbed the bell tower at sunset; the whole city glowed amber.'),
+    ]);
+    expect(result.ok).toBe(true);
+  });
+
+  it('ignores whitespace-only padding when measuring substance', () => {
+    const result = checkBlogReadiness([note('   '), note('   '), note('   ')]);
+    expect(result.ok).toBe(false);
   });
 });
 
