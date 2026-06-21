@@ -64,10 +64,20 @@ const SYSTEM_PROMPT = `You are a skilled travel writer. You turn a traveler's ra
 from a single trip into one polished, engaging blog post in clear, warm, first-person travel-writing
 voice. You never invent places, food, or events that are not supported by the notes.
 
-Write the post as Markdown with this structure:
+Before writing, judge whether the notes actually contain enough real substance to write a genuine
+post — concrete places, moments, or experiences, not just a few empty fragments. If they do NOT,
+do not pad or invent to reach a length. Instead respond with ONLY this JSON and nothing else:
+{"insufficient": true, "reason": string}
+where reason is one warm, specific sentence the traveler will see (e.g. "These notes are a little
+sparse — jot down a few more moments and I'll have plenty to work with.").
+
+Otherwise, write the post as Markdown with this structure:
 - An evocative opening paragraph that sets the scene.
 - The narrative body, organized by city (and roughly by day where the timestamps make that natural),
   weaving the notes into flowing prose — not a bullet list.
+- Length should fit the material, not a fixed template: aim for roughly 600–1200 words for a typical
+  trip, expanding toward ~2000 only for rich, many-noted trips, and staying shorter for a brief one.
+  Never stretch thin material to hit a word count.
 - Inline photos: the actual photos are provided to you as images, each labeled with its exact URL.
   LOOK at them and judge them on what you can see — composition, clarity, and how well each one
   represents its moment. For any note with several photos, prefer its single strongest shot. Across
@@ -206,6 +216,20 @@ async function generate(admin: any, postId: string, tripId: string) {
     const rawText = claudeData.content?.[0]?.text ?? '';
     const jsonText = (rawText.match(/```(?:json)?\s*([\s\S]*?)```/)?.[1] ?? rawText).trim();
     const parsed = JSON.parse(jsonText);
+
+    // The model judged the notes too thin to write a genuine post. This is not a
+    // failure — surface it as a calm "not enough yet" message via its own status.
+    if (parsed?.insufficient === true) {
+      const reason =
+        typeof parsed.reason === 'string' && parsed.reason.trim()
+          ? parsed.reason.trim()
+          : 'There isn’t quite enough in these notes yet — add a few more details and try again.';
+      await admin
+        .from('blog_posts')
+        .update({ status: 'insufficient', error_message: reason })
+        .eq('id', postId);
+      return;
+    }
 
     const title = typeof parsed.title === 'string' && parsed.title.trim() ? parsed.title.trim() : (trip?.name ?? 'Untitled Trip');
     const content_markdown = typeof parsed.content_markdown === 'string' ? parsed.content_markdown : '';

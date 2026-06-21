@@ -151,6 +151,18 @@ export default function BlogPostScreen({ route, navigation }: Props) {
     );
   }
 
+  if (post.status === 'insufficient') {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.title}>Not enough to work with yet</Text>
+        <Text style={styles.muted}>
+          {post.error_message ?? 'These notes are a little sparse — add a few more moments and try again.'}
+        </Text>
+        <Text style={styles.muted}>Open the trip, add some notes, then tap Generate Blog.</Text>
+      </View>
+    );
+  }
+
   if (post.status === 'error') {
     return (
       <View style={styles.center}>

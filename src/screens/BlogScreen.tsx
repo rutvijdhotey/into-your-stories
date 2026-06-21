@@ -19,6 +19,8 @@ import { useBlogPosts } from '../hooks/useBlogPosts';
 import { useTrips } from '../hooks/useTrips';
 import { splitByStatus, formatDateRange } from '../services/tripHelpers';
 import { generateBlog } from '../services/blogService';
+import { listNotes } from '../services/noteService';
+import { checkBlogReadiness } from '../services/blogHelpers';
 import BlogPostCard from '../components/BlogPostCard';
 import GradientButton from '../components/GradientButton';
 
@@ -47,6 +49,11 @@ export default function BlogScreen() {
     setPickerOpen(false);
     setGenerating(true);
     try {
+      const readiness = checkBlogReadiness(await listNotes(tripId));
+      if (!readiness.ok) {
+        Alert.alert('Not enough notes yet', readiness.reason);
+        return;
+      }
       const id = await generateBlog(tripId);
       if (id) {
         openPost(id);
