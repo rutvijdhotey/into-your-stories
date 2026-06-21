@@ -22,6 +22,7 @@ const pending = (overrides: Partial<PendingNote> = {}): PendingNote => ({
   lng: null,
   city: null,
   place_name: null,
+  location_source: null,
   captured_at: '2026-05-22T12:00:00Z',
   occurred_at: null,
   photo_uris: [],

@@ -31,6 +31,10 @@ import TripSelector from './TripSelector';
 import { Colors, Spacing, BorderRadius } from '../theme';
 import { geocodeLocation, reverseCity, reverseGeocodePlace } from '../services/locationService';
 import { resolveLocationEdit } from '../services/locationHelpers';
+import { isPlausible, nearestAnchor, resolveAutoLocation } from '../services/tripAnchorHelpers';
+import type { AnchorPoint } from '../services/tripAnchorHelpers';
+import { getTripAnchors, invalidateTripAnchors } from '../services/tripAnchorService';
+import type { LocationPatch } from '../services/locationHelpers';
 
 type Props = {
   visible: boolean;
@@ -109,6 +113,40 @@ export default function NoteCaptureSheet({
     return () => { cancelled = true; };
   }, [exifLocation]);
 
+  // Trip anchors for GPS plausibility (destinations + trusted notes).
+  const [anchors, setAnchors] = useState<AnchorPoint[]>([]);
+  useEffect(() => {
+    if (!visible || !selectedTripId) { setAnchors([]); return; }
+    let cancelled = false;
+    getTripAnchors(selectedTripId)
+      .then((result) => { if (!cancelled) setAnchors(result); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [visible, selectedTripId]);
+
+  // When the live GPS fix is implausible for the trip (and there's no EXIF),
+  // the nearest anchor becomes the effective auto location.
+  const inferredAnchor = useMemo(() => {
+    if (exifLocation || !fix) return null;
+    const point = { lat: fix.lat, lng: fix.lng };
+    if (isPlausible(point, anchors)) return null;
+    return nearestAnchor(point, anchors);
+  }, [exifLocation, fix, anchors]);
+
+  const [anchorPlace, setAnchorPlace] = useState<{
+    anchor: AnchorPoint;
+    city: string | null;
+    placeName: string | null;
+  } | null>(null);
+  useEffect(() => {
+    if (!inferredAnchor) { setAnchorPlace(null); return; }
+    let cancelled = false;
+    reverseGeocodePlace(inferredAnchor.lat, inferredAnchor.lng)
+      .then((result) => { if (!cancelled) setAnchorPlace({ anchor: inferredAnchor, ...result }); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [inferredAnchor]);
+
   // Handle completed transcription.
   // NOTE: voice.reset() is intentionally called AFTER detectIntent resolves, not
   // before. Calling it first changes voice.status + voice.finalTranscript (both
@@ -169,7 +207,9 @@ export default function NoteCaptureSheet({
   // including them would re-fire the reset on every keystroke.
   }, [visible, fetchLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const displayCity = exifPlace?.city ?? (locating ? null : fix?.city ?? null);
+  const displayCity =
+    exifPlace?.city ??
+    (inferredAnchor ? anchorPlace?.city ?? null : locating ? null : fix?.city ?? null);
 
   useEffect(() => {
     if (!locationEdited) setLocation(displayCity ?? '');
@@ -203,14 +243,47 @@ export default function NoteCaptureSheet({
     }
     setSaving(true);
     try {
-      // Determine auto location: EXIF overrides live GPS
+      // Determine auto location: EXIF wins; otherwise GPS is plausibility-checked
+      // against the trip anchors and replaced by the nearest anchor if it looks
+      // wrong for this trip (e.g. editing a Paris trip from home).
       const latest = await fetchLocation();
-      const autoLat = exifLocation ? exifLocation.lat : (latest?.lat ?? fix?.lat ?? null);
-      const autoLng = exifLocation ? exifLocation.lng : (latest?.lng ?? fix?.lng ?? null);
-      const autoCity = exifLocation ? (exifPlace?.city ?? null) : (latest?.city ?? fix?.city ?? null);
-      const autoPlaceName = exifLocation
-        ? (exifPlace?.placeName ?? null)
-        : (latest?.placeName ?? fix?.placeName ?? null);
+      const gpsFix = latest ?? fix;
+      const auto = resolveAutoLocation(
+        exifLocation
+          ? { lat: exifLocation.lat, lng: exifLocation.lng, city: exifPlace?.city ?? null, placeName: exifPlace?.placeName ?? null }
+          : null,
+        gpsFix
+          ? { lat: gpsFix.lat, lng: gpsFix.lng, city: gpsFix.city, placeName: gpsFix.placeName }
+          : null,
+        anchors,
+      );
+
+      let autoPatch: LocationPatch;
+      if (auto.source === 'inferred') {
+        // Reuse the pill's reverse-geocode only if it was for this same anchor;
+        // the fresh fix fetched above may have shifted us to a different one.
+        const cachedPlace =
+          anchorPlace && anchorPlace.anchor.lat === auto.anchor.lat && anchorPlace.anchor.lng === auto.anchor.lng
+            ? anchorPlace
+            : await reverseGeocodePlace(auto.anchor.lat, auto.anchor.lng);
+        autoPatch = {
+          lat: auto.anchor.lat,
+          lng: auto.anchor.lng,
+          city: cachedPlace.city,
+          place_name: cachedPlace.placeName,
+          location_source: 'inferred',
+        };
+      } else if (auto.source === null) {
+        autoPatch = { lat: null, lng: null, city: null, place_name: null, location_source: null };
+      } else {
+        autoPatch = {
+          lat: auto.lat,
+          lng: auto.lng,
+          city: auto.city,
+          place_name: auto.place_name,
+          location_source: auto.source,
+        };
+      }
 
       // Apply any manual location edit on top of the auto result
       const geocoded = locationEdited ? await geocodeLocation(location) : null;
@@ -219,7 +292,7 @@ export default function NoteCaptureSheet({
       const locPatch = resolveLocationEdit({
         text: location,
         wasEdited: locationEdited,
-        auto: { lat: autoLat, lng: autoLng, city: autoCity, place_name: autoPlaceName },
+        auto: autoPatch,
         geocoded,
         reverseCity: revCity,
       });
@@ -233,9 +306,13 @@ export default function NoteCaptureSheet({
         lng: locPatch.lng,
         city: locPatch.city,
         place_name: locPatch.place_name,
+        location_source: locPatch.location_source,
         photo_uris: photos.map((p) => p.uri),
         occurred_at: earliestExifDate,
       });
+
+      // A manual location is a new trusted anchor — refresh this trip's cache.
+      if (locPatch.location_source === 'manual') invalidateTripAnchors(selectedTripId);
 
       photoPicker.clear();
       onClose();

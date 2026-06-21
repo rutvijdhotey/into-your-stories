@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { supabase } from '../lib/supabase';
 import type { Note, NoteInsert, Category } from './noteHelpers';
+import type { LocationSource } from './locationHelpers';
 import {
   enqueue,
   peekAll,
@@ -20,6 +21,7 @@ export type CreateNoteInput = {
   lng: number | null;
   city: string | null;
   place_name?: string | null;
+  location_source?: LocationSource | null;
   photo_uris?: string[];
   offline_id?: string;
   occurred_at?: string | null;
@@ -36,6 +38,7 @@ export async function createNote(input: CreateNoteInput): Promise<PendingNote> {
     lng: input.lng,
     city: input.city,
     place_name: input.place_name ?? null,
+    location_source: input.location_source ?? null,
     captured_at: new Date().toISOString(),
     occurred_at: input.occurred_at ?? null,
     photo_uris: input.photo_uris ?? [],
@@ -77,6 +80,7 @@ export async function drainQueue(): Promise<number> {
       lng: item.lng,
       city: item.city,
       place_name: item.place_name ?? null,
+      location_source: item.location_source ?? null,
       offline_id: item.offline_id,
       captured_at: item.captured_at,
       occurred_at: item.occurred_at ?? null,
@@ -108,6 +112,7 @@ export type UpdateNoteInput = {
   lng: number | null;
   city: string | null;
   place_name: string | null;
+  location_source: LocationSource | null;
 };
 
 export async function updateNote(id: string, patch: UpdateNoteInput): Promise<void> {
@@ -121,6 +126,7 @@ export async function updateNote(id: string, patch: UpdateNoteInput): Promise<vo
       lng: patch.lng,
       city: patch.city,
       place_name: patch.place_name,
+      location_source: patch.location_source,
       tagging_status: 'pending',
     })
     .eq('id', id);

@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Category } from './noteHelpers';
+import type { LocationSource } from './locationHelpers';
 
 export const QUEUE_KEY = 'iys.offlineQueue.v1';
 
@@ -13,6 +14,7 @@ export type PendingNote = {
   lng: number | null;
   city: string | null;
   place_name: string | null;
+  location_source: LocationSource | null;
   captured_at: string;
   occurred_at: string | null;
   photo_uris: string[];

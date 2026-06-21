@@ -1,4 +1,5 @@
 import type { Database } from '../lib/database.types';
+import type { LocationSource } from './locationHelpers';
 
 type NoteRow = Database['public']['Tables']['notes']['Row'];
 type NoteInsertRow = Database['public']['Tables']['notes']['Insert'];
@@ -6,13 +7,15 @@ type NoteInsertRow = Database['public']['Tables']['notes']['Insert'];
 export type Category = 'food' | 'stay' | 'activity' | 'shopping' | 'to-visit' | 'general';
 export type TaggingStatus = 'pending' | 'complete' | 'failed';
 
-export type Note = Omit<NoteRow, 'category' | 'tagging_status'> & {
+export type Note = Omit<NoteRow, 'category' | 'tagging_status' | 'location_source'> & {
   category: Category | null;
   tagging_status: TaggingStatus;
+  location_source: LocationSource | null;
 };
-export type NoteInsert = Omit<NoteInsertRow, 'category' | 'tagging_status'> & {
+export type NoteInsert = Omit<NoteInsertRow, 'category' | 'tagging_status' | 'location_source'> & {
   category?: Category | null;
   tagging_status?: TaggingStatus;
+  location_source?: LocationSource | null;
 };
 
 export const CATEGORIES: Category[] = [

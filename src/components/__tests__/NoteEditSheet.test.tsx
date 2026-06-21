@@ -26,6 +26,10 @@ jest.mock('../../services/locationService', () => ({
   reverseCity: jest.fn(),
 }));
 
+jest.mock('../../services/tripAnchorService', () => ({
+  invalidateTripAnchors: jest.fn(),
+}));
+
 // CategoryPicker is exercised manually; render nothing here to isolate the sheet.
 jest.mock('../CategoryPicker', () => ({
   __esModule: true,
@@ -197,6 +201,7 @@ describe('NoteEditSheet — editable location', () => {
     lng: -122.08,
     city: 'Mountain View',
     place_name: 'Googleplex',
+    location_source: 'gps',
   } as unknown as Note;
 
   function renderLocated() {
@@ -222,6 +227,7 @@ describe('NoteEditSheet — editable location', () => {
         lng: -122.08,
         city: 'Mountain View',
         place_name: 'Googleplex',
+        location_source: 'gps',
       }),
     );
   });
@@ -245,6 +251,7 @@ describe('NoteEditSheet — editable location', () => {
         lng: 2.35,
         city: 'Paris',
         place_name: 'Paris',
+        location_source: 'manual',
       }),
     );
   });
@@ -266,6 +273,7 @@ describe('NoteEditSheet — editable location', () => {
         lng: null,
         city: null,
         place_name: 'Paris',
+        location_source: 'manual',
       }),
     );
   });
