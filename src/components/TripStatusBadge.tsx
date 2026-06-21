@@ -11,7 +11,7 @@ export default function TripStatusBadge({ status, overdue = false }: Props) {
     status === 'completed' ? 'Completed' : overdue ? 'Overdue' : 'Active';
   const bgColor =
     status === 'completed'
-      ? 'rgba(255,255,255,0.2)'
+      ? 'rgba(28,28,30,0.92)'
       : overdue
       ? 'rgba(255,69,58,0.9)'
       : 'rgba(52,199,89,0.92)';
