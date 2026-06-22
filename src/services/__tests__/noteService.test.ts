@@ -29,7 +29,7 @@ jest.mock('../../services/taggingService', () => ({
   drainTagging: jest.fn().mockResolvedValue(undefined),
 }));
 
-import { updateNote, deleteNote, drainQueue, type UpdateNoteInput } from '../noteService';
+import { updateNote, deleteNote, drainQueue, moveNote, type UpdateNoteInput } from '../noteService';
 import { peekAll } from '../../services/offlineQueue';
 
 const mockPeekAll = peekAll as jest.MockedFunction<typeof peekAll>;
@@ -162,5 +162,23 @@ describe('deleteNote', () => {
     mockEq.mockResolvedValueOnce({ error: new Error('delete failed') });
 
     await expect(deleteNote('note-1')).rejects.toThrow('delete failed');
+  });
+});
+
+describe('moveNote', () => {
+  it('updates only trip_id and resolves on success', async () => {
+    mockEq.mockResolvedValueOnce({ error: null });
+
+    await expect(moveNote('note-1', 'trip-2')).resolves.toBeUndefined();
+
+    expect(mockFrom).toHaveBeenCalledWith('notes');
+    expect(mockUpdate).toHaveBeenCalledWith({ trip_id: 'trip-2' });
+    expect(mockEq).toHaveBeenCalledWith('id', 'note-1');
+  });
+
+  it('throws when supabase returns an error', async () => {
+    mockEq.mockResolvedValueOnce({ error: new Error('rls denied') });
+
+    await expect(moveNote('note-1', 'trip-2')).rejects.toThrow('rls denied');
   });
 });

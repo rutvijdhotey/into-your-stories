@@ -134,6 +134,20 @@ export async function updateNote(id: string, patch: UpdateNoteInput): Promise<vo
   if (error) throw error;
 }
 
+/**
+ * Reassign a note to a different trip. Touches only trip_id — deliberately NOT
+ * routed through updateNote, so it does not reset tagging_status or re-resolve
+ * location. RLS (notes_update_own) enforces that newTripId belongs to the user.
+ */
+export async function moveNote(noteId: string, newTripId: string): Promise<void> {
+  const { error } = await supabase
+    .from('notes')
+    .update({ trip_id: newTripId })
+    .eq('id', noteId);
+
+  if (error) throw error;
+}
+
 export async function deleteNote(id: string): Promise<void> {
   const { error } = await supabase
     .from('notes')
