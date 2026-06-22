@@ -12,8 +12,8 @@ const TIME_LABELS: Record<TimeOfDay, string> = {
 export default function ItineraryView({ itinerary }: { itinerary: Itinerary }) {
   return (
     <View style={styles.container}>
-      {itinerary.map((day) => (
-        <View key={day.day} style={styles.card}>
+      {itinerary.map((day, dayIndex) => (
+        <View key={`${day.day}-${dayIndex}`} style={styles.card}>
           <View style={styles.dayHeader}>
             <Text style={styles.dayNumber}>Day {day.day}</Text>
             {day.date ? <Text style={styles.dayDate}>{formatBlogDate(day.date)}</Text> : null}

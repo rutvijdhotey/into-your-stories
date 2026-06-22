@@ -280,6 +280,10 @@ async function generate(admin: any, postId: string, tripId: string) {
 
     if (content_markdown.trim().length === 0) throw new Error('empty_content');
 
+    // Coarse server-side gate only: confirm each day has a numeric `day` and at
+    // least one named stop, then store as-is. Field-level narrowing (time_of_day,
+    // category, coords, etc.) is intentionally deferred to the client's
+    // parseItinerary, so the stored jsonb is not assumed fully clean here.
     let itinerary: unknown = null;
     if (eligible && Array.isArray(parsed.itinerary)) {
       const days = parsed.itinerary
