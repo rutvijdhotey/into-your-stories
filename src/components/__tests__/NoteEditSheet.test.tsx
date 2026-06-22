@@ -30,6 +30,10 @@ jest.mock('../../services/tripAnchorService', () => ({
   invalidateTripAnchors: jest.fn(),
 }));
 
+jest.mock('../../services/tripService', () => ({
+  listTrips: jest.fn().mockResolvedValue([]),
+}));
+
 // CategoryPicker is exercised manually; render nothing here to isolate the sheet.
 jest.mock('../CategoryPicker', () => ({
   __esModule: true,
@@ -77,13 +81,22 @@ const baseNote = {
   photo_urls: [URL_0, URL_1],
 } as unknown as Note;
 
-function renderSheet(overrides: Partial<{ onClose: jest.Mock; onDeleted: jest.Mock }> = {}) {
+function renderSheet(
+  overrides: Partial<{ onClose: jest.Mock; onDeleted: jest.Mock; onMoved: jest.Mock }> = {},
+) {
   const onClose = overrides.onClose ?? jest.fn();
   const onDeleted = overrides.onDeleted ?? jest.fn();
+  const onMoved = overrides.onMoved ?? jest.fn();
   const utils = render(
-    <NoteEditSheet note={baseNote} visible={true} onClose={onClose} onDeleted={onDeleted} />,
+    <NoteEditSheet
+      note={baseNote}
+      visible={true}
+      onClose={onClose}
+      onDeleted={onDeleted}
+      onMoved={onMoved}
+    />,
   );
-  return { ...utils, onClose, onDeleted };
+  return { ...utils, onClose, onDeleted, onMoved };
 }
 
 beforeEach(() => {
@@ -206,7 +219,13 @@ describe('NoteEditSheet — editable location', () => {
 
   function renderLocated() {
     return render(
-      <NoteEditSheet note={locatedNote} visible={true} onClose={jest.fn()} onDeleted={jest.fn()} />,
+      <NoteEditSheet
+        note={locatedNote}
+        visible={true}
+        onClose={jest.fn()}
+        onDeleted={jest.fn()}
+        onMoved={jest.fn()}
+      />,
     );
   }
 
@@ -328,5 +347,21 @@ describe('NoteEditSheet — delete flow', () => {
     );
     expect(onDeleted).toHaveBeenCalled();
     alertSpy.mockRestore();
+  });
+});
+
+describe('NoteEditSheet — move to trip', () => {
+  it('opens the move sheet when "Move to trip…" is pressed', () => {
+    const { getByLabelText, getByText } = render(
+      <NoteEditSheet
+        note={baseNote}
+        visible
+        onClose={jest.fn()}
+        onDeleted={jest.fn()}
+        onMoved={jest.fn()}
+      />,
+    );
+    fireEvent.press(getByLabelText('Move note to another trip'));
+    expect(getByText('Move to Trip')).toBeTruthy();
   });
 });

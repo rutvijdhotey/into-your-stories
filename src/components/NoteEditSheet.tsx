@@ -20,6 +20,7 @@ import { validateContent, type Category, type Note } from '../services/noteHelpe
 import { usePhotoPicker, MAX_PHOTOS_PER_NOTE } from '../hooks/usePhotoPicker';
 import CategoryPicker from './CategoryPicker';
 import LocationField from './LocationField';
+import MoveToTripSheet from './MoveToTripSheet';
 import { geocodeLocation, reverseCity } from '../services/locationService';
 import { resolveLocationEdit } from '../services/locationHelpers';
 import { invalidateTripAnchors } from '../services/tripAnchorService';
@@ -30,10 +31,12 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   onDeleted: () => void;
+  onMoved: () => void;
 };
 
-export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Props) {
+export default function NoteEditSheet({ note, visible, onClose, onDeleted, onMoved }: Props) {
   const [content, setContent] = useState(note.content);
+  const [showMove, setShowMove] = useState(false);
   const [category, setCategory] = useState<Category | null>(note.category);
   const [location, setLocation] = useState(note.place_name ?? note.city ?? '');
   const [locationEdited, setLocationEdited] = useState(false);
@@ -277,9 +280,30 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted }: Pro
           </Pressable>
         </View>
 
+        <Pressable
+          onPress={() => setShowMove(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Move note to another trip"
+          style={styles.moveButton}
+        >
+          <Text style={styles.moveLabel}>Move to trip…</Text>
+        </Pressable>
+
         <Pressable onPress={handleDelete} disabled={deleting} style={styles.deleteButton} accessibilityRole="button" accessibilityLabel="Delete note">
           <Text style={styles.deleteLabel}>Delete Note</Text>
         </Pressable>
+
+        <MoveToTripSheet
+          visible={showMove}
+          userId={note.user_id}
+          currentTripId={note.trip_id}
+          noteId={note.id}
+          onClose={() => setShowMove(false)}
+          onMoved={() => {
+            setShowMove(false);
+            onMoved();
+          }}
+        />
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -367,4 +391,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   deleteLabel: { fontSize: 15, color: Colors.error },
+  moveButton: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  moveLabel: { fontSize: 15, color: Colors.accent },
 });
