@@ -10,7 +10,7 @@ import type { Note } from '../../services/noteHelpers';
 type Props = { tripId: string };
 
 export default function TripFeedScreen({ tripId }: Props) {
-  const { items, loading, error } = useNotes(tripId);
+  const { items, loading, error, refresh } = useNotes(tripId);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
 
   if (loading) {
@@ -67,6 +67,10 @@ export default function TripFeedScreen({ tripId }: Props) {
           visible={true}
           onClose={() => setEditingNote(null)}
           onDeleted={() => setEditingNote(null)}
+          onMoved={() => {
+            setEditingNote(null);
+            refresh();
+          }}
         />
       )}
     </>

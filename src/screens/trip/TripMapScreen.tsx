@@ -17,7 +17,7 @@ import { CategoryColors, Colors, Spacing, Typography } from '../../theme';
 type Props = { tripId: string };
 
 export default function TripMapScreen({ tripId }: Props) {
-  const { items, loading, error } = useNotes(tripId);
+  const { items, loading, error, refresh } = useNotes(tripId);
   const [filter, setFilter] = useState<Category | null>(null);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
 
@@ -109,6 +109,10 @@ export default function TripMapScreen({ tripId }: Props) {
           visible={true}
           onClose={() => setEditingNote(null)}
           onDeleted={() => setEditingNote(null)}
+          onMoved={() => {
+            setEditingNote(null);
+            refresh();
+          }}
         />
       )}
     </View>
