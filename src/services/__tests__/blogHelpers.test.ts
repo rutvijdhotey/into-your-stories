@@ -6,6 +6,7 @@ import {
   markdownToHtml,
   checkBlogReadiness,
   MIN_NOTES_FOR_BLOG,
+  parseItinerary,
 } from '../blogHelpers';
 import type { Note } from '../noteHelpers';
 
@@ -175,5 +176,68 @@ describe('markdownToHtml', () => {
   it('escapes double-quotes in image alt text so they cannot break the attribute', () => {
     const html = markdownToHtml('![a "quoted" caption](https://x/p.jpg)');
     expect(html).toContain('<img alt="a &quot;quoted&quot; caption" src="https://x/p.jpg" />');
+  });
+});
+
+describe('parseItinerary', () => {
+  const validStop = {
+    time_of_day: 'morning',
+    place_name: 'Café Aurora',
+    category: 'food',
+    description: 'Pastries and strong coffee.',
+    lat: 41.1,
+    lng: -8.6,
+  };
+  const validDay = { day: 1, date: '2026-05-12', title: 'Old town', stops: [validStop] };
+
+  it('returns null for non-arrays and empty arrays', () => {
+    expect(parseItinerary(null)).toBeNull();
+    expect(parseItinerary(undefined)).toBeNull();
+    expect(parseItinerary('nope')).toBeNull();
+    expect(parseItinerary([])).toBeNull();
+  });
+
+  it('parses a valid itinerary', () => {
+    const result = parseItinerary([validDay]);
+    expect(result).not.toBeNull();
+    expect(result).toHaveLength(1);
+    expect(result![0].day).toBe(1);
+    expect(result![0].title).toBe('Old town');
+    expect(result![0].stops[0].place_name).toBe('Café Aurora');
+    expect(result![0].stops[0].time_of_day).toBe('morning');
+    expect(result![0].stops[0].category).toBe('food');
+    expect(result![0].stops[0].lat).toBe(41.1);
+  });
+
+  it('drops stops without a place_name and days left with no stops', () => {
+    const result = parseItinerary([
+      { day: 1, date: null, title: 'Day one', stops: [{ ...validStop, place_name: '' }] },
+      validDay,
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result![0].day).toBe(1);
+    expect(result![0].title).toBe('Old town');
+  });
+
+  it('coerces unknown time_of_day and category to null', () => {
+    const result = parseItinerary([
+      { ...validDay, stops: [{ ...validStop, time_of_day: 'midnight', category: 'wat' }] },
+    ]);
+    expect(result![0].stops[0].time_of_day).toBeNull();
+    expect(result![0].stops[0].category).toBeNull();
+  });
+
+  it('coerces non-numeric coords and missing description to safe values', () => {
+    const result = parseItinerary([
+      { ...validDay, stops: [{ place_name: 'A Place', lat: 'x', lng: null }] },
+    ]);
+    expect(result![0].stops[0].lat).toBeNull();
+    expect(result![0].stops[0].lng).toBeNull();
+    expect(result![0].stops[0].description).toBe('');
+    expect(result![0].stops[0].category).toBeNull();
+  });
+
+  it('returns null when no day has any valid stop', () => {
+    expect(parseItinerary([{ day: 1, date: null, title: 'x', stops: [] }])).toBeNull();
   });
 });

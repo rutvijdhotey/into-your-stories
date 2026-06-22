@@ -17,6 +17,82 @@ export type BlogResult = {
 
 export type Place = { place_name: string; category: Category | null; city: string | null };
 
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening';
+
+export type ItineraryStop = {
+  time_of_day: TimeOfDay | null;
+  place_name: string;
+  category: Category | null;
+  description: string;
+  lat: number | null;
+  lng: number | null;
+};
+
+export type ItineraryDay = {
+  day: number;
+  date: string | null;
+  title: string;
+  stops: ItineraryStop[];
+};
+
+export type Itinerary = ItineraryDay[];
+
+const TIME_OF_DAY: TimeOfDay[] = ['morning', 'afternoon', 'evening'];
+const CATEGORY_VALUES: Category[] = ['food', 'stay', 'activity', 'shopping', 'to-visit', 'general'];
+
+function coerceNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function parseStop(value: unknown): ItineraryStop | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const obj = value as Record<string, unknown>;
+  const place_name = typeof obj.place_name === 'string' ? obj.place_name.trim() : '';
+  if (place_name.length === 0) return null;
+  const time_of_day =
+    typeof obj.time_of_day === 'string' && (TIME_OF_DAY as string[]).includes(obj.time_of_day)
+      ? (obj.time_of_day as TimeOfDay)
+      : null;
+  const category =
+    typeof obj.category === 'string' && (CATEGORY_VALUES as string[]).includes(obj.category)
+      ? (obj.category as Category)
+      : null;
+  return {
+    time_of_day,
+    place_name,
+    category,
+    description: typeof obj.description === 'string' ? obj.description : '',
+    lat: coerceNumber(obj.lat),
+    lng: coerceNumber(obj.lng),
+  };
+}
+
+/**
+ * Narrows the stored `itinerary` jsonb into a typed Itinerary. Drops malformed
+ * stops (no place_name) and days left with no valid stops. Returns null when
+ * the value is not an array, is empty, or has no valid day — callers treat null
+ * as "no itinerary". The edge function does its own inline validation; this is
+ * the client's defensive parse of whatever ended up in the column.
+ */
+export function parseItinerary(value: unknown): Itinerary | null {
+  if (!Array.isArray(value)) return null;
+  const days: ItineraryDay[] = [];
+  for (const raw of value) {
+    if (typeof raw !== 'object' || raw === null) continue;
+    const obj = raw as Record<string, unknown>;
+    if (typeof obj.day !== 'number' || !Array.isArray(obj.stops)) continue;
+    const stops = obj.stops.map(parseStop).filter((s): s is ItineraryStop => s !== null);
+    if (stops.length === 0) continue;
+    days.push({
+      day: obj.day,
+      date: typeof obj.date === 'string' ? obj.date : null,
+      title: typeof obj.title === 'string' ? obj.title : '',
+      stops,
+    });
+  }
+  return days.length > 0 ? days : null;
+}
+
 export function statusLabel(status: BlogStatus): string {
   switch (status) {
     case 'generating':
