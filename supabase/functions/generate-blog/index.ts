@@ -88,16 +88,25 @@ Otherwise, write the post as Markdown with this structure:
   those, just judge them by their note context.
 - A "## Places" section near the end that groups the named places by their category
   (Food, Stay, Activity, Shopping, To-Visit), as a short list under each heading that appears.
+- Itinerary: when asked to produce one (see the instruction in the notes), build a day-by-day
+  plan grounded ONLY in the located, named places from the notes — never invent stops. Group stops
+  by trip day in order. For each day give a 1-based "day" number, the ISO "date" (yyyy-mm-dd) when
+  the notes make it clear (else null), and a short evocative "title". For each stop give:
+  "time_of_day" as exactly "morning", "afternoon", or "evening" (or null if unclear — do not
+  fabricate precise times), "place_name", "category" (food/stay/activity/shopping/to-visit/general
+  or null), a one-line "description" grounded in the notes, and "lat"/"lng" copied from that note.
+  When told NOT to produce an itinerary, set "itinerary" to null.
 - A brief closing paragraph.
 
 Respond with ONLY valid JSON — no markdown fences, no commentary:
-{"title": string, "content_markdown": string, "cover_photo_url": string | null, "selected_photo_urls": string[]}
+{"title": string, "content_markdown": string, "cover_photo_url": string | null, "selected_photo_urls": string[], "itinerary": ItineraryDay[] | null}
 
 - title: a short, evocative title for the trip.
 - content_markdown: the full post described above.
 - cover_photo_url: the single best hero photo URL — the most striking, representative image of the
   whole trip based on what you see — or null if the trip has no photos.
-- selected_photo_urls: every photo URL you actually used inline (may be empty).`;
+- selected_photo_urls: every photo URL you actually used inline (may be empty).
+- itinerary: a day-by-day itinerary as described above, or null when not requested or not applicable.`;
 
 type NoteRow = {
   content: string;
@@ -107,18 +116,40 @@ type NoteRow = {
   lat: number | null;
   lng: number | null;
   created_at: string;
+  occurred_at: string | null;
   photo_urls: string[] | null;
 };
 
 function noteMeta(n: NoteRow): string {
   return [
     n.created_at,
+    n.occurred_at ? `date: ${n.occurred_at}` : '',
     n.city ? `city: ${n.city}` : '',
     n.place_name ? `place: ${n.place_name}` : '',
     n.category ? `category: ${n.category}` : '',
   ]
     .filter(Boolean)
     .join(' | ');
+}
+
+const MIN_ITINERARY_DAYS = 3;
+
+/**
+ * A note is an itinerary "stop candidate" when it is both located and named.
+ * The trip warrants an itinerary when at least MIN_ITINERARY_DAYS distinct
+ * calendar days (by occurred_at, falling back to created_at) contain such a
+ * note. Deterministic so the decision is predictable and spends no output
+ * tokens on trips too sparse for a real itinerary.
+ */
+function isItineraryEligible(notes: NoteRow[]): boolean {
+  const days = new Set<string>();
+  for (const n of notes) {
+    if (!n.place_name || n.place_name.trim().length === 0) continue;
+    if (n.lat === null || n.lng === null) continue;
+    const iso = n.occurred_at ?? n.created_at;
+    days.add(iso.slice(0, 10)); // yyyy-mm-dd
+  }
+  return days.size >= MIN_ITINERARY_DAYS;
 }
 
 /**
@@ -131,6 +162,7 @@ function noteMeta(n: NoteRow): string {
 async function buildUserContent(
   trip: { name: string; destinations: string[] } | null,
   notes: NoteRow[],
+  eligible: boolean,
 ): Promise<ContentBlock[]> {
   const allPhotos = notes.flatMap((n) => n.photo_urls ?? []);
   const content: ContentBlock[] = [];
@@ -164,6 +196,13 @@ async function buildUserContent(
       ? `Available photo URLs (use ONLY these, copied exactly):\n${allPhotos.join('\n')}`
       : 'This trip has no photos. Use null for cover_photo_url and [] for selected_photo_urls.',
   });
+
+  content.push({
+    type: 'text',
+    text: eligible
+      ? 'Produce a day-by-day itinerary in the "itinerary" field as described in the system prompt.'
+      : 'Do NOT produce an itinerary. Set "itinerary" to null.',
+  });
   return content;
 }
 
@@ -178,14 +217,15 @@ async function generate(admin: any, postId: string, tripId: string) {
 
     const { data: notes } = await admin
       .from('notes')
-      .select('content, category, place_name, city, lat, lng, created_at, photo_urls')
+      .select('content, category, place_name, city, lat, lng, occurred_at, created_at, photo_urls')
       .eq('trip_id', tripId)
       .order('created_at', { ascending: true });
 
     const noteRows: NoteRow[] = notes ?? [];
     if (noteRows.length === 0) throw new Error('no_notes');
 
-    const userContent = await buildUserContent(trip, noteRows);
+    const eligible = isItineraryEligible(noteRows);
+    const userContent = await buildUserContent(trip, noteRows, eligible);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 140_000);
@@ -240,9 +280,30 @@ async function generate(admin: any, postId: string, tripId: string) {
 
     if (content_markdown.trim().length === 0) throw new Error('empty_content');
 
+    let itinerary: unknown = null;
+    if (eligible && Array.isArray(parsed.itinerary)) {
+      const days = parsed.itinerary
+        .map((d: unknown) => {
+          if (typeof d !== 'object' || d === null) return null;
+          const obj = d as Record<string, unknown>;
+          if (typeof obj.day !== 'number' || !Array.isArray(obj.stops)) return null;
+          const stops = obj.stops.filter(
+            (s: unknown) =>
+              typeof s === 'object' &&
+              s !== null &&
+              typeof (s as Record<string, unknown>).place_name === 'string' &&
+              ((s as Record<string, unknown>).place_name as string).trim().length > 0,
+          );
+          if (stops.length === 0) return null;
+          return { ...obj, stops };
+        })
+        .filter((d: unknown) => d !== null);
+      itinerary = days.length > 0 ? days : null;
+    }
+
     await admin
       .from('blog_posts')
-      .update({ status: 'draft', title, content_markdown, cover_photo_url, selected_photo_urls })
+      .update({ status: 'draft', title, content_markdown, cover_photo_url, selected_photo_urls, itinerary })
       .eq('id', postId);
   } catch (e) {
     await admin
