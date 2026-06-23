@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../theme';
 import CategoryBadge from './CategoryBadge';
-import { formatBlogDate, type Itinerary, type TimeOfDay } from '../services/blogHelpers';
+import { formatBlogDate, stopsWithCoords, type Itinerary, type TimeOfDay } from '../services/blogHelpers';
+import ItineraryMap from './ItineraryMap';
 
 const TIME_LABELS: Record<TimeOfDay, string> = {
   morning: 'Morning',
@@ -10,8 +11,10 @@ const TIME_LABELS: Record<TimeOfDay, string> = {
 };
 
 export default function ItineraryView({ itinerary }: { itinerary: Itinerary }) {
+  const mapStops = stopsWithCoords(itinerary);
   return (
     <View style={styles.container}>
+      {mapStops.length > 0 ? <ItineraryMap stops={mapStops} /> : null}
       {itinerary.map((day, dayIndex) => (
         <View key={`${day.day}-${dayIndex}`} style={styles.card}>
           <View style={styles.dayHeader}>

@@ -18,13 +18,14 @@ const VISION_LONGEST_EDGE = 1536;
 const VISION_JPEG_QUALITY = 80;
 
 // Cap how many photos we decode+send in one generation, to bound edge-function
-// memory/time. A blog features only a handful of photos, so this is plenty for
-// an informed choice; any photos beyond the cap are still referenced by URL
-// (text-only) so they remain selectable, just not visually judged. Kept modest
-// because every vision photo costs both download/resize wall-clock AND image
-// tokens in the (already long) Claude call — too many tips a photo-heavy trip
-// past the platform's wall-clock limit, which silently kills the worker.
-const MAX_VISION_PHOTOS = 15;
+// memory/time. Any photos beyond the cap are still referenced by URL (text-only)
+// so they remain selectable, just not visually judged. Every vision photo costs
+// both download/resize wall-clock AND image tokens in the Claude call, but
+// batched preprocessing (VISION_BATCH_SIZE) keeps the wall-clock cost low — a
+// 68-photo trip generated in ~54s of the 140s budget at this cap — so 24 gives
+// Claude enough candidates to choose a photo-rich post without risking the
+// platform wall-clock limit that silently kills the worker.
+const MAX_VISION_PHOTOS = 24;
 
 // Photos are downloaded+resized concurrently in batches of this size. Concurrency
 // slashes the preprocessing wall-clock vs. one-at-a-time; the small batch keeps
@@ -104,12 +105,13 @@ Otherwise, write the post as Markdown with this structure:
   Never stretch thin material to hit a word count.
 - Inline photos: the actual photos are provided to you as images, each labeled with its exact URL.
   LOOK at them and judge them on what you can see — composition, clarity, and how well each one
-  represents its moment. For any note with several photos, prefer its single strongest shot. Across
-  the whole trip, feature only a handful of the best, most representative photos overall (not one
-  per note, even if every note has a photo). Place them with Markdown image syntax on their own
-  line, e.g. ![short caption](THE_EXACT_URL), using ONLY the labeled URLs, copied exactly. A few
-  photos may be referenced by URL without an image shown (unsupported format) — you may still use
-  those, just judge them by their note context.
+  represents its moment. Feature SEVERAL photos that carry the story — aim for roughly one per city
+  or day (about 5–12 across a rich, many-noted trip; fewer for a short one). Don't leave long
+  stretches of prose without a photo, but never add a weak or redundant shot just to hit a number,
+  and for any note with several photos use only its single strongest. Place them with Markdown image
+  syntax on their own line, e.g. ![short caption](THE_EXACT_URL), using ONLY the labeled URLs,
+  copied exactly. A few photos may be referenced by URL without an image shown (unsupported format)
+  — you may still use those, just judge them by their note context.
 - A "## Places" section near the end that groups the named places by their category
   (Food, Stay, Activity, Shopping, To-Visit), as a short list under each heading that appears.
 - Itinerary: when asked to produce one (see the instruction in the notes), build a day-by-day
@@ -151,6 +153,9 @@ function noteMeta(n: NoteRow): string {
     n.city ? `city: ${n.city}` : '',
     n.place_name ? `place: ${n.place_name}` : '',
     n.category ? `category: ${n.category}` : '',
+    // Exact coords so the model can copy lat/lng verbatim into itinerary stops —
+    // without this the itinerary has no coordinates and the map can't render.
+    n.lat !== null && n.lng !== null ? `coords: ${n.lat},${n.lng}` : '',
   ]
     .filter(Boolean)
     .join(' | ');

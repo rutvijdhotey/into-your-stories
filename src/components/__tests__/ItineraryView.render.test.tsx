@@ -1,3 +1,11 @@
+jest.mock('react-native-maps', () => ({
+  __esModule: true,
+  default: () => null,
+  Marker: () => null,
+  Callout: () => null,
+  PROVIDER_DEFAULT: 'default',
+}));
+
 import { render } from '@testing-library/react-native';
 import ItineraryView from '../ItineraryView';
 import type { Itinerary } from '../../services/blogHelpers';

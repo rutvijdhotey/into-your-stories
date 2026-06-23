@@ -9,7 +9,9 @@ import {
   parseItinerary,
   isStaleGenerating,
   STALE_GENERATING_MS,
+  stopsWithCoords,
 } from '../blogHelpers';
+import type { Itinerary } from '../blogHelpers';
 import type { Note } from '../noteHelpers';
 
 describe('statusLabel', () => {
@@ -258,5 +260,43 @@ describe('isStaleGenerating', () => {
 
   it('is false for non-generating statuses regardless of age', () => {
     expect(isStaleGenerating({ status: 'draft', created_at: base.created_at }, t0 + 10 * 60_000)).toBe(false);
+  });
+});
+
+describe('stopsWithCoords', () => {
+  const itinerary: Itinerary = [
+    {
+      day: 1,
+      date: null,
+      title: 'Day one',
+      stops: [
+        { time_of_day: 'morning', place_name: 'A', category: 'food', description: '', lat: 1, lng: 2 },
+        { time_of_day: null, place_name: 'B', category: null, description: '', lat: null, lng: null },
+      ],
+    },
+    {
+      day: 2,
+      date: null,
+      title: 'Day two',
+      stops: [
+        { time_of_day: 'evening', place_name: 'C', category: 'activity', description: '', lat: 3, lng: 4 },
+      ],
+    },
+  ];
+
+  it('flattens days and keeps only stops with both coords', () => {
+    const result = stopsWithCoords(itinerary);
+    expect(result.map((s) => s.place_name)).toEqual(['A', 'C']);
+    expect(result[0].lat).toBe(1);
+    expect(result[1].lng).toBe(4);
+  });
+
+  it('returns an empty array when no stop has coords', () => {
+    const none: Itinerary = [
+      { day: 1, date: null, title: 'x', stops: [
+        { time_of_day: null, place_name: 'B', category: null, description: '', lat: null, lng: null },
+      ] },
+    ];
+    expect(stopsWithCoords(none)).toEqual([]);
   });
 });
