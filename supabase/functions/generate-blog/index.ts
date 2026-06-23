@@ -153,6 +153,9 @@ function noteMeta(n: NoteRow): string {
     n.city ? `city: ${n.city}` : '',
     n.place_name ? `place: ${n.place_name}` : '',
     n.category ? `category: ${n.category}` : '',
+    // Exact coords so the model can copy lat/lng verbatim into itinerary stops —
+    // without this the itinerary has no coordinates and the map can't render.
+    n.lat !== null && n.lng !== null ? `coords: ${n.lat},${n.lng}` : '',
   ]
     .filter(Boolean)
     .join(' | ');
