@@ -21,6 +21,7 @@ export type Database = {
           created_at: string
           error_message: string | null
           id: string
+          itinerary: Json | null
           published_at: string | null
           selected_photo_urls: string[]
           status: string
@@ -35,6 +36,7 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          itinerary?: Json | null
           published_at?: string | null
           selected_photo_urls?: string[]
           status?: string
@@ -49,6 +51,7 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          itinerary?: Json | null
           published_at?: string | null
           selected_photo_urls?: string[]
           status?: string

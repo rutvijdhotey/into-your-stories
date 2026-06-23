@@ -20,8 +20,16 @@ const VISION_JPEG_QUALITY = 80;
 // Cap how many photos we decode+send in one generation, to bound edge-function
 // memory/time. A blog features only a handful of photos, so this is plenty for
 // an informed choice; any photos beyond the cap are still referenced by URL
-// (text-only) so they remain selectable, just not visually judged.
-const MAX_VISION_PHOTOS = 30;
+// (text-only) so they remain selectable, just not visually judged. Kept modest
+// because every vision photo costs both download/resize wall-clock AND image
+// tokens in the (already long) Claude call — too many tips a photo-heavy trip
+// past the platform's wall-clock limit, which silently kills the worker.
+const MAX_VISION_PHOTOS = 15;
+
+// Photos are downloaded+resized concurrently in batches of this size. Concurrency
+// slashes the preprocessing wall-clock vs. one-at-a-time; the small batch keeps
+// peak memory bounded (we never hold more than this many decoded images at once).
+const VISION_BATCH_SIZE = 5;
 
 type ImageBlock = {
   type: 'image';
@@ -57,6 +65,22 @@ async function fetchResizedImageBlock(url: string): Promise<ImageBlock | null> {
   }
 }
 
+/**
+ * Downloads+resizes the given URLs concurrently in batches of VISION_BATCH_SIZE
+ * and returns a url -> image block map (block is null for fetch/decode failures).
+ * Batching cuts preprocessing wall-clock dramatically vs. sequential awaits while
+ * bounding peak memory (at most VISION_BATCH_SIZE decoded images in flight).
+ */
+async function fetchImageBlocks(urls: string[]): Promise<Map<string, ImageBlock | null>> {
+  const map = new Map<string, ImageBlock | null>();
+  for (let i = 0; i < urls.length; i += VISION_BATCH_SIZE) {
+    const batch = urls.slice(i, i + VISION_BATCH_SIZE);
+    const blocks = await Promise.all(batch.map((u) => fetchResizedImageBlock(u)));
+    batch.forEach((u, j) => map.set(u, blocks[j]));
+  }
+  return map;
+}
+
 // Supabase injects EdgeRuntime; declare it so the editor doesn't complain.
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
 
@@ -88,16 +112,25 @@ Otherwise, write the post as Markdown with this structure:
   those, just judge them by their note context.
 - A "## Places" section near the end that groups the named places by their category
   (Food, Stay, Activity, Shopping, To-Visit), as a short list under each heading that appears.
+- Itinerary: when asked to produce one (see the instruction in the notes), build a day-by-day
+  plan grounded ONLY in the located, named places from the notes — never invent stops. Group stops
+  by trip day in order. For each day give a 1-based "day" number, the ISO "date" (yyyy-mm-dd) when
+  the notes make it clear (else null), and a short evocative "title". For each stop give:
+  "time_of_day" as exactly "morning", "afternoon", or "evening" (or null if unclear — do not
+  fabricate precise times), "place_name", "category" (food/stay/activity/shopping/to-visit/general
+  or null), a one-line "description" grounded in the notes, and "lat"/"lng" copied from that note.
+  When told NOT to produce an itinerary, set "itinerary" to null.
 - A brief closing paragraph.
 
 Respond with ONLY valid JSON — no markdown fences, no commentary:
-{"title": string, "content_markdown": string, "cover_photo_url": string | null, "selected_photo_urls": string[]}
+{"title": string, "content_markdown": string, "cover_photo_url": string | null, "selected_photo_urls": string[], "itinerary": ItineraryDay[] | null}
 
 - title: a short, evocative title for the trip.
 - content_markdown: the full post described above.
 - cover_photo_url: the single best hero photo URL — the most striking, representative image of the
   whole trip based on what you see — or null if the trip has no photos.
-- selected_photo_urls: every photo URL you actually used inline (may be empty).`;
+- selected_photo_urls: every photo URL you actually used inline (may be empty).
+- itinerary: a day-by-day itinerary as described above, or null when not requested or not applicable.`;
 
 type NoteRow = {
   content: string;
@@ -107,18 +140,40 @@ type NoteRow = {
   lat: number | null;
   lng: number | null;
   created_at: string;
+  occurred_at: string | null;
   photo_urls: string[] | null;
 };
 
 function noteMeta(n: NoteRow): string {
   return [
     n.created_at,
+    n.occurred_at ? `date: ${n.occurred_at}` : '',
     n.city ? `city: ${n.city}` : '',
     n.place_name ? `place: ${n.place_name}` : '',
     n.category ? `category: ${n.category}` : '',
   ]
     .filter(Boolean)
     .join(' | ');
+}
+
+const MIN_ITINERARY_DAYS = 3;
+
+/**
+ * A note is an itinerary "stop candidate" when it is both located and named.
+ * The trip warrants an itinerary when at least MIN_ITINERARY_DAYS distinct
+ * calendar days (by occurred_at, falling back to created_at) contain such a
+ * note. Deterministic so the decision is predictable and spends no output
+ * tokens on trips too sparse for a real itinerary.
+ */
+function isItineraryEligible(notes: NoteRow[]): boolean {
+  const days = new Set<string>();
+  for (const n of notes) {
+    if (!n.place_name || n.place_name.trim().length === 0) continue;
+    if (n.lat === null || n.lng === null) continue;
+    const iso = n.occurred_at ?? n.created_at;
+    days.add(iso.slice(0, 10)); // yyyy-mm-dd
+  }
+  return days.size >= MIN_ITINERARY_DAYS;
 }
 
 /**
@@ -131,8 +186,14 @@ function noteMeta(n: NoteRow): string {
 async function buildUserContent(
   trip: { name: string; destinations: string[] } | null,
   notes: NoteRow[],
+  eligible: boolean,
 ): Promise<ContentBlock[]> {
   const allPhotos = notes.flatMap((n) => n.photo_urls ?? []);
+  // Prefetch the first MAX_VISION_PHOTOS (in chronological order) concurrently,
+  // then assemble the message from the map with no awaits in the loop. Photos
+  // beyond the cap, or ones that failed to decode, fall back to URL-only refs.
+  const blockMap = await fetchImageBlocks(allPhotos.slice(0, MAX_VISION_PHOTOS));
+
   const content: ContentBlock[] = [];
 
   const header: string[] = [`Trip name: ${trip?.name ?? 'Untitled trip'}`];
@@ -141,15 +202,13 @@ async function buildUserContent(
   header.push('Notes (chronological). Photos for each note follow it as labeled images:');
   content.push({ type: 'text', text: header.join('\n') });
 
-  let imageBudget = MAX_VISION_PHOTOS;
   let i = 0;
   for (const n of notes) {
     i += 1;
     content.push({ type: 'text', text: `${i}. [${noteMeta(n)}] ${n.content}` });
     for (const url of n.photo_urls ?? []) {
-      const block = imageBudget > 0 ? await fetchResizedImageBlock(url) : null;
+      const block = blockMap.get(url) ?? null;
       if (block) {
-        imageBudget -= 1;
         content.push({ type: 'text', text: `Photo — url: ${url}` });
         content.push(block);
       } else {
@@ -163,6 +222,13 @@ async function buildUserContent(
     text: allPhotos.length
       ? `Available photo URLs (use ONLY these, copied exactly):\n${allPhotos.join('\n')}`
       : 'This trip has no photos. Use null for cover_photo_url and [] for selected_photo_urls.',
+  });
+
+  content.push({
+    type: 'text',
+    text: eligible
+      ? 'Produce a day-by-day itinerary in the "itinerary" field as described in the system prompt.'
+      : 'Do NOT produce an itinerary. Set "itinerary" to null.',
   });
   return content;
 }
@@ -178,14 +244,15 @@ async function generate(admin: any, postId: string, tripId: string) {
 
     const { data: notes } = await admin
       .from('notes')
-      .select('content, category, place_name, city, lat, lng, created_at, photo_urls')
+      .select('content, category, place_name, city, lat, lng, occurred_at, created_at, photo_urls')
       .eq('trip_id', tripId)
       .order('created_at', { ascending: true });
 
     const noteRows: NoteRow[] = notes ?? [];
     if (noteRows.length === 0) throw new Error('no_notes');
 
-    const userContent = await buildUserContent(trip, noteRows);
+    const eligible = isItineraryEligible(noteRows);
+    const userContent = await buildUserContent(trip, noteRows, eligible);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 140_000);
@@ -240,9 +307,34 @@ async function generate(admin: any, postId: string, tripId: string) {
 
     if (content_markdown.trim().length === 0) throw new Error('empty_content');
 
+    // Coarse server-side gate only: confirm each day has a numeric `day` and at
+    // least one named stop, then store as-is. Field-level narrowing (time_of_day,
+    // category, coords, etc.) is intentionally deferred to the client's
+    // parseItinerary, so the stored jsonb is not assumed fully clean here.
+    let itinerary: unknown = null;
+    if (eligible && Array.isArray(parsed.itinerary)) {
+      const days = parsed.itinerary
+        .map((d: unknown) => {
+          if (typeof d !== 'object' || d === null) return null;
+          const obj = d as Record<string, unknown>;
+          if (typeof obj.day !== 'number' || !Array.isArray(obj.stops)) return null;
+          const stops = obj.stops.filter(
+            (s: unknown) =>
+              typeof s === 'object' &&
+              s !== null &&
+              typeof (s as Record<string, unknown>).place_name === 'string' &&
+              ((s as Record<string, unknown>).place_name as string).trim().length > 0,
+          );
+          if (stops.length === 0) return null;
+          return { ...obj, stops };
+        })
+        .filter((d: unknown) => d !== null);
+      itinerary = days.length > 0 ? days : null;
+    }
+
     await admin
       .from('blog_posts')
-      .update({ status: 'draft', title, content_markdown, cover_photo_url, selected_photo_urls })
+      .update({ status: 'draft', title, content_markdown, cover_photo_url, selected_photo_urls, itinerary })
       .eq('id', postId);
   } catch (e) {
     await admin

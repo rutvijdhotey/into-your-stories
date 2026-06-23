@@ -17,8 +17,16 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../navigation/types';
 import { Colors, Spacing, BorderRadius } from '../../theme';
 import GradientButton from '../../components/GradientButton';
+import ItineraryView from '../../components/ItineraryView';
 import { getBlogPost, publishPost, unpublish, discardDraft } from '../../services/blogService';
-import { markdownToHtml, statusLabel, type BlogPost } from '../../services/blogHelpers';
+import {
+  markdownToHtml,
+  statusLabel,
+  parseItinerary,
+  isStaleGenerating,
+  STALE_GENERATING_MS,
+  type BlogPost,
+} from '../../services/blogHelpers';
 import { supabase } from '../../lib/supabase';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'BlogPost'>;
@@ -28,6 +36,8 @@ export default function BlogPostScreen({ route, navigation }: Props) {
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<'story' | 'itinerary'>('story');
+  const [genTimedOut, setGenTimedOut] = useState(false);
 
   // Mirror the latest post into a ref so deferred callbacks (e.g. the Export
   // Alert's button handlers) read fresh state rather than a stale closure.
@@ -73,6 +83,21 @@ export default function BlogPostScreen({ route, navigation }: Props) {
       void supabase.removeChannel(channel);
     };
   }, [postId]);
+
+  // Don't spin forever: if a post is still 'generating' past the stale window,
+  // the edge worker was likely killed without writing a status. Flip to a
+  // "took too long" message that points the user back to retry. A post already
+  // stale on open is handled directly in the render branch below.
+  useEffect(() => {
+    if (post?.status !== 'generating') {
+      setGenTimedOut(false);
+      return;
+    }
+    const elapsed = Date.now() - new Date(post.created_at).getTime();
+    const remaining = Math.max(0, STALE_GENERATING_MS - elapsed);
+    const timer = setTimeout(() => setGenTimedOut(true), remaining);
+    return () => clearTimeout(timer);
+  }, [post?.status, post?.created_at]);
 
   const handlePublish = async () => {
     setBusy(true);
@@ -143,6 +168,17 @@ export default function BlogPostScreen({ route, navigation }: Props) {
   }
 
   if (post.status === 'generating') {
+    if (genTimedOut || isStaleGenerating(post)) {
+      return (
+        <View style={styles.center}>
+          <Text style={styles.title}>This is taking longer than expected</Text>
+          <Text style={styles.muted}>
+            The generation may have stalled — this can happen on trips with many photos.
+          </Text>
+          <Text style={styles.muted}>Go back to the trip and tap Generate Blog to try again.</Text>
+        </View>
+      );
+    }
     return (
       <View style={styles.center}>
         <ActivityIndicator color={Colors.accent} />
@@ -173,6 +209,8 @@ export default function BlogPostScreen({ route, navigation }: Props) {
     );
   }
 
+  const itinerary = parseItinerary(post.itinerary);
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -182,10 +220,30 @@ export default function BlogPostScreen({ route, navigation }: Props) {
         <View style={styles.content}>
           <Text style={styles.statusPill}>{statusLabel(post.status)}</Text>
           <Text style={styles.title}>{post.title ?? 'Untitled'}</Text>
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <Markdown style={markdownStyles as any} rules={markdownRules}>
-            {post.content_markdown ?? ''}
-          </Markdown>
+          {itinerary ? (
+            <View style={styles.segmented}>
+              <Pressable
+                style={[styles.segment, view === 'story' && styles.segmentActive]}
+                onPress={() => setView('story')}
+              >
+                <Text style={[styles.segmentLabel, view === 'story' && styles.segmentLabelActive]}>Story</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.segment, view === 'itinerary' && styles.segmentActive]}
+                onPress={() => setView('itinerary')}
+              >
+                <Text style={[styles.segmentLabel, view === 'itinerary' && styles.segmentLabelActive]}>Itinerary</Text>
+              </Pressable>
+            </View>
+          ) : null}
+          {itinerary && view === 'itinerary' ? (
+            <ItineraryView itinerary={itinerary} />
+          ) : (
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+            <Markdown style={markdownStyles as any} rules={markdownRules}>
+              {post.content_markdown ?? ''}
+            </Markdown>
+          )}
         </View>
       </ScrollView>
 
@@ -307,6 +365,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   title: { fontSize: 26, fontWeight: '800', color: Colors.textPrimary, marginBottom: Spacing.md },
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.button,
+    padding: 3,
+    marginBottom: Spacing.md,
+  },
+  segment: { flex: 1, paddingVertical: Spacing.sm, alignItems: 'center', borderRadius: BorderRadius.button },
+  segmentActive: { backgroundColor: Colors.accent },
+  segmentLabel: { fontSize: 14, fontWeight: '700', color: Colors.textSecondary },
+  segmentLabelActive: { color: '#FFFFFF' },
   actions: {
     flexDirection: 'row',
     gap: Spacing.sm,

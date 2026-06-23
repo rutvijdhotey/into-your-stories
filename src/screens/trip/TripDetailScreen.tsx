@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Alert, ActivityIndicator, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../navigation/types';
 import { Colors, Spacing, getTripGradient } from '../../theme';
@@ -15,7 +16,7 @@ import TripMapScreen from './TripMapScreen';
 import { useAuth } from '../../contexts/AuthContext';
 import { generateBlog, getBlogPostByTrip } from '../../services/blogService';
 import { listNotes } from '../../services/noteService';
-import { checkBlogReadiness } from '../../services/blogHelpers';
+import { checkBlogReadiness, isStaleGenerating } from '../../services/blogHelpers';
 import { useCoverPhoto } from '../../hooks/useCoverPhoto';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'TripDetail'>;
@@ -32,13 +33,28 @@ export default function TripDetailScreen({ route, navigation }: Props) {
   const [existingPostId, setExistingPostId] = useState<string | null | undefined>(undefined);
   const { setCover, removeCover, busy: coverBusy } = useCoverPhoto(trip);
 
-  useEffect(() => {
-    if (trip?.status === 'active') return;
-    if (!trip) return;
-    getBlogPostByTrip(trip.id)
-      .then((post) => setExistingPostId(post && post.status !== 'error' ? post.id : null))
-      .catch(() => setExistingPostId(null));
-  }, [trip]);
+  // Refetch on focus (not just mount) so returning from BlogPostScreen after a
+  // discard/publish reflects the change — otherwise a discarded post leaves a
+  // stale "View Blog" with no way back to "Generate Blog".
+  useFocusEffect(
+    useCallback(() => {
+      if (!trip || trip.status === 'active') return;
+      let active = true;
+      getBlogPostByTrip(trip.id)
+        .then((post) => {
+          // A stalled 'generating' row (worker killed without writing a status)
+          // is treated like an error so "Generate Blog" reappears for a retry.
+          const usable = post && post.status !== 'error' && !isStaleGenerating(post);
+          if (active) setExistingPostId(usable ? post.id : null);
+        })
+        .catch(() => {
+          if (active) setExistingPostId(null);
+        });
+      return () => {
+        active = false;
+      };
+    }, [trip]),
+  );
 
   if (loading) {
     return (
@@ -188,6 +204,11 @@ export default function TripDetailScreen({ route, navigation }: Props) {
               />
             ) : null}
           </View>
+          {trip.status !== 'active' && existingPostId === null ? (
+            <Text style={styles.itineraryHint}>
+              Multi-day trips with saved places also get a day-by-day itinerary.
+            </Text>
+          ) : null}
         </View>
       </View>
 
@@ -275,6 +296,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   generateButtonLabel: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  itineraryHint: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: Spacing.sm,
+    fontStyle: 'italic',
+  },
   tabBar: {
     flexDirection: 'row',
     borderBottomColor: Colors.border,
