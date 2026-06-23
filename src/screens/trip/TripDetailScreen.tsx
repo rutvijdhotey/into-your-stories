@@ -16,7 +16,7 @@ import TripMapScreen from './TripMapScreen';
 import { useAuth } from '../../contexts/AuthContext';
 import { generateBlog, getBlogPostByTrip } from '../../services/blogService';
 import { listNotes } from '../../services/noteService';
-import { checkBlogReadiness } from '../../services/blogHelpers';
+import { checkBlogReadiness, isStaleGenerating } from '../../services/blogHelpers';
 import { useCoverPhoto } from '../../hooks/useCoverPhoto';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'TripDetail'>;
@@ -42,7 +42,10 @@ export default function TripDetailScreen({ route, navigation }: Props) {
       let active = true;
       getBlogPostByTrip(trip.id)
         .then((post) => {
-          if (active) setExistingPostId(post && post.status !== 'error' ? post.id : null);
+          // A stalled 'generating' row (worker killed without writing a status)
+          // is treated like an error so "Generate Blog" reappears for a retry.
+          const usable = post && post.status !== 'error' && !isStaleGenerating(post);
+          if (active) setExistingPostId(usable ? post.id : null);
         })
         .catch(() => {
           if (active) setExistingPostId(null);

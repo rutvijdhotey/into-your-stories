@@ -7,6 +7,8 @@ import {
   checkBlogReadiness,
   MIN_NOTES_FOR_BLOG,
   parseItinerary,
+  isStaleGenerating,
+  STALE_GENERATING_MS,
 } from '../blogHelpers';
 import type { Note } from '../noteHelpers';
 
@@ -239,5 +241,22 @@ describe('parseItinerary', () => {
 
   it('returns null when no day has any valid stop', () => {
     expect(parseItinerary([{ day: 1, date: null, title: 'x', stops: [] }])).toBeNull();
+  });
+});
+
+describe('isStaleGenerating', () => {
+  const base = { status: 'generating' as const, created_at: '2026-06-23T00:00:00.000Z' };
+  const t0 = new Date(base.created_at).getTime();
+
+  it('is false for a fresh generating post', () => {
+    expect(isStaleGenerating(base, t0 + 60_000)).toBe(false);
+  });
+
+  it('is true for a generating post older than the threshold', () => {
+    expect(isStaleGenerating(base, t0 + STALE_GENERATING_MS + 1)).toBe(true);
+  });
+
+  it('is false for non-generating statuses regardless of age', () => {
+    expect(isStaleGenerating({ status: 'draft', created_at: base.created_at }, t0 + 10 * 60_000)).toBe(false);
   });
 });

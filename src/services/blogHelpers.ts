@@ -135,6 +135,21 @@ export function checkBlogReadiness(notes: { content: string }[]): BlogReadiness 
   return { ok: true };
 }
 
+// A 'generating' post older than this is treated as failed/stalled. The edge
+// worker can be killed by the platform's wall-clock limit (e.g. a photo-heavy
+// trip) without ever writing an 'error' status, which would otherwise leave the
+// post spinning forever. Both the trip screen and the post screen use this so a
+// stalled generation falls back to a retry path.
+export const STALE_GENERATING_MS = 3 * 60 * 1000;
+
+export function isStaleGenerating(
+  post: Pick<BlogPost, 'status' | 'created_at'>,
+  now: number = Date.now(),
+): boolean {
+  if (post.status !== 'generating') return false;
+  return now - new Date(post.created_at).getTime() > STALE_GENERATING_MS;
+}
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function formatBlogDate(iso: string): string {

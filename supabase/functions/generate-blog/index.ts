@@ -20,8 +20,16 @@ const VISION_JPEG_QUALITY = 80;
 // Cap how many photos we decode+send in one generation, to bound edge-function
 // memory/time. A blog features only a handful of photos, so this is plenty for
 // an informed choice; any photos beyond the cap are still referenced by URL
-// (text-only) so they remain selectable, just not visually judged.
-const MAX_VISION_PHOTOS = 30;
+// (text-only) so they remain selectable, just not visually judged. Kept modest
+// because every vision photo costs both download/resize wall-clock AND image
+// tokens in the (already long) Claude call — too many tips a photo-heavy trip
+// past the platform's wall-clock limit, which silently kills the worker.
+const MAX_VISION_PHOTOS = 15;
+
+// Photos are downloaded+resized concurrently in batches of this size. Concurrency
+// slashes the preprocessing wall-clock vs. one-at-a-time; the small batch keeps
+// peak memory bounded (we never hold more than this many decoded images at once).
+const VISION_BATCH_SIZE = 5;
 
 type ImageBlock = {
   type: 'image';
@@ -55,6 +63,22 @@ async function fetchResizedImageBlock(url: string): Promise<ImageBlock | null> {
   } catch (_e) {
     return null;
   }
+}
+
+/**
+ * Downloads+resizes the given URLs concurrently in batches of VISION_BATCH_SIZE
+ * and returns a url -> image block map (block is null for fetch/decode failures).
+ * Batching cuts preprocessing wall-clock dramatically vs. sequential awaits while
+ * bounding peak memory (at most VISION_BATCH_SIZE decoded images in flight).
+ */
+async function fetchImageBlocks(urls: string[]): Promise<Map<string, ImageBlock | null>> {
+  const map = new Map<string, ImageBlock | null>();
+  for (let i = 0; i < urls.length; i += VISION_BATCH_SIZE) {
+    const batch = urls.slice(i, i + VISION_BATCH_SIZE);
+    const blocks = await Promise.all(batch.map((u) => fetchResizedImageBlock(u)));
+    batch.forEach((u, j) => map.set(u, blocks[j]));
+  }
+  return map;
 }
 
 // Supabase injects EdgeRuntime; declare it so the editor doesn't complain.
@@ -165,6 +189,11 @@ async function buildUserContent(
   eligible: boolean,
 ): Promise<ContentBlock[]> {
   const allPhotos = notes.flatMap((n) => n.photo_urls ?? []);
+  // Prefetch the first MAX_VISION_PHOTOS (in chronological order) concurrently,
+  // then assemble the message from the map with no awaits in the loop. Photos
+  // beyond the cap, or ones that failed to decode, fall back to URL-only refs.
+  const blockMap = await fetchImageBlocks(allPhotos.slice(0, MAX_VISION_PHOTOS));
+
   const content: ContentBlock[] = [];
 
   const header: string[] = [`Trip name: ${trip?.name ?? 'Untitled trip'}`];
@@ -173,15 +202,13 @@ async function buildUserContent(
   header.push('Notes (chronological). Photos for each note follow it as labeled images:');
   content.push({ type: 'text', text: header.join('\n') });
 
-  let imageBudget = MAX_VISION_PHOTOS;
   let i = 0;
   for (const n of notes) {
     i += 1;
     content.push({ type: 'text', text: `${i}. [${noteMeta(n)}] ${n.content}` });
     for (const url of n.photo_urls ?? []) {
-      const block = imageBudget > 0 ? await fetchResizedImageBlock(url) : null;
+      const block = blockMap.get(url) ?? null;
       if (block) {
-        imageBudget -= 1;
         content.push({ type: 'text', text: `Photo — url: ${url}` });
         content.push(block);
       } else {
