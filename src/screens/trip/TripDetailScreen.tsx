@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Alert, ActivityIndicator, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../navigation/types';
 import { Colors, Spacing, getTripGradient } from '../../theme';
@@ -32,13 +33,25 @@ export default function TripDetailScreen({ route, navigation }: Props) {
   const [existingPostId, setExistingPostId] = useState<string | null | undefined>(undefined);
   const { setCover, removeCover, busy: coverBusy } = useCoverPhoto(trip);
 
-  useEffect(() => {
-    if (trip?.status === 'active') return;
-    if (!trip) return;
-    getBlogPostByTrip(trip.id)
-      .then((post) => setExistingPostId(post && post.status !== 'error' ? post.id : null))
-      .catch(() => setExistingPostId(null));
-  }, [trip]);
+  // Refetch on focus (not just mount) so returning from BlogPostScreen after a
+  // discard/publish reflects the change — otherwise a discarded post leaves a
+  // stale "View Blog" with no way back to "Generate Blog".
+  useFocusEffect(
+    useCallback(() => {
+      if (!trip || trip.status === 'active') return;
+      let active = true;
+      getBlogPostByTrip(trip.id)
+        .then((post) => {
+          if (active) setExistingPostId(post && post.status !== 'error' ? post.id : null);
+        })
+        .catch(() => {
+          if (active) setExistingPostId(null);
+        });
+      return () => {
+        active = false;
+      };
+    }, [trip]),
+  );
 
   if (loading) {
     return (
