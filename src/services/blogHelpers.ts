@@ -93,6 +93,15 @@ export function parseItinerary(value: unknown): Itinerary | null {
   return days.length > 0 ? days : null;
 }
 
+export type LocatedStop = ItineraryStop & { lat: number; lng: number };
+
+/** Flattens an itinerary to the stops that have both coordinates (for the map). */
+export function stopsWithCoords(itinerary: Itinerary): LocatedStop[] {
+  return itinerary
+    .flatMap((day) => day.stops)
+    .filter((s): s is LocatedStop => s.lat !== null && s.lng !== null);
+}
+
 export function statusLabel(status: BlogStatus): string {
   switch (status) {
     case 'generating':
