@@ -201,6 +201,11 @@ export default function TripDetailScreen({ route, navigation }: Props) {
               />
             ) : null}
           </View>
+          {trip.status !== 'active' && existingPostId === null ? (
+            <Text style={styles.itineraryHint}>
+              Multi-day trips with saved places also get a day-by-day itinerary.
+            </Text>
+          ) : null}
         </View>
       </View>
 
@@ -288,6 +293,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   generateButtonLabel: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  itineraryHint: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: Spacing.sm,
+    fontStyle: 'italic',
+  },
   tabBar: {
     flexDirection: 'row',
     borderBottomColor: Colors.border,
