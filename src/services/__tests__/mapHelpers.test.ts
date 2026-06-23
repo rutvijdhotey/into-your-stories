@@ -87,4 +87,12 @@ describe('regionForPins', () => {
     expect(region.latitudeDelta).toBe(0.01);
     expect(region.longitudeDelta).toBe(0.01);
   });
+  it('accepts a plain lat/lng list (not just MapPins)', () => {
+    const region = regionForPins([
+      { lat: 10, lng: 20 },
+      { lat: 12, lng: 24 },
+    ])!;
+    expect(region.latitude).toBeCloseTo(11);
+    expect(region.longitude).toBeCloseTo(22);
+  });
 });

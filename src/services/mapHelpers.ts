@@ -60,13 +60,15 @@ const DEFAULT_DELTA = 0.02;
 const MIN_DELTA = 0.01;
 const PADDING = 1.4;
 
+export type LatLng = { lat: number; lng: number };
+
 // Returns null when there are no pins to display (caller shows the empty state).
-export function regionForPins(pins: MapPin[]): Region | null {
-  if (pins.length === 0) return null;
-  if (pins.length === 1) {
+export function regionForPins(points: LatLng[]): Region | null {
+  if (points.length === 0) return null;
+  if (points.length === 1) {
     return {
-      latitude: pins[0].lat,
-      longitude: pins[0].lng,
+      latitude: points[0].lat,
+      longitude: points[0].lng,
       latitudeDelta: DEFAULT_DELTA,
       longitudeDelta: DEFAULT_DELTA,
     };
@@ -75,7 +77,7 @@ export function regionForPins(pins: MapPin[]): Region | null {
   let maxLat = -Infinity;
   let minLng = Infinity;
   let maxLng = -Infinity;
-  for (const p of pins) {
+  for (const p of points) {
     if (p.lat < minLat) minLat = p.lat;
     if (p.lat > maxLat) maxLat = p.lat;
     if (p.lng < minLng) minLng = p.lng;
