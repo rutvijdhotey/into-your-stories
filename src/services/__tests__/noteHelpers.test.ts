@@ -16,6 +16,7 @@ const note = (overrides: Partial<Note> = {}): Note => ({
   lng: null,
   city: null,
   place_name: null,
+  rating: null,
   photo_urls: [],
   tagging_status: 'pending',
   location_source: null,
