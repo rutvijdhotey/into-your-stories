@@ -1,4 +1,5 @@
 import { CATEGORIES, type Category } from './noteHelpers';
+import type { LocationSource } from './locationHelpers';
 
 export type TagSuggestion = {
   category: Category;
@@ -10,6 +11,7 @@ export type ExistingTags = {
   category: Category | null;
   city: string | null;
   place_name?: string | null;
+  location_source?: LocationSource | null;
 };
 
 export function validateCategory(value: unknown): Category {
@@ -39,7 +41,13 @@ export function normalizeSuggestion(data: unknown): TagSuggestion {
 export function mergeTags(existing: ExistingTags, suggestion: TagSuggestion): TagSuggestion {
   return {
     category: existing.category ?? suggestion.category,
-    place_name: existing.place_name ?? suggestion.place_name,
+    // Manual user-typed names are authoritative; otherwise the AI-extracted
+    // venue wins over the geocoder's street/area label, which only fills in
+    // when the AI found no venue.
+    place_name:
+      existing.location_source === 'manual'
+        ? existing.place_name ?? null
+        : suggestion.place_name ?? existing.place_name ?? null,
     city: existing.city ?? suggestion.city,
   };
 }
