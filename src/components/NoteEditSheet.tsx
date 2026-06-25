@@ -127,6 +127,7 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted, onMov
         city: locPatch.city,
         place_name: locPatch.place_name,
         location_source: locPatch.location_source,
+        rating: note.rating,
       });
 
       // A manual location is a new trusted anchor — refresh this trip's cache.

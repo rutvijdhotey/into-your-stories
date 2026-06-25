@@ -25,6 +25,7 @@ export type CreateNoteInput = {
   photo_uris?: string[];
   offline_id?: string;
   occurred_at?: string | null;
+  rating?: number | null;
 };
 
 export async function createNote(input: CreateNoteInput): Promise<PendingNote> {
@@ -41,6 +42,7 @@ export async function createNote(input: CreateNoteInput): Promise<PendingNote> {
     location_source: input.location_source ?? null,
     captured_at: new Date().toISOString(),
     occurred_at: input.occurred_at ?? null,
+    rating: input.rating ?? null,
     photo_uris: input.photo_uris ?? [],
   };
 
@@ -84,6 +86,7 @@ export async function drainQueue(): Promise<number> {
       offline_id: item.offline_id,
       captured_at: item.captured_at,
       occurred_at: item.occurred_at ?? null,
+      rating: item.rating ?? null,
       photo_urls: [],
     };
     const { error } = await supabase
@@ -113,6 +116,7 @@ export type UpdateNoteInput = {
   city: string | null;
   place_name: string | null;
   location_source: LocationSource | null;
+  rating: number | null;
 };
 
 export async function updateNote(id: string, patch: UpdateNoteInput): Promise<void> {
@@ -127,6 +131,7 @@ export async function updateNote(id: string, patch: UpdateNoteInput): Promise<vo
       city: patch.city,
       place_name: patch.place_name,
       location_source: patch.location_source,
+      rating: patch.rating,
       tagging_status: 'pending',
     })
     .eq('id', id);
