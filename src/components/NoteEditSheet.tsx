@@ -16,7 +16,8 @@ import {
 import { deletePhotos } from '../services/photoService';
 import { updateNote, deleteNote, drainAll } from '../services/noteService';
 import { enqueuePhotos } from '../services/photoUploadQueue';
-import { validateContent, type Category, type Note } from '../services/noteHelpers';
+import { validateContent, type Category, type Note, isRateable } from '../services/noteHelpers';
+import StarRating from './StarRating';
 import { usePhotoPicker, MAX_PHOTOS_PER_NOTE } from '../hooks/usePhotoPicker';
 import CategoryPicker from './CategoryPicker';
 import LocationField from './LocationField';
@@ -38,6 +39,7 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted, onMov
   const [content, setContent] = useState(note.content);
   const [showMove, setShowMove] = useState(false);
   const [category, setCategory] = useState<Category | null>(note.category);
+  const [rating, setRating] = useState<number | null>(note.rating);
   const [location, setLocation] = useState(note.place_name ?? note.city ?? '');
   const [locationEdited, setLocationEdited] = useState(false);
   // existingUrls: photos already on the note; removedUrls: staged for deletion on Save
@@ -51,11 +53,17 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted, onMov
   const handleShow = () => {
     setContent(note.content);
     setCategory(note.category);
+    setRating(note.rating);
     setLocation(note.place_name ?? note.city ?? '');
     setLocationEdited(false);
     setExistingUrls(note.photo_urls);
     setRemovedUrls([]);
     photoPicker.clear();
+  };
+
+  const handleCategoryChange = (next: Category | null) => {
+    setCategory(next);
+    if (!isRateable(next)) setRating(null);
   };
 
   const handleLocationChange = (text: string) => {
@@ -127,7 +135,7 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted, onMov
         city: locPatch.city,
         place_name: locPatch.place_name,
         location_source: locPatch.location_source,
-        rating: note.rating,
+        rating,
       });
 
       // A manual location is a new trusted anchor — refresh this trip's cache.
@@ -208,7 +216,12 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted, onMov
           style={styles.input}
         />
 
-        <CategoryPicker value={category} onChange={setCategory} />
+        <CategoryPicker value={category} onChange={handleCategoryChange} />
+        {isRateable(category) && (
+          <View style={{ marginHorizontal: Spacing.md, marginBottom: Spacing.sm }}>
+            <StarRating value={rating} onChange={setRating} />
+          </View>
+        )}
 
         <View style={{ marginHorizontal: Spacing.md, marginBottom: Spacing.sm }}>
           <LocationField value={location} onChangeText={handleLocationChange} />

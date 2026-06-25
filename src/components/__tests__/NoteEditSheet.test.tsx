@@ -34,10 +34,15 @@ jest.mock('../../services/tripService', () => ({
   listTrips: jest.fn().mockResolvedValue([]),
 }));
 
-// CategoryPicker is exercised manually; render nothing here to isolate the sheet.
+// CategoryPicker is mocked with a captured onChange so tests can drive a
+// category change without rendering the real picker UI.
+let mockCategoryOnChange: ((next: unknown) => void) | undefined;
 jest.mock('../CategoryPicker', () => ({
   __esModule: true,
-  default: () => null,
+  default: ({ onChange }: { onChange: (next: unknown) => void }) => {
+    mockCategoryOnChange = onChange;
+    return null;
+  },
 }));
 
 // usePhotoPicker is mocked with a mutable photos array so individual tests can
@@ -79,17 +84,23 @@ const baseNote = {
   content: 'Original text',
   category: 'food',
   photo_urls: [URL_0, URL_1],
+  rating: null,
 } as unknown as Note;
 
 function renderSheet(
-  overrides: Partial<{ onClose: jest.Mock; onDeleted: jest.Mock; onMoved: jest.Mock }> = {},
+  overrides: Partial<{
+    note: Note;
+    onClose: jest.Mock;
+    onDeleted: jest.Mock;
+    onMoved: jest.Mock;
+  }> = {},
 ) {
   const onClose = overrides.onClose ?? jest.fn();
   const onDeleted = overrides.onDeleted ?? jest.fn();
   const onMoved = overrides.onMoved ?? jest.fn();
   const utils = render(
     <NoteEditSheet
-      note={baseNote}
+      note={overrides.note ?? baseNote}
       visible={true}
       onClose={onClose}
       onDeleted={onDeleted}
@@ -101,6 +112,7 @@ function renderSheet(
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockCategoryOnChange = undefined;
   mockPickerPhotos = [];
   mockUploadPhoto.mockResolvedValue('https://x/storage/v1/object/public/photos/user-1/temp-id/0.jpg');
   mockDeletePhotos.mockResolvedValue(undefined);
@@ -149,6 +161,7 @@ describe('NoteEditSheet — save flow', () => {
       content: 'Original text',
       category: 'food',
       photo_urls: [URL_1],
+      rating: null,
     });
     expect(mockUploadPhoto).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
@@ -173,6 +186,7 @@ describe('NoteEditSheet — save flow', () => {
       content: 'Original text',
       category: 'food',
       photo_urls: [URL_0, URL_1],
+      rating: null,
     });
   });
 
@@ -200,6 +214,38 @@ describe('NoteEditSheet — save flow', () => {
     // Photos were enqueued (not uploaded synchronously), so nothing to clean up.
     expect(mockDeletePhotos).not.toHaveBeenCalled();
     alertSpy.mockRestore();
+  });
+});
+
+describe('NoteEditSheet — rating', () => {
+  const ratedNote = { ...baseNote, category: 'food', rating: 4 } as unknown as Note;
+
+  it('saves the changed rating for a rateable note', async () => {
+    const { getByLabelText } = renderSheet({ note: ratedNote });
+
+    fireEvent.press(getByLabelText('Rate 5 stars'));
+    fireEvent.press(getByLabelText('Save note'));
+
+    await waitFor(() => expect(mockUpdateNote).toHaveBeenCalled());
+    expect(mockUpdateNote).toHaveBeenCalledWith(
+      'note-1',
+      expect.objectContaining({ rating: 5 }),
+    );
+  });
+
+  it('clears the rating when switching to a non-rateable category', async () => {
+    const { getByLabelText } = renderSheet({ note: ratedNote });
+
+    act(() => {
+      mockCategoryOnChange?.('general');
+    });
+    fireEvent.press(getByLabelText('Save note'));
+
+    await waitFor(() => expect(mockUpdateNote).toHaveBeenCalled());
+    expect(mockUpdateNote).toHaveBeenCalledWith(
+      'note-1',
+      expect.objectContaining({ rating: null }),
+    );
   });
 });
 
