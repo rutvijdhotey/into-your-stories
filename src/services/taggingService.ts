@@ -14,7 +14,12 @@ export async function tagNote(note: Note): Promise<boolean> {
   if (error || !data) return false;
 
   const merged = mergeTags(
-    { category: note.category, city: note.city, place_name: note.place_name },
+    {
+      category: note.category,
+      city: note.city,
+      place_name: note.place_name,
+      location_source: note.location_source,
+    },
     normalizeSuggestion(data),
   );
 
