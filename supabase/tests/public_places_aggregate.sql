@@ -75,3 +75,100 @@ begin
   raise notice 'TASK5 OK';
 end $$;
 rollback;
+
+-- ── TASK 6a: idempotency ────────────────────────────────────────────────────
+-- Re-completing a trip must not double-count; notes added on reopen ARE counted.
+begin;
+do $$
+declare
+  v_uid uuid; v_trip uuid; v_key text; v_visit int; v_contribs int;
+begin
+  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
+  values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', 'pubtest2@example.com', '', now(), now(), now())
+  returning id into v_uid;
+  insert into public.trips (id, user_id, name, status) values (gen_random_uuid(), v_uid, 'T', 'active') returning id into v_trip;
+  insert into public.notes (user_id, trip_id, content, category, place_name, city, rating, offline_id)
+  values (v_uid, v_trip, 'a', 'food', 'Cafe X', 'Lisbon', 4, gen_random_uuid());
+
+  update public.trips set status = 'completed' where id = v_trip;
+  -- reopen, add a new note for the SAME place, complete again
+  update public.trips set status = 'active' where id = v_trip;
+  insert into public.notes (user_id, trip_id, content, category, place_name, city, rating, offline_id)
+  values (v_uid, v_trip, 'b', 'food', 'Cafe X', 'Lisbon', 2, gen_random_uuid());
+  update public.trips set status = 'completed' where id = v_trip;
+
+  v_key := public.build_place_key('Cafe X', 'Lisbon');
+  select visit_count into v_visit from public.public_places where place_key = v_key;
+  select count(*) into v_contribs from public.public_place_contributions where trip_id = v_trip;
+  -- the first note counted once, the second counted once = 2; never 3+ from re-completion
+  if v_visit is distinct from 2 then raise exception 'idempotency visit_count: got %', v_visit; end if;
+  if v_contribs <> 2 then raise exception 'idempotency contributions: got %', v_contribs; end if;
+  raise notice 'TASK6 IDEMPOTENCY OK';
+end $$;
+rollback;
+
+-- ── TASK 6b: opt-out ────────────────────────────────────────────────────────
+-- Opted-out user contributes nothing.
+begin;
+do $$
+declare v_uid uuid; v_trip uuid; v_rows int;
+begin
+  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
+  values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', 'pubtest3@example.com', '', now(), now(), now())
+  returning id into v_uid;
+  update public.profiles set contribute_to_community = false where id = v_uid;
+  insert into public.trips (id, user_id, name, status) values (gen_random_uuid(), v_uid, 'T', 'active') returning id into v_trip;
+  insert into public.notes (user_id, trip_id, content, category, place_name, city, rating, offline_id)
+  values (v_uid, v_trip, 'a', 'food', 'Secret Spot', 'Tokyo', 5, gen_random_uuid());
+
+  update public.trips set status = 'completed' where id = v_trip;
+
+  select count(*) into v_rows from public.public_places where place_key = public.build_place_key('Secret Spot','Tokyo');
+  if v_rows <> 0 then raise exception 'opt-out leaked % rows', v_rows; end if;
+  select count(*) into v_rows from public.public_place_contributions where trip_id = v_trip;
+  if v_rows <> 0 then raise exception 'opt-out wrote % contributions', v_rows; end if;
+  raise notice 'TASK6 OPTOUT OK';
+end $$;
+rollback;
+
+-- ── TASK 6c: multi-user merge + coordinate average ──────────────────────────
+-- Two users' notes for the same place merge into one row (visit_count 2) with
+-- averaged coordinates; different city stays separate.
+begin;
+do $$
+declare
+  v_uid1 uuid; v_uid2 uuid; v_t1 uuid; v_t2 uuid;
+  v_key text; v_visit int; v_lat double precision; v_other int;
+begin
+  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
+  values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', 'pubtest4a@example.com', '', now(), now(), now())
+  returning id into v_uid1;
+  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
+  values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', 'pubtest4b@example.com', '', now(), now(), now())
+  returning id into v_uid2;
+
+  insert into public.trips (id, user_id, name, status) values (gen_random_uuid(), v_uid1, 'T1', 'active') returning id into v_t1;
+  insert into public.trips (id, user_id, name, status) values (gen_random_uuid(), v_uid2, 'T2', 'active') returning id into v_t2;
+
+  insert into public.notes (user_id, trip_id, content, category, place_name, city, lat, lng, offline_id)
+  values (v_uid1, v_t1, 'a', 'stay', 'Grand Hotel', 'Paris', 10.0, 20.0, gen_random_uuid());
+  insert into public.notes (user_id, trip_id, content, category, place_name, city, lat, lng, offline_id)
+  values (v_uid2, v_t2, 'b', 'stay', 'grand   hotel', 'paris', 12.0, 22.0, gen_random_uuid());
+  -- same name, different city -> separate row
+  insert into public.notes (user_id, trip_id, content, category, place_name, city, offline_id)
+  values (v_uid2, v_t2, 'c', 'stay', 'Grand Hotel', 'Rome', gen_random_uuid());
+
+  update public.trips set status = 'completed' where id = v_t1;
+  update public.trips set status = 'completed' where id = v_t2;
+
+  v_key := public.build_place_key('Grand Hotel', 'Paris');
+  select visit_count, lat into v_visit, v_lat from public.public_places where place_key = v_key;
+  if v_visit is distinct from 2 then raise exception 'merge visit_count: got %', v_visit; end if;
+  -- running average of 10.0 and 12.0 = 11.0
+  if v_lat is distinct from 11.0 then raise exception 'merge avg lat: got %', v_lat; end if;
+
+  select count(*) into v_other from public.public_places where place_key = public.build_place_key('Grand Hotel','Rome');
+  if v_other <> 1 then raise exception 'different city should be separate row, got %', v_other; end if;
+  raise notice 'TASK6 MERGE OK';
+end $$;
+rollback;
