@@ -65,9 +65,36 @@ describe('mergeTags', () => {
   it('preserves a manually-set place_name over the suggestion', () => {
     expect(
       mergeTags(
-        { category: null, city: null, place_name: 'Paris' },
+        { category: null, city: null, place_name: 'Paris', location_source: 'manual' },
         { category: 'activity', place_name: 'Googleplex', city: 'Mountain View' },
       ),
     ).toEqual({ category: 'activity', place_name: 'Paris', city: 'Mountain View' });
+  });
+
+  it('overrides a geocoder (gps) place_name with the AI venue', () => {
+    expect(
+      mergeTags(
+        { category: 'food', city: 'Tokyo', place_name: 'Shibuya Crossing', location_source: 'gps' },
+        suggestion,
+      ),
+    ).toMatchObject({ place_name: 'Ichiran Ramen' });
+  });
+
+  it('keeps the geocoder place_name when the AI suggestion has none', () => {
+    expect(
+      mergeTags(
+        { category: 'food', city: 'Tokyo', place_name: '1-2-3 Dogenzaka', location_source: 'gps' },
+        { ...suggestion, place_name: null },
+      ),
+    ).toMatchObject({ place_name: '1-2-3 Dogenzaka' });
+  });
+
+  it('keeps a manual place_name even when the AI suggests a venue', () => {
+    expect(
+      mergeTags(
+        { category: null, city: null, place_name: 'Grandma’s house', location_source: 'manual' },
+        suggestion,
+      ),
+    ).toMatchObject({ place_name: 'Grandma’s house' });
   });
 });
