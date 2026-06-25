@@ -17,6 +17,7 @@ export type PendingNote = {
   location_source: LocationSource | null;
   captured_at: string;
   occurred_at: string | null;
+  rating: number | null;
   photo_uris: string[];
 };
 

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { View, Text, Animated, StyleSheet, Easing, Pressable, ScrollView, Image } from 'react-native';
 import { Colors } from '../theme';
 import CategoryBadge from './CategoryBadge';
+import StarRating from './StarRating';
 import PhotoStrip from './PhotoStrip';
 import { formatRelativeTime, type Note } from '../services/noteHelpers';
 import type { PendingNote } from '../services/offlineQueue';
@@ -42,6 +43,7 @@ function ServerNoteCard({
         ) : showShimmer ? (
           <ShimmerBadge />
         ) : null}
+        {note.rating != null && <StarRating value={note.rating} readOnly size="small" />}
         <Text style={styles.meta}>
           {formatRelativeTime(note.captured_at)}
         </Text>

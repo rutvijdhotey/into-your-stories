@@ -24,7 +24,8 @@ import { useVoiceRecording } from '../hooks/useVoiceRecording';
 import { usePhotoPicker, MAX_PHOTOS_PER_NOTE } from '../hooks/usePhotoPicker';
 import { createNote } from '../services/noteService';
 import { detectIntent } from '../services/voiceService';
-import { validateContent, type Category } from '../services/noteHelpers';
+import { validateContent, type Category, isRateable } from '../services/noteHelpers';
+import StarRating from './StarRating';
 import CategoryPicker from './CategoryPicker';
 import LocationField from './LocationField';
 import TripSelector from './TripSelector';
@@ -63,6 +64,7 @@ export default function NoteCaptureSheet({
 
   const [content, setContent] = useState('');
   const [category, setCategory] = useState<Category | null>(null);
+  const [rating, setRating] = useState<number | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [intentLoading, setIntentLoading] = useState(false);
@@ -192,6 +194,7 @@ export default function NoteCaptureSheet({
     if (!visible) return;
     setContent('');
     setCategory(null);
+    setRating(null);
     setIntentLoading(false);
     setExifPlace(null);
     setLocation('');
@@ -307,6 +310,7 @@ export default function NoteCaptureSheet({
         city: locPatch.city,
         place_name: locPatch.place_name,
         location_source: locPatch.location_source,
+        rating,
         photo_uris: photos.map((p) => p.uri),
         occurred_at: earliestExifDate,
       });
@@ -321,6 +325,11 @@ export default function NoteCaptureSheet({
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleCategoryChange = (next: Category | null) => {
+    setCategory(next);
+    if (!isRateable(next)) setRating(null);
   };
 
   const handleLocationChange = (text: string) => {
@@ -424,7 +433,12 @@ export default function NoteCaptureSheet({
           style={styles.input}
         />
 
-        <CategoryPicker value={category} onChange={setCategory} />
+        <CategoryPicker value={category} onChange={handleCategoryChange} />
+        {isRateable(category) && (
+          <View style={{ marginHorizontal: Spacing.md, marginBottom: Spacing.sm }}>
+            <StarRating value={rating} onChange={setRating} />
+          </View>
+        )}
 
         <Pressable
           onPress={handleAddPhotos}

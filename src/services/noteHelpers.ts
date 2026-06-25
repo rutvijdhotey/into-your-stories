@@ -27,6 +27,14 @@ export const CATEGORIES: Category[] = [
   'general',
 ];
 
+// Categories that may carry a 1–5 star rating. Single source of truth — used by
+// the capture sheet, edit sheet, and feed card. Excludes 'to-visit' and 'general'.
+export const RATEABLE_CATEGORIES: Category[] = ['food', 'stay', 'activity', 'shopping'];
+
+export function isRateable(category: Category | null): boolean {
+  return category !== null && RATEABLE_CATEGORIES.includes(category);
+}
+
 const CATEGORY_LABELS: Record<Category, string> = {
   food: 'Food',
   stay: 'Stay',

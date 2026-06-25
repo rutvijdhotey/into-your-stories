@@ -85,6 +85,7 @@ export type Database = {
           offline_id: string
           photo_urls: string[]
           place_name: string | null
+          rating: number | null
           tagging_status: string
           trip_id: string
           updated_at: string
@@ -104,6 +105,7 @@ export type Database = {
           offline_id: string
           photo_urls?: string[]
           place_name?: string | null
+          rating?: number | null
           tagging_status?: string
           trip_id: string
           updated_at?: string
@@ -123,6 +125,7 @@ export type Database = {
           offline_id?: string
           photo_urls?: string[]
           place_name?: string | null
+          rating?: number | null
           tagging_status?: string
           trip_id?: string
           updated_at?: string

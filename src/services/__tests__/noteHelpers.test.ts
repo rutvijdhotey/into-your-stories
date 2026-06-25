@@ -3,6 +3,8 @@ import {
   categoryLabel,
   validateContent,
   formatRelativeTime,
+  isRateable,
+  RATEABLE_CATEGORIES,
   type Note,
 } from '../noteHelpers';
 
@@ -16,6 +18,7 @@ const note = (overrides: Partial<Note> = {}): Note => ({
   lng: null,
   city: null,
   place_name: null,
+  rating: null,
   photo_urls: [],
   tagging_status: 'pending',
   location_source: null,
@@ -91,6 +94,25 @@ describe('formatRelativeTime', () => {
   });
   it('handles "1 hour ago" (singular) correctly', () => {
     expect(formatRelativeTime('2026-05-22T11:00:00Z', now)).toBe('1 hour ago');
+  });
+});
+
+describe('isRateable', () => {
+  it('is true for food, stay, activity, shopping', () => {
+    expect(isRateable('food')).toBe(true);
+    expect(isRateable('stay')).toBe(true);
+    expect(isRateable('activity')).toBe(true);
+    expect(isRateable('shopping')).toBe(true);
+  });
+
+  it('is false for to-visit, general, and null', () => {
+    expect(isRateable('to-visit')).toBe(false);
+    expect(isRateable('general')).toBe(false);
+    expect(isRateable(null)).toBe(false);
+  });
+
+  it('RATEABLE_CATEGORIES contains exactly the four rateable categories', () => {
+    expect(RATEABLE_CATEGORIES).toEqual(['food', 'stay', 'activity', 'shopping']);
   });
 });
 
