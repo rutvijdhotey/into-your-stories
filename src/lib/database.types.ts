@@ -143,19 +143,125 @@ export type Database = {
       }
       profiles: {
         Row: {
+          contribute_to_community: boolean
           created_at: string
           display_name: string
           id: string
         }
         Insert: {
+          contribute_to_community?: boolean
           created_at?: string
           display_name: string
           id: string
         }
         Update: {
+          contribute_to_community?: boolean
           created_at?: string
           display_name?: string
           id?: string
+        }
+        Relationships: []
+      }
+      public_place_contributions: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          note_id: string
+          public_place_id: string
+          rating: number | null
+          trip_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          note_id: string
+          public_place_id: string
+          rating?: number | null
+          trip_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          note_id?: string
+          public_place_id?: string
+          rating?: number | null
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_place_contributions_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: true
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_place_contributions_public_place_id_fkey"
+            columns: ["public_place_id"]
+            isOneToOne: false
+            referencedRelation: "public_places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_place_contributions_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_places: {
+        Row: {
+          category_counts: Json
+          city: string | null
+          coord_count: number
+          created_at: string
+          dominant_category: string | null
+          id: string
+          lat: number | null
+          lng: number | null
+          place_key: string
+          place_name: string
+          rating_count: number
+          rating_sum: number
+          updated_at: string
+          visit_count: number
+        }
+        Insert: {
+          category_counts?: Json
+          city?: string | null
+          coord_count?: number
+          created_at?: string
+          dominant_category?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          place_key: string
+          place_name: string
+          rating_count?: number
+          rating_sum?: number
+          updated_at?: string
+          visit_count?: number
+        }
+        Update: {
+          category_counts?: Json
+          city?: string | null
+          coord_count?: number
+          created_at?: string
+          dominant_category?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          place_key?: string
+          place_name?: string
+          rating_count?: number
+          rating_sum?: number
+          updated_at?: string
+          visit_count?: number
         }
         Relationships: []
       }
@@ -206,7 +312,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      aggregate_trip_for_community: {
+        Args: { p_trip_id: string }
+        Returns: undefined
+      }
+      build_place_key: {
+        Args: { city: string; place_name: string }
+        Returns: string
+      }
+      normalize_place_text: { Args: { t: string }; Returns: string }
+      pick_dominant_category: {
+        Args: { category_counts: Json }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
