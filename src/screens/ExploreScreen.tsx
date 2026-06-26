@@ -36,7 +36,7 @@ export default function ExploreScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>EXPLORE</Text>
-        <Text style={styles.heading}>Discover Stories</Text>
+        <Text style={styles.heading}>Discover Places</Text>
       </View>
 
       {loading ? (
