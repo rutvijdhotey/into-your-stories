@@ -1,4 +1,10 @@
 import { render, fireEvent } from '@testing-library/react-native';
+
+jest.mock('expo-linear-gradient', () => {
+  const { View } = require('react-native');
+  return { LinearGradient: View };
+});
+
 import DestinationCard from '../DestinationCard';
 import type { Destination } from '../../services/publicPlaceHelpers';
 
