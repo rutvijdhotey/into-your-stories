@@ -16,6 +16,7 @@ export type MainStackParamList = {
   Tabs: undefined;
   TripDetail: { tripId: string };
   BlogPost: { postId: string };
+  Destination: { city: string };
 };
 
 export type RootStackParamList = {

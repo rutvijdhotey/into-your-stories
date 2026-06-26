@@ -8,6 +8,7 @@ import { Colors } from '../theme';
 import TabNavigator from './TabNavigator';
 import TripDetailScreen from '../screens/trip/TripDetailScreen';
 import BlogPostScreen from '../screens/blog/BlogPostScreen';
+import DestinationScreen from '../screens/DestinationScreen';
 import FloatingCaptureButton from '../components/FloatingCaptureButton';
 import NoteCaptureSheet from '../components/NoteCaptureSheet';
 import { useOnReconnect } from '../hooks/useConnectivity';
@@ -80,6 +81,11 @@ function MainStackInner() {
           name="BlogPost"
           component={BlogPostScreen}
           options={{ title: '', headerBackTitle: 'Back' }}
+        />
+        <Stack.Screen
+          name="Destination"
+          component={DestinationScreen}
+          options={{ title: '', headerBackTitle: 'Explore' }}
         />
       </Stack.Navigator>
       <FloatingCaptureButton

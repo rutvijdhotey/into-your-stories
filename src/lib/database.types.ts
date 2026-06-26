@@ -309,7 +309,15 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_destinations: {
+        Row: {
+          categories: string[] | null
+          city: string | null
+          place_count: number | null
+          total_visits: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       aggregate_trip_for_community: {
