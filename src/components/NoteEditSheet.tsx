@@ -6,8 +6,6 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   Alert,
   ScrollView,
   Image,
@@ -189,10 +187,7 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted, onMov
       animationType="slide"
       onShow={handleShow}
     >
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <View style={styles.flex}>
         <View style={styles.handleRow}>
           <View style={styles.handle} />
         </View>
@@ -204,6 +199,13 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted, onMov
           </Pressable>
         </View>
 
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          automaticallyAdjustKeyboardInsets
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
         <TextInput
           value={content}
           onChangeText={setContent}
@@ -306,6 +308,7 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted, onMov
         <Pressable onPress={handleDelete} disabled={deleting} style={styles.deleteButton} accessibilityRole="button" accessibilityLabel="Delete note">
           <Text style={styles.deleteLabel}>Delete Note</Text>
         </Pressable>
+        </ScrollView>
 
         <MoveToTripSheet
           visible={showMove}
@@ -318,13 +321,14 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted, onMov
             onMoved();
           }}
         />
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: Colors.background },
+  scrollContent: { flexGrow: 1, paddingBottom: Spacing.xl },
   handleRow: { alignItems: 'center', paddingVertical: Spacing.sm },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border },
   titleRow: {
@@ -340,7 +344,7 @@ const styles = StyleSheet.create({
   input: {
     fontSize: 16,
     color: Colors.textPrimary,
-    flex: 1,
+    minHeight: 140,
     marginHorizontal: Spacing.md,
     marginBottom: Spacing.sm,
     backgroundColor: 'rgba(255,255,255,0.07)',

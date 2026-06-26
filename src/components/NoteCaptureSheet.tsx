@@ -6,10 +6,6 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  KeyboardAvoidingView,
-  Keyboard,
-  TouchableWithoutFeedback,
-  Platform,
   Alert,
   Animated,
   ActivityIndicator,
@@ -365,12 +361,14 @@ export default function NoteCaptureSheet({
       presentationStyle="pageSheet"
       animationType="slide"
     >
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View style={styles.flex}>
+      <View style={styles.flex}>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          automaticallyAdjustKeyboardInsets
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
         <View style={styles.handleRow}>
           <View style={styles.handle} />
         </View>
@@ -492,15 +490,15 @@ export default function NoteCaptureSheet({
             <Text style={styles.saveLabel}>{saving ? 'Saving…' : 'Save'}</Text>
           </Pressable>
         </View>
-        </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+        </ScrollView>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: Colors.background },
+  scrollContent: { flexGrow: 1, paddingBottom: Spacing.xl },
   handleRow: { alignItems: 'center', paddingVertical: Spacing.sm },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border },
   micSection: { alignItems: 'center', paddingVertical: Spacing.md },
@@ -535,7 +533,7 @@ const styles = StyleSheet.create({
   input: {
     fontSize: 16,
     color: Colors.textPrimary,
-    flex: 1,
+    minHeight: 140,
     marginHorizontal: Spacing.md,
     marginBottom: Spacing.sm,
     backgroundColor: 'rgba(255,255,255,0.07)',
