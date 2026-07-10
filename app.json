@@ -20,7 +20,7 @@
         "NSMicrophoneUsageDescription": "Into Your Stories uses your microphone to capture voice notes.",
         "NSSpeechRecognitionUsageDescription": "Into Your Stories transcribes your voice using on-device speech recognition."
       },
-      "bundleIdentifier": "com.anonymous.intoyourstories"
+      "bundleIdentifier": "com.rutvijdhotey.intoyourstories"
     },
     "android": {
       "adaptiveIcon": {
@@ -34,7 +34,7 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.anonymous.intoyourstories"
+      "package": "com.rutvijdhotey.intoyourstories"
     },
     "web": {
       "favicon": "./assets/favicon.png"
