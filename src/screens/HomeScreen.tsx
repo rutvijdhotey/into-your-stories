@@ -127,7 +127,7 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <View style={[styles.topBar, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={styles.topBarLeft}>
-          <Text style={styles.eyebrow}>INTO YOUR STORIES</Text>
+          <Text style={styles.eyebrow}>NOTEBOUND</Text>
           <Text style={styles.greeting}>Hey, {displayName}</Text>
         </View>
         <View style={styles.topBarRight}>

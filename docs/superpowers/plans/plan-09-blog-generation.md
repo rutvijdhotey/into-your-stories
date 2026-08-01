@@ -1,5 +1,5 @@
 # Module 9 — Blog Generation
-**App:** Into Your Stories
+**App:** Notebound
 **Status:** Design doc — pending approval before execution
 **Depends on:** Module 0 (blog_posts, style_profiles schema), Module 2 (trips), Module 5 (photo_descriptions), Module 6 (places), Module 8 (embedding on publish)
 

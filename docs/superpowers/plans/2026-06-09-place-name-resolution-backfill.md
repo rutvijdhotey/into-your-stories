@@ -81,7 +81,7 @@ import { geocodeLocation, reverseCity, reverseGeocodePlace } from '../locationSe
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories"
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound"
 npx jest src/services/__tests__/locationService.test.ts --no-coverage 2>&1 | tail -20
 ```
 
@@ -234,7 +234,7 @@ Replace the effect at lines 102–111:
 This drops the now-unused `import * as Location from 'expo-location'` if nothing else in the file uses `Location`. Check first:
 
 ```bash
-grep -n "Location\." "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories/src/components/NoteCaptureSheet.tsx"
+grep -n "Location\." "/Users/rutvijdhotey/Documents/Personal Projects/Notebound/src/components/NoteCaptureSheet.tsx"
 ```
 
 If the only remaining match is the import line itself, remove the `import * as Location from 'expo-location';` line (line 19). If there are other usages, leave the import in place.

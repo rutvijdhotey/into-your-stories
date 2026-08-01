@@ -55,7 +55,7 @@ import { parseDMS, extractExifLocation, validatePhotoCount, ensureMediaLibraryPe
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories"
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound"
 npx jest src/services/__tests__/photoHelpers.test.ts --no-coverage 2>&1 | tail -20
 ```
 
@@ -590,7 +590,7 @@ git commit -m "feat: derive occurred_at from earliest photo EXIF date in NoteCap
 - [ ] **Step 1: Check if there are existing tests for `mergeFeed`**
 
 ```bash
-grep -r "mergeFeed\|useNotes" "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories/src" --include="*.test.*" -l
+grep -r "mergeFeed\|useNotes" "/Users/rutvijdhotey/Documents/Personal Projects/Notebound/src" --include="*.test.*" -l
 ```
 
 If no test file exists, skip to Step 3 (the sort is covered implicitly by the feed rendering correctly in the app).

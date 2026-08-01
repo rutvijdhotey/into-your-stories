@@ -1,5 +1,5 @@
 # Module 4 — Voice & Intent
-**App:** Into Your Stories
+**App:** Notebound
 **Status:** Design doc — pending approval before execution
 **Depends on:** Module 3 (NoteCaptureSheet + noteService), Module 8 (SearchScreen — partial dependency)
 

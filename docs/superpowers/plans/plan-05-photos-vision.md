@@ -1,5 +1,5 @@
 # Module 5 — Photos & Vision
-**App:** Into Your Stories
+**App:** Notebound
 **Status:** Design doc — pending approval before execution
 **Depends on:** Module 0 (storage buckets + notes schema), Module 3 (NoteCaptureSheet + NoteCard)
 

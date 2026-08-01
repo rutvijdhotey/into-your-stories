@@ -1,5 +1,5 @@
 # Module 11 — Web Layer
-**App:** Into Your Stories
+**App:** Notebound
 **Status:** Design doc — pending approval before execution
 **Depends on:** Module 9 (published blog_posts, web_slug), Module 10 (community context)
 
@@ -56,7 +56,7 @@ The map renders the same Place pins as the in-app mini-map: color-coded by categ
 ## SEO & Metadata
 
 Every post page gets:
-- `<title>`: `{post title} — Into Your Stories`
+- `<title>`: `{post title} — Notebound`
 - `<meta name="description">`: First sentence of the narrative (trimmed to 160 chars)
 - Open Graph tags:
   - `og:title`: post title
@@ -74,7 +74,7 @@ Every post page gets:
 `web_slug` is set at publish time in Module 9:
 - Format: `{trip-name-slugified}-{6-char-random-alphanum}` (e.g., `japan-2024-a3b9xk`)
 - Stored on `blog_posts.web_slug` (unique constraint in DB)
-- Full URL: `https://intoyourstories.app/stories/{web_slug}` (or whatever domain is configured)
+- Full URL: `https://notebound.app/stories/{web_slug}` (or whatever domain is configured)
 
 The base URL is stored in an env var (`WEB_BASE_URL`) shared between the mobile app and the Edge Function. The mobile app constructs the share URL from this base + slug.
 

@@ -1,5 +1,5 @@
 # Module 1 — Auth & Navigation
-**App:** Into Your Stories
+**App:** Notebound
 **Status:** Design doc — pending approval before execution
 **Note:** An existing execution plan (`2026-05-06-phase-1-scaffold-auth.md`) covers this module partially. This design doc supersedes it for architecture decisions. The execution plan needs updating before running (see correction below).
 

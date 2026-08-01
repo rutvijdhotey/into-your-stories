@@ -41,7 +41,7 @@ export default function LoginScreen({ navigation }: Props) {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Text style={styles.eyebrow}>INTO YOUR STORIES</Text>
+        <Text style={styles.eyebrow}>NOTEBOUND</Text>
         <Text style={styles.title}>Welcome back</Text>
         <Text style={styles.tagline}>Your travels, remembered.</Text>
 

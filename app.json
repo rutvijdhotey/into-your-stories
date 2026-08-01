@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "into-your-stories",
-    "slug": "into-your-stories",
+    "name": "Notebound",
+    "slug": "notebound",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,9 +16,9 @@
       "supportsTablet": true,
       "deploymentTarget": "16.4",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Into Your Stories tags notes with the city you captured them in.",
-        "NSMicrophoneUsageDescription": "Into Your Stories uses your microphone to capture voice notes.",
-        "NSSpeechRecognitionUsageDescription": "Into Your Stories transcribes your voice using on-device speech recognition."
+        "NSLocationWhenInUseUsageDescription": "Notebound tags notes with the city you captured them in.",
+        "NSMicrophoneUsageDescription": "Notebound uses your microphone to capture voice notes.",
+        "NSSpeechRecognitionUsageDescription": "Notebound transcribes your voice using on-device speech recognition."
       },
       "bundleIdentifier": "com.rutvijdhotey.intoyourstories"
     },
@@ -44,14 +44,14 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Into Your Stories tags notes with the city you captured them in."
+          "locationWhenInUsePermission": "Notebound tags notes with the city you captured them in."
         }
       ],
       "expo-speech-recognition",
       [
         "expo-image-picker",
         {
-          "photosPermission": "Into Your Stories uses your photos so you can attach them to notes."
+          "photosPermission": "Notebound uses your photos so you can attach them to notes."
         }
       ]
     ]

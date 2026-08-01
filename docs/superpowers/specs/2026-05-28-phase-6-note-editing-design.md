@@ -1,5 +1,5 @@
 # Phase 6 — Note Editing Design Spec
-**App:** Into Your Stories
+**App:** Notebound
 **Date:** 2026-05-28
 **Status:** Approved for implementation planning
 

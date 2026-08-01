@@ -1,5 +1,5 @@
 # Module 12 — Onboarding
-**App:** Into Your Stories
+**App:** Notebound
 **Status:** Design doc — pending approval before execution
 **Depends on:** Module 1 (AppNavigator), Module 2 (HomeScreen), Module 9 (StyleOnboardingScreen), Module 10 (ExploreScreen)
 

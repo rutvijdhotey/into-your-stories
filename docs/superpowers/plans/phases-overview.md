@@ -1,4 +1,4 @@
-# Into Your Stories — Implementation Phases
+# Notebound — Implementation Phases
 
 Each phase produces working, testable software. Write one phase plan at a time.
 

@@ -44,7 +44,7 @@
 - [ ] **Step 1: Run the install command**
 
 ```bash
-cd "Into Your Stories" && npx expo install expo-linear-gradient -- --legacy-peer-deps
+cd "Notebound" && npx expo install expo-linear-gradient -- --legacy-peer-deps
 ```
 
 Expected output: no errors, `expo-linear-gradient` appears in `package.json` under `dependencies`.
@@ -52,7 +52,7 @@ Expected output: no errors, `expo-linear-gradient` appears in `package.json` und
 - [ ] **Step 2: Verify the install**
 
 ```bash
-grep "expo-linear-gradient" "Into Your Stories/package.json"
+grep "expo-linear-gradient" "Notebound/package.json"
 ```
 
 Expected: `"expo-linear-gradient": "<version>"`
@@ -60,7 +60,7 @@ Expected: `"expo-linear-gradient": "<version>"`
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add package.json && git commit -m "feat: install expo-linear-gradient"
+cd "Notebound" && git add package.json && git commit -m "feat: install expo-linear-gradient"
 ```
 
 ---
@@ -106,7 +106,7 @@ describe('getTripGradient', () => {
 - [ ] **Step 2: Run the test to confirm it fails**
 
 ```bash
-cd "Into Your Stories" && npx jest src/theme/__tests__/theme.test.ts --no-coverage
+cd "Notebound" && npx jest src/theme/__tests__/theme.test.ts --no-coverage
 ```
 
 Expected: FAIL — `getTripGradient` is not exported from `../index`.
@@ -202,7 +202,7 @@ export const Spacing = {
 - [ ] **Step 4: Run the test to confirm it passes**
 
 ```bash
-cd "Into Your Stories" && npx jest src/theme/__tests__/theme.test.ts --no-coverage
+cd "Notebound" && npx jest src/theme/__tests__/theme.test.ts --no-coverage
 ```
 
 Expected: PASS — all 4 tests green.
@@ -210,7 +210,7 @@ Expected: PASS — all 4 tests green.
 - [ ] **Step 5: Confirm existing tests still pass**
 
 ```bash
-cd "Into Your Stories" && npx jest --no-coverage
+cd "Notebound" && npx jest --no-coverage
 ```
 
 Expected: all tests pass.
@@ -218,7 +218,7 @@ Expected: all tests pass.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/theme/index.ts src/theme/__tests__/theme.test.ts && git commit -m "feat: extend theme with design system tokens"
+cd "Notebound" && git add src/theme/index.ts src/theme/__tests__/theme.test.ts && git commit -m "feat: extend theme with design system tokens"
 ```
 
 ---
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript compiles**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors referencing CategoryBadge.
@@ -276,7 +276,7 @@ Expected: no errors referencing CategoryBadge.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/components/CategoryBadge.tsx && git commit -m "feat: add CategoryBadge component with per-category colours"
+cd "Notebound" && git add src/components/CategoryBadge.tsx && git commit -m "feat: add CategoryBadge component with per-category colours"
 ```
 
 ---
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -341,7 +341,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/components/TripStatusBadge.tsx && git commit -m "feat: update TripStatusBadge with 3-case colour system"
+cd "Notebound" && git add src/components/TripStatusBadge.tsx && git commit -m "feat: update TripStatusBadge with 3-case colour system"
 ```
 
 ---
@@ -405,7 +405,7 @@ export default function TabNavigator() {
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -413,7 +413,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/navigation/TabNavigator.tsx && git commit -m "feat: add Ionicons tab icons and hide nav headers"
+cd "Notebound" && git add src/navigation/TabNavigator.tsx && git commit -m "feat: add Ionicons tab icons and hide nav headers"
 ```
 
 ---
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -492,7 +492,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/components/FloatingCaptureButton.tsx && git commit -m "feat: add LinearGradient and glow shadow to FAB"
+cd "Notebound" && git add src/components/FloatingCaptureButton.tsx && git commit -m "feat: add LinearGradient and glow shadow to FAB"
 ```
 
 ---
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -604,7 +604,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/components/TripCard.tsx && git commit -m "feat: rewrite TripCard with gradient background and scrim overlay"
+cd "Notebound" && git add src/components/TripCard.tsx && git commit -m "feat: rewrite TripCard with gradient background and scrim overlay"
 ```
 
 ---
@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -738,7 +738,7 @@ Expected: no errors.
 - [ ] **Step 3: Run all tests**
 
 ```bash
-cd "Into Your Stories" && npx jest --no-coverage
+cd "Notebound" && npx jest --no-coverage
 ```
 
 Expected: all tests pass.
@@ -746,7 +746,7 @@ Expected: all tests pass.
 - [ ] **Step 4: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/components/NoteCard.tsx && git commit -m "feat: use CategoryBadge component and tighten NoteCard layout"
+cd "Notebound" && git add src/components/NoteCard.tsx && git commit -m "feat: use CategoryBadge component and tighten NoteCard layout"
 ```
 
 ---
@@ -875,7 +875,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -883,7 +883,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/components/TripSelector.tsx && git commit -m "feat: redesign TripSelector to card-style layout"
+cd "Notebound" && git add src/components/TripSelector.tsx && git commit -m "feat: redesign TripSelector to card-style layout"
 ```
 
 ---
@@ -1140,7 +1140,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -1148,7 +1148,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/components/NoteCaptureSheet.tsx && git commit -m "feat: add mic stub, OR divider, and polish NoteCaptureSheet layout"
+cd "Notebound" && git add src/components/NoteCaptureSheet.tsx && git commit -m "feat: add mic stub, OR divider, and polish NoteCaptureSheet layout"
 ```
 
 ---
@@ -1222,7 +1222,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -1230,7 +1230,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/components/EmptyState.tsx && git commit -m "feat: add emoji prop, bolder heading, full-width CTA to EmptyState"
+cd "Notebound" && git add src/components/EmptyState.tsx && git commit -m "feat: add emoji prop, bolder heading, full-width CTA to EmptyState"
 ```
 
 ---
@@ -1374,7 +1374,7 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <View style={[styles.topBar, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={styles.topBarLeft}>
-          <Text style={styles.eyebrow}>INTO YOUR STORIES</Text>
+          <Text style={styles.eyebrow}>NOTEBOUND</Text>
           <Text style={styles.greeting}>Hey, {displayName}</Text>
         </View>
         <View style={styles.topBarRight}>
@@ -1487,7 +1487,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -1495,7 +1495,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/screens/HomeScreen.tsx && git commit -m "feat: polish HomeScreen with amber header, section labels, remove bottom CTA"
+cd "Notebound" && git add src/screens/HomeScreen.tsx && git commit -m "feat: polish HomeScreen with amber header, section labels, remove bottom CTA"
 ```
 
 ---
@@ -1702,7 +1702,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -1710,7 +1710,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/screens/trip/TripDetailScreen.tsx && git commit -m "feat: add gradient header to TripDetailScreen"
+cd "Notebound" && git add src/screens/trip/TripDetailScreen.tsx && git commit -m "feat: add gradient header to TripDetailScreen"
 ```
 
 ---
@@ -1787,7 +1787,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -1795,7 +1795,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/screens/ExploreScreen.tsx && git commit -m "feat: design ExploreScreen shell with search bar and empty state"
+cd "Notebound" && git add src/screens/ExploreScreen.tsx && git commit -m "feat: design ExploreScreen shell with search bar and empty state"
 ```
 
 ---
@@ -1860,7 +1860,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -1868,7 +1868,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/screens/SearchScreen.tsx && git commit -m "feat: design SearchScreen shell with search bar and section headers"
+cd "Notebound" && git add src/screens/SearchScreen.tsx && git commit -m "feat: design SearchScreen shell with search bar and section headers"
 ```
 
 ---
@@ -1969,7 +1969,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -1977,7 +1977,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/screens/BlogScreen.tsx && git commit -m "feat: design BlogScreen shell with sections and Generate Blog stub"
+cd "Notebound" && git add src/screens/BlogScreen.tsx && git commit -m "feat: design BlogScreen shell with sections and Generate Blog stub"
 ```
 
 ---
@@ -2033,7 +2033,7 @@ export default function LoginScreen({ navigation }: Props) {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Text style={styles.eyebrow}>INTO YOUR STORIES</Text>
+        <Text style={styles.eyebrow}>NOTEBOUND</Text>
         <Text style={styles.title}>Welcome back</Text>
         <Text style={styles.tagline}>Your travels, remembered.</Text>
 
@@ -2140,7 +2140,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -2148,7 +2148,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/screens/auth/LoginScreen.tsx && git commit -m "feat: restyle LoginScreen with brand header and focused-input amber border"
+cd "Notebound" && git add src/screens/auth/LoginScreen.tsx && git commit -m "feat: restyle LoginScreen with brand header and focused-input amber border"
 ```
 
 ---
@@ -2217,7 +2217,7 @@ export default function SignupScreen({ navigation }: Props) {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Text style={styles.eyebrow}>INTO YOUR STORIES</Text>
+        <Text style={styles.eyebrow}>NOTEBOUND</Text>
         <Text style={styles.title}>Start your story</Text>
         <Text style={styles.tagline}>Capture every moment.</Text>
 
@@ -2336,7 +2336,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 2: Verify TypeScript**
 
 ```bash
-cd "Into Your Stories" && npx tsc --noEmit
+cd "Notebound" && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -2344,7 +2344,7 @@ Expected: no errors.
 - [ ] **Step 3: Run all tests one final time**
 
 ```bash
-cd "Into Your Stories" && npx jest --no-coverage
+cd "Notebound" && npx jest --no-coverage
 ```
 
 Expected: all tests pass.
@@ -2352,7 +2352,7 @@ Expected: all tests pass.
 - [ ] **Step 4: Commit**
 
 ```bash
-cd "Into Your Stories" && git add src/screens/auth/SignupScreen.tsx && git commit -m "feat: restyle SignupScreen with brand header and focused-input amber border"
+cd "Notebound" && git add src/screens/auth/SignupScreen.tsx && git commit -m "feat: restyle SignupScreen with brand header and focused-input amber border"
 ```
 
 ---

@@ -1,5 +1,5 @@
 # Module 0 — Setup & Schema
-**App:** Into Your Stories
+**App:** Notebound
 **Status:** Design doc — pending approval before execution
 
 ---
@@ -12,7 +12,7 @@ Establish the complete Supabase backend before any application code runs. Every 
 
 ## Supabase Project Configuration
 
-- One Supabase project: `into-your-stories`
+- One Supabase project: `notebound`
 - Region: closest to primary developer (latency matters for local dev)
 - Supabase CLI installed locally for migration management (`supabase db push`)
 - Environment variables stored in `.env` (gitignored), template in `.env.example`
