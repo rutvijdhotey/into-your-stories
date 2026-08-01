@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   Text,
   TextInput,
   Pressable,
@@ -47,10 +48,20 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
       return;
     }
 
+    // verifyOtp already established a session, which AuthContext picks up and
+    // may navigate away from this screen before updateUser resolves. If the
+    // password update then fails, the user would otherwise land in the app
+    // believing their password changed when it didn't. Sign back out and use
+    // a blocking alert (works even if this screen has already unmounted)
+    // instead of inline error state, which could go unseen.
     const { error: updateError } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (updateError) {
-      setError(updateError.message);
+      await supabase.auth.signOut();
+      Alert.alert(
+        'Password reset failed',
+        `${updateError.message} Please request a new code and try again.`
+      );
     }
   };
 
