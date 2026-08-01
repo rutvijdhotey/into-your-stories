@@ -68,6 +68,10 @@ export default function LoginScreen({ navigation }: Props) {
           onBlur={() => setFocusedField(null)}
         />
 
+        <Pressable onPress={() => navigation.navigate('ForgotPassword')} style={styles.forgotWrap}>
+          <Text style={styles.forgotText}>Forgot password?</Text>
+        </Pressable>
+
         {error && <Text style={styles.error}>{error}</Text>}
 
         <Pressable
@@ -129,6 +133,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   inputFocused: { borderColor: Colors.accent },
+  forgotWrap: { alignItems: 'flex-end', marginBottom: Spacing.sm },
+  forgotText: { fontSize: 13, color: Colors.accent, fontWeight: '600' },
   button: {
     backgroundColor: Colors.accent,
     borderRadius: BorderRadius.button,
