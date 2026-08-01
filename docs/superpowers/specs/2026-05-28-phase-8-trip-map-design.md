@@ -1,6 +1,6 @@
 # Phase 8 — Trip Map Tab — Design
 
-**App:** Into Your Stories
+**App:** Notebound
 **Date:** 2026-05-28
 **Status:** Implemented ✅ — automated tests + type-check green, on-device QA passed 2026-05-28
 **Branch:** `phase-8/trip-map`

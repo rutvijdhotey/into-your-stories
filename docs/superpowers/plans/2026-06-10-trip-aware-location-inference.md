@@ -33,7 +33,7 @@
 - [ ] **Step 1: Create the feature branch**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories"
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound"
 git checkout main && git pull && git checkout -b feature/trip-aware-location-inference
 ```
 

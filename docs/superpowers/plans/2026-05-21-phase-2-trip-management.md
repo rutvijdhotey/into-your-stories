@@ -2116,7 +2116,7 @@ Find the header lines (around `**Last updated:**` and `**Status:**`) and update 
 
 ```markdown
 **Last updated:** 2026-05-21
-**GitHub:** https://github.com/rutvijdhotey/into-your-stories
+**GitHub:** https://github.com/rutvijdhotey/notebound
 **Status:** Phase 2 complete ✅ — Trip CRUD + Home screen live; manual sim verified. Next: Phase 3 (Note Capture).
 ```
 

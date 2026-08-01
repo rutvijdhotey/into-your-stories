@@ -40,7 +40,7 @@
 - [ ] **Step 1: Install the package**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && npx expo install expo-speech-recognition -- --legacy-peer-deps
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && npx expo install expo-speech-recognition -- --legacy-peer-deps
 ```
 
 Expected: `expo-speech-recognition` added to `package.json` dependencies.
@@ -55,9 +55,9 @@ Open `app.json`. The current `expo.ios.infoPlist` has `NSLocationWhenInUseUsageD
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Into Your Stories tags notes with the city you captured them in.",
-        "NSMicrophoneUsageDescription": "Into Your Stories uses your microphone to capture voice notes.",
-        "NSSpeechRecognitionUsageDescription": "Into Your Stories transcribes your voice using on-device speech recognition."
+        "NSLocationWhenInUseUsageDescription": "Notebound tags notes with the city you captured them in.",
+        "NSMicrophoneUsageDescription": "Notebound uses your microphone to capture voice notes.",
+        "NSSpeechRecognitionUsageDescription": "Notebound transcribes your voice using on-device speech recognition."
       }
     },
     "plugins": [
@@ -65,7 +65,7 @@ Open `app.json`. The current `expo.ios.infoPlist` has `NSLocationWhenInUseUsageD
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Into Your Stories tags notes with the city you captured them in."
+          "locationWhenInUsePermission": "Notebound tags notes with the city you captured them in."
         }
       ],
       "expo-speech-recognition"
@@ -79,13 +79,13 @@ Open `app.json`. The current `expo.ios.infoPlist` has `NSLocationWhenInUseUsageD
 - [ ] **Step 3: Prebuild and launch**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && npx expo prebuild --clean 2>&1 | tail -5
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && npx expo prebuild --clean 2>&1 | tail -5
 ```
 
 Expected: ends with `✔ Build dependencies configured` or similar success message. `ios/` folder is generated (it is gitignored).
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && npx expo run:ios 2>&1 | tail -10
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && npx expo run:ios 2>&1 | tail -10
 ```
 
 Expected: builds and opens the app in the iOS simulator. Sign-in screen appears. The app behaves identically to before — this task changes the build system only.
@@ -93,7 +93,7 @@ Expected: builds and opens the app in the iOS simulator. Sign-in screen appears.
 - [ ] **Step 4: Verify all existing tests still pass**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && npx jest --no-coverage 2>&1 | tail -8
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && npx jest --no-coverage 2>&1 | tail -8
 ```
 
 Expected: 38 tests pass, 4 suites.
@@ -101,7 +101,7 @@ Expected: 38 tests pass, 4 suites.
 - [ ] **Step 5: Commit**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && git add app.json package.json package-lock.json && git commit -m "feat: install expo-speech-recognition and migrate to dev build"
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && git add app.json package.json package-lock.json && git commit -m "feat: install expo-speech-recognition and migrate to dev build"
 ```
 
 ---
@@ -248,7 +248,7 @@ describe('useVoiceRecording', () => {
 - [ ] **Step 2: Run tests to confirm they fail**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && npx jest src/hooks/__tests__/useVoiceRecording.test.ts --no-coverage 2>&1 | tail -10
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && npx jest src/hooks/__tests__/useVoiceRecording.test.ts --no-coverage 2>&1 | tail -10
 ```
 
 Expected: FAIL — `useVoiceRecording` does not exist yet.
@@ -329,7 +329,7 @@ export function useVoiceRecording(): UseVoiceRecordingReturn {
 - [ ] **Step 4: Run tests to confirm they pass**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && npx jest src/hooks/__tests__/useVoiceRecording.test.ts --no-coverage 2>&1 | tail -10
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && npx jest src/hooks/__tests__/useVoiceRecording.test.ts --no-coverage 2>&1 | tail -10
 ```
 
 Expected: PASS — all 8 tests green.
@@ -337,7 +337,7 @@ Expected: PASS — all 8 tests green.
 - [ ] **Step 5: Run full test suite**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && npx jest --no-coverage 2>&1 | tail -8
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && npx jest --no-coverage 2>&1 | tail -8
 ```
 
 Expected: all 46 tests pass (38 existing + 8 new).
@@ -345,7 +345,7 @@ Expected: all 46 tests pass (38 existing + 8 new).
 - [ ] **Step 6: Commit**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && git add src/hooks/useVoiceRecording.ts src/hooks/__tests__/useVoiceRecording.test.ts && git commit -m "feat: add useVoiceRecording hook with state machine"
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && git add src/hooks/useVoiceRecording.ts src/hooks/__tests__/useVoiceRecording.test.ts && git commit -m "feat: add useVoiceRecording hook with state machine"
 ```
 
 ---
@@ -361,7 +361,7 @@ cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && git ad
 
 Create directory and file:
 ```bash
-mkdir -p "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories/supabase/functions/detect-intent"
+mkdir -p "/Users/rutvijdhotey/Documents/Personal Projects/Notebound/supabase/functions/detect-intent"
 ```
 
 Create `supabase/functions/detect-intent/index.ts`:
@@ -460,7 +460,7 @@ Expected: `Finished supabase secrets set.`
 - [ ] **Step 3: Deploy the function**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && npx supabase functions deploy detect-intent --project-ref dcejrbyujfcxartywpis
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && npx supabase functions deploy detect-intent --project-ref dcejrbyujfcxartywpis
 ```
 
 Expected: `Deployed Function detect-intent on project dcejrbyujfcxartywpis`
@@ -499,7 +499,7 @@ Expected: `{"intent": "search", ...}`
 - [ ] **Step 5: Commit**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && git add supabase/functions/detect-intent/index.ts && git commit -m "feat: add detect-intent edge function with Claude intent classification"
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && git add supabase/functions/detect-intent/index.ts && git commit -m "feat: add detect-intent edge function with Claude intent classification"
 ```
 
 ---
@@ -588,7 +588,7 @@ describe('detectIntent', () => {
 - [ ] **Step 2: Run tests to confirm they fail**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && npx jest src/services/__tests__/voiceService.test.ts --no-coverage 2>&1 | tail -10
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && npx jest src/services/__tests__/voiceService.test.ts --no-coverage 2>&1 | tail -10
 ```
 
 Expected: FAIL — `detectIntent` does not exist yet.
@@ -622,7 +622,7 @@ export async function detectIntent(transcript: string): Promise<IntentResult> {
 - [ ] **Step 4: Run tests to confirm they pass**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && npx jest src/services/__tests__/voiceService.test.ts --no-coverage 2>&1 | tail -10
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && npx jest src/services/__tests__/voiceService.test.ts --no-coverage 2>&1 | tail -10
 ```
 
 Expected: PASS — all 5 tests green.
@@ -630,7 +630,7 @@ Expected: PASS — all 5 tests green.
 - [ ] **Step 5: Run full test suite**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && npx jest --no-coverage 2>&1 | tail -8
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && npx jest --no-coverage 2>&1 | tail -8
 ```
 
 Expected: all 51 tests pass (46 existing + 5 new).
@@ -638,7 +638,7 @@ Expected: all 51 tests pass (46 existing + 5 new).
 - [ ] **Step 6: Commit**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && git add src/services/voiceService.ts src/services/__tests__/voiceService.test.ts && git commit -m "feat: add voiceService with detectIntent and safe fallback"
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && git add src/services/voiceService.ts src/services/__tests__/voiceService.test.ts && git commit -m "feat: add voiceService with detectIntent and safe fallback"
 ```
 
 ---
@@ -1103,7 +1103,7 @@ const styles = StyleSheet.create({
 - [ ] **Step 3: Verify TypeScript compiles clean**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && npx tsc --noEmit 2>&1
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && npx tsc --noEmit 2>&1
 ```
 
 Expected: no errors.
@@ -1111,7 +1111,7 @@ Expected: no errors.
 - [ ] **Step 4: Run full test suite**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && npx jest --no-coverage 2>&1 | tail -8
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && npx jest --no-coverage 2>&1 | tail -8
 ```
 
 Expected: all 51 tests pass.
@@ -1119,13 +1119,13 @@ Expected: all 51 tests pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && git add src/components/NoteCaptureSheet.tsx src/navigation/MainStack.tsx && git commit -m "feat: wire mic button with voice recording, intent detection, and pulsing ring"
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && git add src/components/NoteCaptureSheet.tsx src/navigation/MainStack.tsx && git commit -m "feat: wire mic button with voice recording, intent detection, and pulsing ring"
 ```
 
 - [ ] **Step 6: Rebuild and manually verify on simulator**
 
 ```bash
-cd "/Users/rutvijdhotey/Documents/Personal Projects/Into Your Stories" && npx expo run:ios
+cd "/Users/rutvijdhotey/Documents/Personal Projects/Notebound" && npx expo run:ios
 ```
 
 Manual checklist:

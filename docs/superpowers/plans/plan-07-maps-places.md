@@ -1,5 +1,5 @@
 # Module 7 — Maps & Places
-**App:** Into Your Stories
+**App:** Notebound
 **Status:** Design doc — pending approval before execution
 **Depends on:** Module 6 (places table populated), Module 2 (TripDetailScreen shell)
 

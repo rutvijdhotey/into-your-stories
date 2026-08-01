@@ -1,5 +1,5 @@
 # Module 8 — Semantic Search
-**App:** Into Your Stories
+**App:** Notebound
 **Status:** Design doc — pending approval before execution
 **Depends on:** Module 3 (notes), Module 6 (tags, for result display), Module 9 (published posts — for community embeddings; partial dependency; personal search works without it)
 

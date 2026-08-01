@@ -54,7 +54,7 @@ export default function SignupScreen({ navigation }: Props) {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Text style={styles.eyebrow}>INTO YOUR STORIES</Text>
+        <Text style={styles.eyebrow}>NOTEBOUND</Text>
         <Text style={styles.title}>Start your story</Text>
         <Text style={styles.tagline}>Capture every moment.</Text>
 

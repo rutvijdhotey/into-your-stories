@@ -1,5 +1,5 @@
 # Module 10 — Community & Explore
-**App:** Into Your Stories
+**App:** Notebound
 **Status:** Design doc — pending approval before execution
 **Depends on:** Module 9 (published blog_posts, community_destinations populated on publish)
 

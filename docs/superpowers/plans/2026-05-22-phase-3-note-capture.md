@@ -125,7 +125,7 @@ Expected: `package.json`, `package-lock.json`, and likely `app.json` are modifie
 [
   "expo-location",
   {
-    "locationWhenInUsePermission": "Into Your Stories tags notes with the city you captured them in."
+    "locationWhenInUsePermission": "Notebound tags notes with the city you captured them in."
   }
 ]
 ```
@@ -135,7 +135,7 @@ Also add `expo.ios.infoPlist.NSLocationWhenInUseUsageDescription` if `expo insta
 ```json
 "ios": {
   "infoPlist": {
-    "NSLocationWhenInUseUsageDescription": "Into Your Stories tags notes with the city you captured them in."
+    "NSLocationWhenInUseUsageDescription": "Notebound tags notes with the city you captured them in."
   }
 }
 ```

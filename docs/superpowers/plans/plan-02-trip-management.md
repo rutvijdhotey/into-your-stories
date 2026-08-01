@@ -1,5 +1,5 @@
 # Module 2 — Trip Management
-**App:** Into Your Stories
+**App:** Notebound
 **Status:** Design doc — pending approval before execution
 **Depends on:** Module 0 (schema), Module 1 (auth + nav shell)
 

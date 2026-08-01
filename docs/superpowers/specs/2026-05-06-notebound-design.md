@@ -1,4 +1,4 @@
-# Into Your Stories — Design Spec
+# Notebound — Design Spec
 **Date:** 2026-05-06
 **Status:** Approved for implementation planning
 **Supersedes:** 2026-05-05-travel-diary-app-design.md

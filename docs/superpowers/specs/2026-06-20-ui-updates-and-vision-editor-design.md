@@ -1,4 +1,4 @@
-# Into Your Stories — UI Updates & Vision Photo Editor Design Spec
+# Notebound — UI Updates & Vision Photo Editor Design Spec
 **Date:** 2026-06-20
 **Status:** Draft — awaiting user review
 **Branch:** (to be created from `main`)

@@ -1,4 +1,4 @@
-# Into Your Stories — UI Polish Phase Design Spec
+# Notebound — UI Polish Phase Design Spec
 **Date:** 2026-05-22  
 **Status:** Approved for implementation planning  
 **Branch:** `phase-ui-polish/design-system`  
@@ -178,7 +178,7 @@ The separate `body` section below the cover is removed — all content lives on 
 **File:** `src/screens/HomeScreen.tsx`
 
 **Header:**
-- Amber uppercase eyebrow: `"INTO YOUR STORIES"`, `fontSize: 11`, `fontWeight: 700`, `letterSpacing: 2`
+- Amber uppercase eyebrow: `"NOTEBOUND"`, `fontSize: 11`, `fontWeight: 700`, `letterSpacing: 2`
 - Main heading: user's display name — `"Hey, {displayName}"`, `fontSize: 26`, `fontWeight: 800`
 - Top-right: small amber circular `+` button (`width: 32`, `height: 32`) that opens `CreateTripSheet` — replaces the bottom CTA bar for users who already have trips
 - Sign out: moves to a subtle icon button (person icon + "Sign out" text) — small, `color: #555`, so it doesn't compete with the header
@@ -302,7 +302,7 @@ The separate `body` section below the cover is removed — all content lives on 
 
 **Shared layout:**
 - Full `Colors.background` — no white or light assumptions
-- Amber uppercase eyebrow: `"INTO YOUR STORIES"`, centred, `fontSize: 11 fontWeight: 700 letterSpacing: 2`
+- Amber uppercase eyebrow: `"NOTEBOUND"`, centred, `fontSize: 11 fontWeight: 700 letterSpacing: 2`
 - Bold headline: `"Welcome back"` (Login) / `"Start your story"` (Signup), `fontSize: 28 fontWeight: 800`
 - Tagline: `"Your travels, remembered."` / `"Capture every moment."`, `fontSize: 14 color: #555`
 - Inputs: `background: rgba(255,255,255,0.07)`, `borderRadius: 12`, `padding: 14`, amber `1pt` border on focus

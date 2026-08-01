@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const IOS = path.join(__dirname, '..', 'ios');
-const MAIN_PBX = path.join(IOS, 'intoyourstories.xcodeproj', 'project.pbxproj');
+const MAIN_PBX = path.join(IOS, 'Notebound.xcodeproj', 'project.pbxproj');
 const PODS_PBX = path.join(IOS, 'Pods', 'Pods.xcodeproj', 'project.pbxproj');
 const MIN_IOS = '16.4';
 
@@ -34,7 +34,7 @@ function patch(file, label, from, to) {
 
 console.log('\npatching iOS pbxproj files...\n');
 
-// ── intoyourstories.xcodeproj ──────────────────────────────────────────────
+// ── Notebound.xcodeproj ──────────────────────────────────────────────
 
 // A. expo-configure-project.sh: drop `-c` flag and unescape spaces in path
 //    expo prebuild writes: bash -l -c "…Target\ Support\ Files/…"
@@ -42,8 +42,8 @@ console.log('\npatching iOS pbxproj files...\n');
 patch(
   MAIN_PBX,
   'A: expo-configure-project  bash -l -c → bash -l',
-  'bash -l -c \\"./Pods/Target\\\\ Support\\\\ Files/Pods-intoyourstories/expo-configure-project.sh\\"',
-  'bash -l \\"./Pods/Target Support Files/Pods-intoyourstories/expo-configure-project.sh\\"',
+  'bash -l -c \\"./Pods/Target\\\\ Support\\\\ Files/Pods-Notebound/expo-configure-project.sh\\"',
+  'bash -l \\"./Pods/Target Support Files/Pods-Notebound/expo-configure-project.sh\\"',
 );
 
 // B. IPHONEOS_DEPLOYMENT_TARGET — expo-speech-recognition requires 16.4+
