@@ -55,7 +55,15 @@ requires apps with UGC to provide: a content filter, a way for users to report
 offensive content, a way to block abusive users, and published contact info.
 Shipping the community map with zero moderation is a plausible rejection.
 
-Pick one before building Phase 2:
+**DECIDED 2026-08-07: Option B — hide Explore for v1.0.** Ship the private
+journal, get real users, re-enable the community map in 1.1 with real moderation
+built properly. Consequences: `2b` (opt-out toggle) drops out of the v1.0 blocking
+set and becomes blocking again for 1.1; the age-rating questionnaire answers "no"
+to user-generated content; the delete-account cascade still must clear
+`public_place_contributions`, since the data layer keeps accruing behind the
+hidden tab.
+
+Options considered:
 
 - **Option A — Ship Explore, add minimal moderation.** A report button on
   `PublicPlaceRow`, a `reports` table, and a profanity/denylist filter at
@@ -221,7 +229,7 @@ start Apple enrollment, because it is pure waiting and it gates everything.
 
 ## Open questions for the user
 
-1. Phase 1: Option A, B, or C on the community map?
+1. ~~Phase 1: Option A, B, or C on the community map?~~ **DECIDED — Option B.**
 2. Individual or Organization Apple account?
 3. Are you willing to move Supabase to Pro before launch?
 4. Target date — is there a trip coming up that would make a good beta?
