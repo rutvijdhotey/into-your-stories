@@ -667,9 +667,33 @@ git commit -m "feat: link to forgot-password flow from LoginScreen"
 
 Not a code change — confirms the flow actually works against the real Supabase project. Requires the local dev build (`npm run ios`, per project convention — not `npm start`).
 
-- [ ] **Step 1: Confirm the Supabase email template includes the OTP token**
+- [ ] **Step 1: Fix the Supabase email template — CONFIRMED BLOCKING (2026-08-07)**
 
-In the Supabase Dashboard → Authentication → Email Templates → Reset Password, confirm the template body includes `{{ .Token }}`. If it only has `{{ .ConfirmationURL }}`, add the token so the emailed code actually appears. (This is a dashboard change outside this repo — see the design doc's "Manual step" section.)
+Checked 2026-08-07: the live template contains **only `{{ .ConfirmationURL }}`, no `{{ .Token }}`**, so the 6-digit code never reaches the user and `verifyOtp` has nothing to verify. The flow cannot work until this is changed. This is a dashboard change outside this repo — see the design doc's "Manual step" section.
+
+In Supabase Dashboard → Authentication → Email Templates → Reset Password, replace the body with:
+
+```html
+<h2 style="margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Reset your password</h2>
+
+<p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.5;">
+  Enter this code in Notebound to set a new password:
+</p>
+
+<p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:32px;font-weight:700;letter-spacing:6px;color:#C8703A;margin:24px 0;">
+  {{ .Token }}
+</p>
+
+<p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;color:#666666;">
+  This code expires in 1 hour. If you didn't request a password reset, you can ignore this email — your password won't change.
+</p>
+```
+
+**Why the link is removed rather than kept alongside the code:** the link and the code are the same one-time token. `ConfirmationURL` points at Supabase's `/auth/v1/verify` endpoint, which consumes the token on visit — so a user who taps the link first then gets "Token has expired or is invalid" when they type the code, with no clue why. The link is also a dead end: the app has no URL `scheme` (that's why this flow is OTP-based at all), so it redirects to the Site URL in a mobile browser.
+
+Also confirm while in the dashboard:
+- **Authentication → Email OTP Expiration** matches the "expires in 1 hour" copy above.
+- **Site URL** is not still the `localhost:3000` default — it doesn't affect this flow, but the signup confirmation email (`SignupScreen.tsx:45`) redirects there, so testers land on a dead page and assume signup failed.
 
 - [ ] **Step 2: Run the app**
 
