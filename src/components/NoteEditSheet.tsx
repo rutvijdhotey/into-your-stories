@@ -17,6 +17,7 @@ import { enqueuePhotos } from '../services/photoUploadQueue';
 import { validateContent, type Category, type Note, isRateable } from '../services/noteHelpers';
 import StarRating from './StarRating';
 import { usePhotoPicker, MAX_PHOTOS_PER_NOTE } from '../hooks/usePhotoPicker';
+import { useSignedPhotoUrls } from '../hooks/useSignedPhotos';
 import CategoryPicker from './CategoryPicker';
 import LocationField from './LocationField';
 import MoveToTripSheet from './MoveToTripSheet';
@@ -40,12 +41,14 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted, onMov
   const [rating, setRating] = useState<number | null>(note.rating);
   const [location, setLocation] = useState(note.place_name ?? note.city ?? '');
   const [locationEdited, setLocationEdited] = useState(false);
-  // existingUrls: photos already on the note; removedUrls: staged for deletion on Save
+  // existingUrls: photos already on the note; removedUrls: staged for deletion on Save.
+  // Both hold stored references (storage paths), signed for display below.
   const [existingUrls, setExistingUrls] = useState<string[]>(note.photo_urls);
   const [removedUrls, setRemovedUrls] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const photoPicker = usePhotoPicker();
+  const existingThumbs = useSignedPhotoUrls(existingUrls);
 
   // Reset local state each time the sheet opens for a (potentially different) note
   const handleShow = () => {
@@ -239,7 +242,15 @@ export default function NoteEditSheet({ note, visible, onClose, onDeleted, onMov
           >
             {existingUrls.map((url) => (
               <View key={url} style={styles.thumbContainer}>
-                <Image source={{ uri: url }} style={styles.thumb} resizeMode="cover" />
+                <View style={styles.thumb}>
+                  {existingThumbs[url] ? (
+                    <Image
+                      source={{ uri: existingThumbs[url] }}
+                      style={styles.thumb}
+                      resizeMode="cover"
+                    />
+                  ) : null}
+                </View>
                 <Pressable
                   style={styles.removeButton}
                   onPress={() => handleRemoveExisting(url)}
@@ -360,7 +371,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   thumbContainer: { position: 'relative' },
-  thumb: { width: 60, height: 60, borderRadius: 8 },
+  thumb: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    overflow: 'hidden',
+  },
   removeButton: {
     position: 'absolute',
     top: -5,

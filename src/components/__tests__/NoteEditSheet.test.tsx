@@ -61,6 +61,13 @@ jest.mock('../../hooks/usePhotoPicker', () => ({
   }),
 }));
 
+// Signed-URL resolution has its own suite (signedPhotoUrls.test.ts); here a
+// stored reference resolves to itself, so the thumbnails render as before.
+jest.mock('../../hooks/useSignedPhotos', () => ({
+  useSignedPhotoUrl: (ref: string | null | undefined) => ref ?? null,
+  useSignedPhotoUrls: (refs: string[]) => Object.fromEntries(refs.map((r) => [r, r])),
+}));
+
 import { uploadPhoto, deletePhotos } from '../../services/photoService';
 import { updateNote, deleteNote } from '../../services/noteService';
 import { enqueuePhotos } from '../../services/photoUploadQueue';

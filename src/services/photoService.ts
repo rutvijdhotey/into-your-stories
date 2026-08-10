@@ -1,5 +1,6 @@
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { supabase } from '../lib/supabase';
+import { PHOTOS_BUCKET, toStoragePath } from './photoRefs';
 
 /** Max pixel length on the longer side. Fine for any display; full-res re-picked later if editing lands. */
 const MAX_DIMENSION = 1200;
@@ -20,18 +21,22 @@ async function resizeForUpload(uri: string): Promise<string> {
   return result.uri;
 }
 
+/**
+ * Uploads and returns the bucket-relative storage path — NOT a URL. The bucket
+ * is private (migration 025), so there is no durable URL to store; the app signs
+ * the path at render time via signPhotoRefs.
+ */
 async function uploadToBucket(path: string, uri: string): Promise<string> {
   const response = await fetch(uri);
   const arrayBuffer = await response.arrayBuffer();
 
   const { error } = await supabase.storage
-    .from('photos')
+    .from(PHOTOS_BUCKET)
     .upload(path, arrayBuffer, { contentType: 'image/jpeg', upsert: true });
 
   if (error) throw error;
 
-  const { data } = supabase.storage.from('photos').getPublicUrl(path);
-  return data.publicUrl;
+  return path;
 }
 
 export async function uploadPhoto(
@@ -46,28 +51,26 @@ export async function uploadPhoto(
 
 /**
  * Uploads a trip cover to a fixed per-trip path (upsert overwrites, so no orphan
- * files accumulate). Appends a ?v= cache-buster so RN <Image> doesn't show the
- * stale cached image after a replace at the same URL.
+ * files accumulate). Appends a ?v= cache-buster so replacing a cover produces a
+ * different stored reference — otherwise the signed-URL cache, which is keyed by
+ * reference, would keep serving the previous image until its TTL ran out.
  */
 export async function uploadCoverPhoto(
   userId: string,
   tripId: string,
   uri: string,
 ): Promise<string> {
-  const url = await uploadToBucket(`${userId}/trip-covers/${tripId}.jpg`, uri);
-  return `${url}?v=${Date.now()}`;
+  const path = await uploadToBucket(`${userId}/trip-covers/${tripId}.jpg`, uri);
+  return `${path}?v=${Date.now()}`;
 }
 
-export async function deletePhotos(urls: string[]): Promise<void> {
-  const paths = urls
-    .map((url) => {
-      const clean = url.split('?')[0];
-      const match = clean.match(/\/photos\/(.+)$/);
-      return match ? match[1] : null;
-    })
+/** Accepts storage paths and legacy public URLs alike; both normalise to a path. */
+export async function deletePhotos(refs: string[]): Promise<void> {
+  const paths = refs
+    .map((ref) => toStoragePath(ref))
     .filter((p): p is string => p !== null);
 
   if (paths.length === 0) return;
 
-  await supabase.storage.from('photos').remove(paths).catch(() => {});
+  await supabase.storage.from(PHOTOS_BUCKET).remove(paths).catch(() => {});
 }

@@ -9,11 +9,37 @@ const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
+const PHOTOS_BUCKET = 'photos';
+
+// Photo references are bucket-relative storage paths — the bucket is private
+// (migration 025), so there is no URL to embed. Rows written before the lockdown
+// hold full public URLs; normalise both shapes to a path so this function reads
+// storage directly and stores paths that the client signs at render time.
+function toStoragePath(ref: string): string | null {
+  if (typeof ref !== 'string') return null;
+  const trimmed = ref.trim();
+  if (trimmed.length === 0) return null;
+  const withoutQuery = trimmed.split('?')[0];
+  const match = withoutQuery.match(
+    new RegExp(`/storage/v1/object/(?:public|sign|authenticated)/${PHOTOS_BUCKET}/(.+)$`),
+  );
+  if (match) {
+    try {
+      return decodeURIComponent(match[1]);
+    } catch {
+      return match[1];
+    }
+  }
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(withoutQuery)) return null;
+  const path = withoutQuery.replace(/^\/+/, '');
+  return path.length > 0 ? path : null;
+}
+
 // The photo-selection pass downsizes each candidate to this longest-edge size
 // before sending it to Claude. The model only needs to judge which shot is
 // strongest — not read fine detail — so ~1536px is ample and keeps image-token
-// cost ~3x lower than full resolution. The blog itself always embeds the
-// ORIGINAL full-resolution URLs; this resized copy is judgment input only.
+// cost ~3x lower than full resolution. The blog itself always references the
+// ORIGINAL full-resolution photo; this resized copy is judgment input only.
 const VISION_LONGEST_EDGE = 1536;
 const VISION_JPEG_QUALITY = 80;
 
@@ -40,16 +66,18 @@ type TextBlock = { type: 'text'; text: string };
 type ContentBlock = TextBlock | ImageBlock;
 
 /**
- * Downloads a photo and downsizes it to a small JPEG suitable for vision
- * judgment. Returns a base64 image block, or null if the photo can't be
+ * Downloads a photo from private storage (this function holds the service role,
+ * so it reads the object directly) and downsizes it to a small JPEG suitable for
+ * vision judgment. Returns a base64 image block, or null if the photo can't be
  * fetched/decoded (e.g. an unsupported format like HEIC) — callers fall back to
- * a text-only URL reference so the photo stays selectable.
+ * a text-only reference so the photo stays selectable.
  */
-async function fetchResizedImageBlock(url: string): Promise<ImageBlock | null> {
+// deno-lint-ignore no-explicit-any
+async function fetchResizedImageBlock(admin: any, path: string): Promise<ImageBlock | null> {
   try {
-    const resp = await fetch(url);
-    if (!resp.ok) return null;
-    const bytes = new Uint8Array(await resp.arrayBuffer());
+    const { data, error } = await admin.storage.from(PHOTOS_BUCKET).download(path);
+    if (error || !data) return null;
+    const bytes = new Uint8Array(await data.arrayBuffer());
     const img = await Image.decode(bytes);
     const longest = Math.max(img.width, img.height);
     if (longest > VISION_LONGEST_EDGE) {
@@ -67,17 +95,21 @@ async function fetchResizedImageBlock(url: string): Promise<ImageBlock | null> {
 }
 
 /**
- * Downloads+resizes the given URLs concurrently in batches of VISION_BATCH_SIZE
- * and returns a url -> image block map (block is null for fetch/decode failures).
+ * Downloads+resizes the given paths concurrently in batches of VISION_BATCH_SIZE
+ * and returns a path -> image block map (block is null for fetch/decode failures).
  * Batching cuts preprocessing wall-clock dramatically vs. sequential awaits while
  * bounding peak memory (at most VISION_BATCH_SIZE decoded images in flight).
  */
-async function fetchImageBlocks(urls: string[]): Promise<Map<string, ImageBlock | null>> {
+async function fetchImageBlocks(
+  // deno-lint-ignore no-explicit-any
+  admin: any,
+  paths: string[],
+): Promise<Map<string, ImageBlock | null>> {
   const map = new Map<string, ImageBlock | null>();
-  for (let i = 0; i < urls.length; i += VISION_BATCH_SIZE) {
-    const batch = urls.slice(i, i + VISION_BATCH_SIZE);
-    const blocks = await Promise.all(batch.map((u) => fetchResizedImageBlock(u)));
-    batch.forEach((u, j) => map.set(u, blocks[j]));
+  for (let i = 0; i < paths.length; i += VISION_BATCH_SIZE) {
+    const batch = paths.slice(i, i + VISION_BATCH_SIZE);
+    const blocks = await Promise.all(batch.map((p) => fetchResizedImageBlock(admin, p)));
+    batch.forEach((p, j) => map.set(p, blocks[j]));
   }
   return map;
 }
@@ -103,15 +135,16 @@ Otherwise, write the post as Markdown with this structure:
 - Length should fit the material, not a fixed template: aim for roughly 600–1200 words for a typical
   trip, expanding toward ~2000 only for rich, many-noted trips, and staying shorter for a brief one.
   Never stretch thin material to hit a word count.
-- Inline photos: the actual photos are provided to you as images, each labeled with its exact URL.
-  LOOK at them and judge them on what you can see — composition, clarity, and how well each one
+- Inline photos: the actual photos are provided to you as images, each labeled with its exact photo
+  id. LOOK at them and judge them on what you can see — composition, clarity, and how well each one
   represents its moment. Feature SEVERAL photos that carry the story — aim for roughly one per city
   or day (about 5–12 across a rich, many-noted trip; fewer for a short one). Don't leave long
   stretches of prose without a photo, but never add a weak or redundant shot just to hit a number,
   and for any note with several photos use only its single strongest. Place them with Markdown image
-  syntax on their own line, e.g. ![short caption](THE_EXACT_URL), using ONLY the labeled URLs,
-  copied exactly. A few photos may be referenced by URL without an image shown (unsupported format)
-  — you may still use those, just judge them by their note context.
+  syntax on their own line, e.g. ![short caption](THE_EXACT_PHOTO_ID), using ONLY the labeled photo
+  ids, copied exactly and never altered — they are opaque identifiers, not web addresses. A few
+  photos may be listed by id without an image shown (unsupported format) — you may still use those,
+  just judge them by their note context.
 - A "## Places" section near the end that groups the named places by their category
   (Food, Stay, Activity, Shopping, To-Visit), as a short list under each heading that appears.
 - Itinerary: when asked to produce one (see the instruction in the notes), build a day-by-day
@@ -129,9 +162,9 @@ Respond with ONLY valid JSON — no markdown fences, no commentary:
 
 - title: a short, evocative title for the trip.
 - content_markdown: the full post described above.
-- cover_photo_url: the single best hero photo URL — the most striking, representative image of the
+- cover_photo_url: the single best hero photo id — the most striking, representative image of the
   whole trip based on what you see — or null if the trip has no photos.
-- selected_photo_urls: every photo URL you actually used inline (may be empty).
+- selected_photo_urls: every photo id you actually used inline (may be empty).
 - itinerary: a day-by-day itinerary as described above, or null when not requested or not applicable.`;
 
 type NoteRow = {
@@ -181,23 +214,32 @@ function isItineraryEligible(notes: NoteRow[]): boolean {
   return days.size >= MIN_ITINERARY_DAYS;
 }
 
+/** A note's photo references, normalised to storage paths and de-junked. */
+function notePhotoPaths(n: NoteRow): string[] {
+  return (n.photo_urls ?? [])
+    .map((ref) => toStoragePath(ref))
+    .filter((p): p is string => p !== null);
+}
+
 /**
  * Builds the multimodal user message: chronological notes interleaved with each
  * note's actual photos (downsized, base64) so Claude can see and judge them.
- * Every photo is labeled with its exact original URL so the model can reference
- * it in its output. Photos beyond MAX_VISION_PHOTOS, or ones that fail to
- * decode, are listed by URL only.
+ * Every photo is labeled with its storage path, which is what the model copies
+ * into its output and what the client later signs to render. Photos beyond
+ * MAX_VISION_PHOTOS, or ones that fail to decode, are listed by id only.
  */
 async function buildUserContent(
+  // deno-lint-ignore no-explicit-any
+  admin: any,
   trip: { name: string; destinations: string[] } | null,
   notes: NoteRow[],
   eligible: boolean,
 ): Promise<ContentBlock[]> {
-  const allPhotos = notes.flatMap((n) => n.photo_urls ?? []);
+  const allPhotos = notes.flatMap(notePhotoPaths);
   // Prefetch the first MAX_VISION_PHOTOS (in chronological order) concurrently,
   // then assemble the message from the map with no awaits in the loop. Photos
-  // beyond the cap, or ones that failed to decode, fall back to URL-only refs.
-  const blockMap = await fetchImageBlocks(allPhotos.slice(0, MAX_VISION_PHOTOS));
+  // beyond the cap, or ones that failed to decode, fall back to id-only refs.
+  const blockMap = await fetchImageBlocks(admin, allPhotos.slice(0, MAX_VISION_PHOTOS));
 
   const content: ContentBlock[] = [];
 
@@ -211,13 +253,13 @@ async function buildUserContent(
   for (const n of notes) {
     i += 1;
     content.push({ type: 'text', text: `${i}. [${noteMeta(n)}] ${n.content}` });
-    for (const url of n.photo_urls ?? []) {
-      const block = blockMap.get(url) ?? null;
+    for (const path of notePhotoPaths(n)) {
+      const block = blockMap.get(path) ?? null;
       if (block) {
-        content.push({ type: 'text', text: `Photo — url: ${url}` });
+        content.push({ type: 'text', text: `Photo — id: ${path}` });
         content.push(block);
       } else {
-        content.push({ type: 'text', text: `Photo (not shown) — url: ${url}` });
+        content.push({ type: 'text', text: `Photo (not shown) — id: ${path}` });
       }
     }
   }
@@ -225,7 +267,7 @@ async function buildUserContent(
   content.push({
     type: 'text',
     text: allPhotos.length
-      ? `Available photo URLs (use ONLY these, copied exactly):\n${allPhotos.join('\n')}`
+      ? `Available photo ids (use ONLY these, copied exactly):\n${allPhotos.join('\n')}`
       : 'This trip has no photos. Use null for cover_photo_url and [] for selected_photo_urls.',
   });
 
@@ -257,7 +299,8 @@ async function generate(admin: any, postId: string, tripId: string) {
     if (noteRows.length === 0) throw new Error('no_notes');
 
     const eligible = isItineraryEligible(noteRows);
-    const userContent = await buildUserContent(trip, noteRows, eligible);
+    const userContent = await buildUserContent(admin, trip, noteRows, eligible);
+    const knownPhotoPaths = new Set(noteRows.flatMap(notePhotoPaths));
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 140_000);
@@ -305,9 +348,18 @@ async function generate(admin: any, postId: string, tripId: string) {
 
     const title = typeof parsed.title === 'string' && parsed.title.trim() ? parsed.title.trim() : (trip?.name ?? 'Untitled Trip');
     const content_markdown = typeof parsed.content_markdown === 'string' ? parsed.content_markdown : '';
-    const cover_photo_url = typeof parsed.cover_photo_url === 'string' ? parsed.cover_photo_url : null;
+    // Keep only ids that were actually offered. A hallucinated path would fail to
+    // sign on the client anyway, but a null cover is a better outcome than a
+    // permanently broken hero image.
+    const keepKnown = (v: unknown): string | null => {
+      if (typeof v !== 'string') return null;
+      const path = toStoragePath(v);
+      return path && knownPhotoPaths.has(path) ? path : null;
+    };
+
+    const cover_photo_url = keepKnown(parsed.cover_photo_url);
     const selected_photo_urls = Array.isArray(parsed.selected_photo_urls)
-      ? parsed.selected_photo_urls.filter((u: unknown) => typeof u === 'string')
+      ? parsed.selected_photo_urls.map(keepKnown).filter((p: string | null) => p !== null)
       : [];
 
     if (content_markdown.trim().length === 0) throw new Error('empty_content');

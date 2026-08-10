@@ -11,22 +11,25 @@ import {
   useWindowDimensions,
   SafeAreaView,
 } from 'react-native';
+import { useSignedPhotoUrls } from '../hooks/useSignedPhotos';
 
 const MAX_VISIBLE = 3;
 
 type Props = {
-  urls: string[];
+  /** Stored photo references (storage paths, or legacy URLs) — signed here for display. */
+  refs: string[];
 };
 
-export default function PhotoStrip({ urls }: Props) {
+export default function PhotoStrip({ refs }: Props) {
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const urls = useSignedPhotoUrls(refs);
 
-  if (urls.length === 0) return null;
+  if (refs.length === 0) return null;
 
-  const visibleUrls = urls.slice(0, MAX_VISIBLE);
-  const hasMore = urls.length > MAX_VISIBLE;
+  const visibleRefs = refs.slice(0, MAX_VISIBLE);
+  const hasMore = refs.length > MAX_VISIBLE;
   // Number shown on the 4th tile: remaining photos including the one hidden behind the overlay
-  const overflowCount = urls.length - (MAX_VISIBLE - 1);
+  const overflowCount = refs.length - (MAX_VISIBLE - 1);
 
   return (
     <>
@@ -36,15 +39,22 @@ export default function PhotoStrip({ urls }: Props) {
         style={styles.strip}
         contentContainerStyle={styles.stripContent}
       >
-        {visibleUrls.map((url, index) => {
+        {visibleRefs.map((ref, index) => {
           const isOverflowTile = hasMore && index === MAX_VISIBLE - 1;
+          const uri = urls[ref];
           return (
             <Pressable
-              key={url}
+              key={ref}
               onPress={isOverflowTile ? () => setGalleryOpen(true) : undefined}
               style={styles.thumbContainer}
             >
-              <Image source={{ uri: url }} style={styles.thumb} resizeMode="cover" />
+              {/* The tile keeps its slot while the URL is still being signed, so
+                  the strip doesn't reflow as photos resolve. */}
+              <View style={styles.thumb}>
+                {uri ? (
+                  <Image source={{ uri }} style={styles.thumb} resizeMode="cover" />
+                ) : null}
+              </View>
               {isOverflowTile && (
                 <View style={styles.overlay}>
                   <Text style={styles.overflowLabel}>+{overflowCount}</Text>
@@ -56,6 +66,7 @@ export default function PhotoStrip({ urls }: Props) {
       </ScrollView>
 
       <PhotoGallery
+        refs={refs}
         urls={urls}
         visible={galleryOpen}
         onClose={() => setGalleryOpen(false)}
@@ -65,11 +76,13 @@ export default function PhotoStrip({ urls }: Props) {
 }
 
 function PhotoGallery({
+  refs,
   urls,
   visible,
   onClose,
 }: {
-  urls: string[];
+  refs: string[];
+  urls: Record<string, string>;
   visible: boolean;
   onClose: () => void;
 }) {
@@ -94,8 +107,8 @@ function PhotoGallery({
         </Pressable>
 
         <FlatList
-          data={urls}
-          keyExtractor={(url) => url}
+          data={refs}
+          keyExtractor={(ref) => ref}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
@@ -106,11 +119,13 @@ function PhotoGallery({
           })}
           renderItem={({ item }) => (
             <View style={[styles.galleryPage, { width, height }]}>
-              <Image
-                source={{ uri: item }}
-                style={StyleSheet.absoluteFill}
-                resizeMode="contain"
-              />
+              {urls[item] ? (
+                <Image
+                  source={{ uri: urls[item] }}
+                  style={StyleSheet.absoluteFill}
+                  resizeMode="contain"
+                />
+              ) : null}
             </View>
           )}
         />
@@ -123,7 +138,13 @@ const styles = StyleSheet.create({
   strip: { marginTop: 8 },
   stripContent: { gap: 6, paddingBottom: 4 },
   thumbContainer: { width: 72, height: 72 },
-  thumb: { width: 72, height: 72, borderRadius: 8 },
+  thumb: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    overflow: 'hidden',
+  },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 8,

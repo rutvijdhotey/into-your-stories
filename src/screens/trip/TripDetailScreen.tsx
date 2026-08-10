@@ -18,6 +18,7 @@ import { generateBlog, getBlogPostByTrip } from '../../services/blogService';
 import { listNotes } from '../../services/noteService';
 import { checkBlogReadiness, isStaleGenerating } from '../../services/blogHelpers';
 import { useCoverPhoto } from '../../hooks/useCoverPhoto';
+import { useSignedPhotoUrl } from '../../hooks/useSignedPhotos';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'TripDetail'>;
 
@@ -32,6 +33,8 @@ export default function TripDetailScreen({ route, navigation }: Props) {
   const [generatingBlog, setGeneratingBlog] = useState(false);
   const [existingPostId, setExistingPostId] = useState<string | null | undefined>(undefined);
   const { setCover, removeCover, busy: coverBusy } = useCoverPhoto(trip);
+  // Above the early returns below — hook order has to stay stable across renders.
+  const coverUri = useSignedPhotoUrl(trip?.cover_photo_url);
 
   // Refetch on focus (not just mount) so returning from BlogPostScreen after a
   // discard/publish reflects the change — otherwise a discarded post leaves a
@@ -142,9 +145,9 @@ export default function TripDetailScreen({ route, navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        {trip.cover_photo_url ? (
+        {coverUri ? (
           <Image
-            source={{ uri: trip.cover_photo_url }}
+            source={{ uri: coverUri }}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
           />

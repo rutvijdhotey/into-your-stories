@@ -153,10 +153,14 @@ of it" is a thirty-second conversation that prevents a genuinely bad moment late
 
 Ordered by whether it blocks.
 
-### Blocking — security (me, ~1–2 days)
-- [ ] Lock down the photos bucket + migrate blog content to storage paths + signed URLs.
-- [ ] Scope the profiles SELECT policy.
-- [ ] Real JWT verification in `tag-note` and `detect-intent`; confirm `verify_jwt` on all three.
+### Blocking — security (me, ~1–2 days) — **code complete 2026-08-07**
+- [x] Lock down the photos bucket + migrate blog content to storage paths + signed URLs.
+- [x] Scope the profiles SELECT policy.
+- [x] Real JWT verification in `tag-note` and `detect-intent`.
+- [ ] **Apply migration `025_security_lockdown.sql`** and redeploy the three edge functions.
+- [ ] Confirm `verify_jwt` on all three in the dashboard (no longer load-bearing, but confirm).
+
+See `docs/progress.md` → "Security Lockdown" for what changed and why. 362 tests green, tsc clean.
 
 ### Blocking — App Store review (me, ~2–3 days)
 - [ ] Settings screen (sign-out moves here, version string, policy links).

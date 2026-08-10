@@ -1,9 +1,7 @@
 const mockUpload = jest.fn();
-const mockGetPublicUrl = jest.fn();
 const mockRemove = jest.fn();
 const mockFrom = {
   upload: mockUpload,
-  getPublicUrl: mockGetPublicUrl,
   remove: mockRemove,
 };
 
@@ -34,13 +32,12 @@ beforeEach(() => {
 });
 
 describe('uploadPhoto', () => {
-  it('uploads the photo and returns the public URL', async () => {
+  // The bucket is private (migration 025), so what gets stored is the storage
+  // path — never a URL. The app signs it at render time.
+  it('uploads the photo and returns its storage path', async () => {
     mockUpload.mockResolvedValueOnce({ data: { path: 'user1/note1/0.jpg' }, error: null });
-    mockGetPublicUrl.mockReturnValueOnce({
-      data: { publicUrl: 'https://example.com/photos/user1/note1/0.jpg' },
-    });
 
-    const url = await uploadPhoto('user1', 'note1', 0, 'file:///photo.jpg');
+    const ref = await uploadPhoto('user1', 'note1', 0, 'file:///photo.jpg');
 
     expect(global.fetch).toHaveBeenCalledWith('file:///photo.jpg');
     expect(mockUpload).toHaveBeenCalledWith(
@@ -48,47 +45,51 @@ describe('uploadPhoto', () => {
       mockArrayBuffer,
       { contentType: 'image/jpeg', upsert: true },
     );
-    expect(mockGetPublicUrl).toHaveBeenCalledWith('user1/note1/0.jpg');
-    expect(url).toBe('https://example.com/photos/user1/note1/0.jpg');
+    expect(ref).toBe('user1/note1/0.jpg');
   });
 
   it('throws when supabase upload returns an error', async () => {
     mockUpload.mockResolvedValueOnce({ data: null, error: new Error('Storage error') });
 
     await expect(uploadPhoto('user1', 'note1', 0, 'file:///photo.jpg')).rejects.toThrow('Storage error');
-    expect(mockGetPublicUrl).not.toHaveBeenCalled();
   });
 });
 
 describe('uploadCoverPhoto', () => {
   afterEach(() => jest.restoreAllMocks());
 
-  it('uploads to the trip-covers path and returns a cache-busted URL', async () => {
+  it('uploads to the trip-covers path and returns a cache-busted path', async () => {
     jest.spyOn(Date, 'now').mockReturnValue(1234);
     mockUpload.mockResolvedValueOnce({ data: { path: 'user1/trip-covers/trip1.jpg' }, error: null });
-    mockGetPublicUrl.mockReturnValueOnce({
-      data: { publicUrl: 'https://example.com/photos/user1/trip-covers/trip1.jpg' },
-    });
 
-    const url = await uploadCoverPhoto('user1', 'trip1', 'file:///cover.jpg');
+    const ref = await uploadCoverPhoto('user1', 'trip1', 'file:///cover.jpg');
 
     expect(mockUpload).toHaveBeenCalledWith(
       'user1/trip-covers/trip1.jpg',
       mockArrayBuffer,
       { contentType: 'image/jpeg', upsert: true },
     );
-    expect(mockGetPublicUrl).toHaveBeenCalledWith('user1/trip-covers/trip1.jpg');
-    expect(url).toBe('https://example.com/photos/user1/trip-covers/trip1.jpg?v=1234');
+    expect(ref).toBe('user1/trip-covers/trip1.jpg?v=1234');
   });
 
   it('throws when upload returns an error', async () => {
     mockUpload.mockResolvedValueOnce({ data: null, error: new Error('Storage error') });
     await expect(uploadCoverPhoto('user1', 'trip1', 'file:///cover.jpg')).rejects.toThrow('Storage error');
-    expect(mockGetPublicUrl).not.toHaveBeenCalled();
   });
 });
 
 describe('deletePhotos', () => {
+  it('removes bare storage paths as given', async () => {
+    mockRemove.mockResolvedValueOnce({ data: [], error: null });
+
+    await deletePhotos(['user1/note1/0.jpg', 'user1/trip-covers/trip1.jpg?v=99']);
+
+    expect(mockRemove).toHaveBeenCalledWith([
+      'user1/note1/0.jpg',
+      'user1/trip-covers/trip1.jpg',
+    ]);
+  });
+
   it('removes extracted paths from storage', async () => {
     mockRemove.mockResolvedValueOnce({ data: [], error: null });
 

@@ -28,6 +28,9 @@ import {
   type BlogPost,
 } from '../../services/blogHelpers';
 import { supabase } from '../../lib/supabase';
+import { useSignedPhotoUrl } from '../../hooks/useSignedPhotos';
+import { replacePhotoRefsInMarkdown, photoRefsInMarkdown } from '../../services/photoRefs';
+import { signPhotoRefs, EXPORT_TTL_SECONDS } from '../../services/signedPhotoUrls';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'BlogPost'>;
 
@@ -38,6 +41,8 @@ export default function BlogPostScreen({ route, navigation }: Props) {
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<'story' | 'itinerary'>('story');
   const [genTimedOut, setGenTimedOut] = useState(false);
+  // Declared here, above the early returns further down, so hook order is stable.
+  const heroUri = useSignedPhotoUrl(post?.cover_photo_url);
 
   // Mirror the latest post into a ref so deferred callbacks (e.g. the Export
   // Alert's button handlers) read fresh state rather than a stale closure.
@@ -214,9 +219,7 @@ export default function BlogPostScreen({ route, navigation }: Props) {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {post.cover_photo_url ? (
-          <Image source={{ uri: post.cover_photo_url }} style={styles.hero} />
-        ) : null}
+        {heroUri ? <Image source={{ uri: heroUri }} style={styles.hero} /> : null}
         <View style={styles.content}>
           <Text style={styles.statusPill}>{statusLabel(post.status)}</Text>
           <Text style={styles.title}>{post.title ?? 'Untitled'}</Text>
@@ -289,9 +292,15 @@ type MarkdownImageNode = { key: string; attributes: { src?: string } };
 // spreads `key` into <FitImage {...props}>, which React 19 warns about. We pass
 // `key` directly and size each image to its natural aspect ratio so inline trip
 // photos render without cropping or a fixed-height guess.
-function MarkdownImage({ uri }: { uri: string }) {
+//
+// Generated posts embed storage paths rather than URLs (the bucket is private),
+// so the src is signed here at render time.
+function MarkdownImage({ photoRef }: { photoRef: string }) {
   const [ratio, setRatio] = useState(4 / 3);
+  const uri = useSignedPhotoUrl(photoRef);
+
   useEffect(() => {
+    if (!uri) return;
     let active = true;
     Image.getSize(
       uri,
@@ -304,20 +313,37 @@ function MarkdownImage({ uri }: { uri: string }) {
       active = false;
     };
   }, [uri]);
+
+  if (!uri) return null;
   return <Image source={{ uri }} style={[styles.mdImage, { aspectRatio: ratio }]} resizeMode="cover" />;
 }
 
 const markdownRules = {
   image: (node: MarkdownImageNode) => {
-    const uri = node.attributes?.src;
-    if (!uri) return null;
-    return <MarkdownImage key={node.key} uri={uri} />;
+    const src = node.attributes?.src;
+    if (!src) return null;
+    return <MarkdownImage key={node.key} photoRef={src} />;
   },
 };
 
+/**
+ * Swaps the post's storage paths for long-lived signed URLs so an exported file
+ * still shows its photos when opened outside the app. Refs that can't be signed
+ * are left as-is rather than dropping the image silently.
+ */
+async function markdownForExport(markdown: string): Promise<string> {
+  const refs = photoRefsInMarkdown(markdown);
+  if (refs.length === 0) return markdown;
+  const signed = await signPhotoRefs(refs, {
+    ttlSeconds: EXPORT_TTL_SECONDS,
+    useCache: false,
+  });
+  return replacePhotoRefsInMarkdown(markdown, (ref) => signed.get(ref) ?? null);
+}
+
 async function exportMarkdown(post: BlogPost) {
   try {
-    await Share.share({ message: post.content_markdown ?? '' });
+    await Share.share({ message: await markdownForExport(post.content_markdown ?? '') });
   } catch (e) {
     Alert.alert('Could not export', (e as Error).message);
   }
@@ -325,7 +351,7 @@ async function exportMarkdown(post: BlogPost) {
 
 async function exportHtml(post: BlogPost) {
   try {
-    const html = markdownToHtml(post.content_markdown ?? '');
+    const html = markdownToHtml(await markdownForExport(post.content_markdown ?? ''));
     const safeName =
       (post.title ?? 'post').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'post';
     const file = new File(Paths.cache, `${safeName}.html`);

@@ -32,6 +32,13 @@ jest.mock('expo-linear-gradient', () => {
   return { LinearGradient: View };
 });
 
+// Signed-URL resolution has its own suite (signedPhotoUrls.test.ts); here a
+// reference resolves to itself so these tests stay about what the card renders.
+jest.mock('../../hooks/useSignedPhotos', () => ({
+  useSignedPhotoUrl: (ref: string | null | undefined) => ref ?? null,
+  useSignedPhotoUrls: (refs: string[]) => Object.fromEntries(refs.map((r) => [r, r])),
+}));
+
 import TripCard from '../TripCard';
 
 const baseTrip: Trip = {

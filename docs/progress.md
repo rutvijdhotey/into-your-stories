@@ -239,6 +239,54 @@ Small, independently-shippable features noticed during other work. Each is its o
 
 ---
 
+## Security Lockdown — audit findings fixed (CODE COMPLETE ✅, migration pending)
+
+**Date:** 2026-08-07
+**Findings:** `docs/superpowers/plans/2026-08-07-test-market-strategy.md` §1
+**Tests:** 362 passed (322 baseline + 40 new). `npx tsc --noEmit` clean.
+
+> All three findings from the pre-beta audit. Both database findings predate this
+> session and were written permissively for the public-blog feature that was later
+> deferred to V2 — the feature never arrived, the permissions stayed. Fixed before
+> any tester's data exists.
+
+### What shipped
+
+| # | Finding | Fix |
+|---|---|---|
+| 🔴 CRITICAL | `photos` bucket had `TO public` SELECT, which backs the storage *list* API — anyone with the anon key (it ships in the IPA) could enumerate every user's folder and download their photos | Migration `025`: owner-scoped SELECT + bucket flipped private. Client now stores **storage paths** and signs at render time. |
+| 🔴 HIGH | `profiles` SELECT was `using (true)` with no role clause — anon could dump every UUID, real name, and signup time; chained with the above into targeted deanonymization | Migration `025`: own-row-only (`to authenticated`, `auth.uid() = id`). Nothing in V1 reads another user's profile; `aggregate_trip_for_community` is SECURITY DEFINER so it is unaffected. |
+| 🟡 MEDIUM | `tag-note` and `detect-intent` checked only that an `Authorization` header *existed* — `Bearer hello` passed. Safe only because of the platform's `verify_jwt` default, which neither function asserted | New `supabase/functions/_shared/auth.ts` → `requireUser(req)` does a real `admin.auth.getUser(token)`, mirroring what `generate-blog` already did. |
+
+### The photo architecture change (the real work)
+
+The policy change is four lines; making photos survive it is not. Signed URLs
+expire, so a stored blog full of signed URLs would rot. What is stored is now a
+bucket-relative **storage path**, signed on demand:
+
+- `photoRefs.ts` — pure: `toStoragePath` (accepts a path *or* a legacy public URL,
+  so pre-lockdown rows keep working with no data migration), `isLocalUri`,
+  `replacePhotoRefsInMarkdown`, `photoRefsInMarkdown`. 17 tests.
+- `signedPhotoUrls.ts` — batched `createSignedUrls` with a ref-keyed in-memory
+  cache and a 5-minute refresh margin; 1h TTL for rendering, 7d for exports.
+  Cleared on `SIGNED_OUT`. 17 tests.
+- `useSignedPhotos.ts` — `useSignedPhotoUrls` / `useSignedPhotoUrl`; seeds from
+  cache so revisiting a screen doesn't flash empty tiles.
+- Render sites converted: `PhotoStrip` (+6 tests), `NoteEditSheet`, `TripCard`,
+  `TripDetailScreen`, `BlogPostCard`, `BlogPostScreen` (hero + Markdown images).
+- Blog export signs with a 7-day TTL so a shared file still shows its photos.
+- `generate-blog` downloads photos through the service role instead of fetching
+  public URLs, labels them to Claude as opaque ids, and filters the returned
+  cover/selected ids to the set actually offered.
+
+### Still to do (dashboard — needs the Supabase MCP or dashboard access)
+
+- [ ] Apply migration `025_security_lockdown.sql` (per `supabase/README.md`).
+- [ ] Redeploy all three edge functions.
+- [ ] Confirm `verify_jwt: true` on all three (belt-and-braces; the code no longer depends on it).
+
+---
+
 ## Editable Note Location (COMPLETE ✅)
 
 **Branch:** `backlog/editable-note-location` → merged to `main` (PR #8, merge `aa84425`) 2026-05-30; branch deleted. On-device QA passed.

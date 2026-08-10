@@ -40,7 +40,7 @@ export default function TripFeedScreen({ tripId }: Props) {
     );
   }
 
-  const allPhotoUrls = items
+  const allPhotoRefs = items
     .filter((item) => item.kind === 'note')
     .flatMap((item) => (item.kind === 'note' ? item.note.photo_urls : []));
 
@@ -58,7 +58,7 @@ export default function TripFeedScreen({ tripId }: Props) {
           />
         )}
         contentContainerStyle={styles.list}
-        ListHeaderComponent={<PhotoStrip urls={allPhotoUrls} />}
+        ListHeaderComponent={<PhotoStrip refs={allPhotoRefs} />}
       />
 
       {editingNote && (

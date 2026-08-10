@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { requireUser } from '../_shared/auth.ts';
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 
@@ -18,14 +19,9 @@ or
 {"intent":"search","text":"<cleaned transcript>"}`;
 
 serve(async (req) => {
-  // Verify auth
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  // Real verification, not a presence check — this endpoint spends the Anthropic key.
+  const { error: authError } = await requireUser(req);
+  if (authError) return authError;
 
   const { transcript } = await req.json() as { transcript: string };
 

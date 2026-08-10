@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Shadows, BorderRadius, getTripGradient } from '../theme';
 import TripStatusBadge from './TripStatusBadge';
 import { formatDateRange, isOverdueActive, type Trip } from '../services/tripHelpers';
+import { useSignedPhotoUrl } from '../hooks/useSignedPhotos';
 
 export const SWIPE_THRESHOLD = 80;
 
@@ -26,6 +27,9 @@ export default function TripCard({ trip, onPress, onLongPress }: Props) {
     trip.destinations.length > 0 ? trip.destinations.join(', ') : 'No destination yet';
   const noteCountLabel = `${trip.note_count} ${trip.note_count === 1 ? 'note' : 'notes'}`;
   const gradient = getTripGradient(trip.name);
+  // Falls back to the gradient while the cover URL is being signed, and stays
+  // there if signing fails — never a blank card.
+  const coverUri = useSignedPhotoUrl(trip.cover_photo_url);
 
   const translateX = useSharedValue(0);
 
@@ -63,9 +67,9 @@ export default function TripCard({ trip, onPress, onLongPress }: Props) {
           onLongPress={onLongPress}
           delayLongPress={400}
         >
-          {trip.cover_photo_url ? (
+          {coverUri ? (
             <Image
-              source={{ uri: trip.cover_photo_url }}
+              source={{ uri: coverUri }}
               style={StyleSheet.absoluteFill}
               resizeMode="cover"
             />

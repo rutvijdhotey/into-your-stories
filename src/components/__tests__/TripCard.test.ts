@@ -35,6 +35,13 @@ jest.mock('react-native-gesture-handler', () => {
   };
 });
 
+// TripCard signs its cover photo; stub the hook so importing it doesn't pull in
+// the Supabase client, which needs env vars this suite has no use for.
+jest.mock('../../hooks/useSignedPhotos', () => ({
+  useSignedPhotoUrl: (ref: string | null | undefined) => ref ?? null,
+  useSignedPhotoUrls: (refs: string[]) => Object.fromEntries(refs.map((r) => [r, r])),
+}));
+
 import { SWIPE_THRESHOLD } from '../TripCard';
 import * as Reanimated from 'react-native-reanimated';
 import * as GestureHandler from 'react-native-gesture-handler';

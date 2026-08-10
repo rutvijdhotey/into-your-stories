@@ -57,7 +57,7 @@ function ServerNoteCard({
         <Text style={styles.photoError}>⚠ 1 photo failed</Text>
       )}
       {photoStatus === null && note.photo_urls.length > 0 && (
-        <PhotoStrip urls={note.photo_urls} />
+        <PhotoStrip refs={note.photo_urls} />
       )}
     </Pressable>
   );

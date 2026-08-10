@@ -1,6 +1,7 @@
 import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
 import { Colors, Spacing, BorderRadius, Shadows } from '../theme';
 import { statusLabel, formatBlogDate, type BlogPost } from '../services/blogHelpers';
+import { useSignedPhotoUrl } from '../hooks/useSignedPhotos';
 
 type Props = {
   post: BlogPost;
@@ -15,14 +16,15 @@ function statusColor(status: BlogPost['status']): string {
 
 export default function BlogPostCard({ post, onPress }: Props) {
   const date = post.published_at ?? post.created_at;
+  const coverUri = useSignedPhotoUrl(post.cover_photo_url);
 
   return (
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       onPress={onPress}
     >
-      {post.cover_photo_url ? (
-        <Image source={{ uri: post.cover_photo_url }} style={styles.cover} />
+      {coverUri ? (
+        <Image source={{ uri: coverUri }} style={styles.cover} />
       ) : (
         <View style={[styles.cover, styles.coverFallback]} />
       )}

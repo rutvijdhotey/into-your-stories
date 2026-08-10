@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { clearSignedPhotoCache } from '../services/signedPhotoUrls';
 
 type AuthContextValue = {
   session: Session | null;
@@ -20,7 +21,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
+      // Signed photo URLs stay valid until their TTL runs out, so drop them the
+      // moment the session ends rather than leaving one user's photos reachable
+      // from a device the next user signs in on.
+      if (event === 'SIGNED_OUT') clearSignedPhotoCache();
       setSession(newSession);
     });
 
