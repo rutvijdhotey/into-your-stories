@@ -153,14 +153,18 @@ of it" is a thirty-second conversation that prevents a genuinely bad moment late
 
 Ordered by whether it blocks.
 
-### Blocking — security (me, ~1–2 days) — **code complete 2026-08-07**
+### Blocking — security (me) — ✅ **DONE, live in production 2026-08-09**
 - [x] Lock down the photos bucket + migrate blog content to storage paths + signed URLs.
 - [x] Scope the profiles SELECT policy.
 - [x] Real JWT verification in `tag-note` and `detect-intent`.
-- [ ] **Apply migration `025_security_lockdown.sql`** and redeploy the three edge functions.
-- [ ] Confirm `verify_jwt` on all three in the dashboard (no longer load-bearing, but confirm).
+- [x] Migration `025_security_lockdown` applied; all three functions redeployed with `verify_jwt: true`.
+- [x] Re-verified from an anonymous client with the shipped anon key — profiles dump, bucket
+      listing, and public photo download all now return empty/400; both AI functions return
+      `unauthorized`.
 
-See `docs/progress.md` → "Security Lockdown" for what changed and why. 362 tests green, tsc clean.
+See `docs/progress.md` → "Security Lockdown" for the full before/after table. 362 tests, tsc clean.
+
+**Still open (dashboard, not blocking):** enable leaked-password protection in Auth settings.
 
 ### Blocking — App Store review (me, ~2–3 days)
 - [ ] Settings screen (sign-out moves here, version string, policy links).

@@ -239,7 +239,7 @@ Small, independently-shippable features noticed during other work. Each is its o
 
 ---
 
-## Security Lockdown — audit findings fixed (CODE COMPLETE ✅, migration pending)
+## Security Lockdown — audit findings fixed (COMPLETE ✅, live in production)
 
 **Date:** 2026-08-07
 **Findings:** `docs/superpowers/plans/2026-08-07-test-market-strategy.md` §1
@@ -279,11 +279,38 @@ bucket-relative **storage path**, signed on demand:
   public URLs, labels them to Claude as opaque ids, and filters the returned
   cover/selected ids to the set actually offered.
 
-### Still to do (dashboard — needs the Supabase MCP or dashboard access)
+### Deployed 2026-08-09
 
-- [ ] Apply migration `025_security_lockdown.sql` (per `supabase/README.md`).
-- [ ] Redeploy all three edge functions.
-- [ ] Confirm `verify_jwt: true` on all three (belt-and-braces; the code no longer depends on it).
+Migration `025_security_lockdown` applied. All three edge functions redeployed
+(`tag-note` v3, `detect-intent` v6, `generate-blog` v12), all with
+`verify_jwt: true` — which was already on, confirming the audit's read that the
+functions were safe only because of a platform setting they didn't assert.
+
+### Verified from an anonymous client, using the anon key that ships in the IPA
+
+| Attack | Before | After |
+|---|---|---|
+| `GET /rest/v1/profiles?select=*` | every UUID, display_name, signup time | `[]` |
+| `POST /storage/v1/object/list/photos` | every user's folder → note IDs → filenames | `[]` |
+| `GET /storage/v1/object/public/photos/{path}` | `200` + JPEG bytes | `400` |
+| `POST /functions/v1/tag-note` w/ anon key as bearer | passed the presence check, billed Anthropic | `{"error":"unauthorized"}` |
+| `POST /functions/v1/detect-intent` w/ anon key as bearer | same | `{"error":"unauthorized"}` |
+
+The function tests matter most: the anon key is a *valid JWT*, so the gateway's
+`verify_jwt` passes it through to our code. Rejection there is proof the new
+in-function verification works, not just that the gateway is on.
+
+### Still open (dashboard, not blocking)
+
+- [ ] **Enable leaked-password protection** (Auth settings). Advisor flagged it;
+      worth having before testers pick passwords.
+- [ ] Rebuild the app — the installed build still expects public URLs and will
+      show no photos until it carries this code.
+- [ ] Cosmetic: migrations `006` and `007` aren't in the Supabase ledger (applied
+      outside `apply_migration` at some point). The policies are live and correct;
+      only the audit trail is incomplete.
+- Ignorable: advisor's `rls_auto_enable` warning is a false positive — it's an
+  event-trigger function, which cannot be invoked over REST.
 
 ---
 
