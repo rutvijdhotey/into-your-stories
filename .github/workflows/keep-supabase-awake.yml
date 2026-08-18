@@ -1,0 +1,50 @@
+# Keeps the Supabase free-tier project from auto-pausing.
+#
+# The free tier pauses a project after ~7 days with no activity. A paused
+# project means a tester's app silently stops saving notes mid-trip, which is
+# the worst possible failure mode for this app — their trip can't be repeated.
+#
+# This pings a genuinely public table (`public_places` has a public-read RLS
+# policy from migration 017) every 3 days, which counts as project activity.
+#
+# Secrets required (Settings → Secrets and variables → Actions):
+#   SUPABASE_URL       — same value as EXPO_PUBLIC_SUPABASE_URL in .env
+#   SUPABASE_ANON_KEY  — same value as EXPO_PUBLIC_SUPABASE_ANON_KEY in .env
+#
+# Both are safe to store here: the anon key already ships inside the app binary.
+# The service role key must NEVER be added to this repo.
+#
+# Note: GitHub disables scheduled workflows in a repo with no commits for 60
+# days. If the repo goes quiet for two months, re-enable it in the Actions tab.
+
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: '0 9 */3 * *' # every 3 days at 09:00 UTC
+  workflow_dispatch: # lets you trigger it by hand from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::SUPABASE_URL and SUPABASE_ANON_KEY repo secrets are not set."
+            exit 1
+          fi
+
+          # -f makes curl exit non-zero on an HTTP error, so a paused or broken
+          # project turns this job red instead of passing silently.
+          status=$(curl -fsS -w '%{http_code}' -o /tmp/ping-body \
+            "$SUPABASE_URL/rest/v1/public_places?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+
+          echo "HTTP $status"
+          echo "Response: $(cat /tmp/ping-body)"
+          echo "Supabase project is awake."
