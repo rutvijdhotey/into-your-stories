@@ -20,7 +20,7 @@
         "NSMicrophoneUsageDescription": "Notebound uses your microphone to capture voice notes.",
         "NSSpeechRecognitionUsageDescription": "Notebound transcribes your voice using on-device speech recognition."
       },
-      "bundleIdentifier": "com.rutvijdhotey.intoyourstories"
+      "bundleIdentifier": "com.rutvijdhotey.notebound"
     },
     "android": {
       "adaptiveIcon": {
@@ -34,7 +34,7 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.rutvijdhotey.intoyourstories"
+      "package": "com.rutvijdhotey.notebound"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -52,6 +52,15 @@
         "expo-image-picker",
         {
           "photosPermission": "Notebound uses your photos so you can attach them to notes."
+        }
+      ],
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.4"
+          }
         }
       ]
     ]

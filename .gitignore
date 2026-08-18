@@ -46,3 +46,7 @@ supabase/.temp/
 
 # Git worktrees
 .worktrees/
+
+# Claude Code local config — permission allowlists and launch configs are
+# machine-specific (absolute paths, and launch.json points at another project).
+.claude/
